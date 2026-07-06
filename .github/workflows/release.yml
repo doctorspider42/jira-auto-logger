@@ -1,11 +1,13 @@
 name: Release
 
-# Builds installers for Windows, macOS and Linux and attaches them to a
-# GitHub release. Trigger by pushing a version tag, e.g. `git tag v0.1.0`.
+# Builds installers for Windows, macOS and Linux. Pushing a version tag
+# (e.g. `git tag v0.1.0`) attaches them to a GitHub release; a manual run
+# (workflow_dispatch) only uploads them as workflow artifacts.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -46,7 +48,15 @@ jobs:
       - name: Package
         run: npx electron-builder --publish never
 
-      - name: Attach to release
+      - name: Upload build artifacts (manual run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-build
+          path: ${{ matrix.artifacts }}
+
+      - name: Attach to release (tag run)
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifacts }}
