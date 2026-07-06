@@ -161,3 +161,55 @@
   margin-right: 3px;
   font-size: 10px;
 }
+
+/* ---------- Narrow windows ---------- */
+
+@media (max-width: 1100px) {
+  .calendar-grid {
+    gap: 4px;
+    grid-auto-rows: minmax(78px, 1fr);
+  }
+
+  .calendar-day {
+    padding: 4px;
+  }
+
+  .calendar-month-label {
+    min-width: 110px;
+    font-size: 15px;
+  }
+
+  .calendar-entry {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+}
+
+@media (max-width: 820px) {
+  .calendar-grid {
+    grid-auto-rows: minmax(60px, 1fr);
+    gap: 3px;
+  }
+
+  .calendar-toolbar {
+    gap: 8px;
+  }
+
+  /* The per-day total in the header carries the numbers; inside the tiny
+     entry chips the issue key is the more valuable half. */
+  .calendar-entry-hours {
+    display: none;
+  }
+
+  .calendar-entry-conn {
+    display: none;
+  }
+
+  .calendar-day-number {
+    font-size: 12px;
+  }
+
+  .calendar-hint {
+    display: none;
+  }
+}

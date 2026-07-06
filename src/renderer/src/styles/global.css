@@ -134,6 +134,32 @@ textarea {
   padding: 20px;
 }
 
+@media (max-width: 1100px) {
+  .app-main {
+    padding: 12px;
+  }
+
+  .app-header {
+    padding: 8px 12px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 820px) {
+  .app-main {
+    padding: 8px;
+  }
+
+  .app-header h1 {
+    font-size: 14px;
+  }
+
+  .nav-tab {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+}
+
 .nav-tabs {
   display: flex;
   gap: 4px;
