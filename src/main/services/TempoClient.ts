@@ -19,6 +19,17 @@ const toAttributes = (dto: TempoWorklogDto): Array<{ key: string; value: string 
     value: typeof a.value === 'boolean' ? a.value : String(a.value ?? '')
   }))
 
+const WORKDAY_START_SECONDS = 9 * 3600
+
+/** Seconds-from-midnight -> "HH:MM:SS", clamped to stay within the day. */
+function toStartTime(seconds: number): string {
+  const clamped = Math.min(seconds, 23 * 3600 + 59 * 60)
+  const hh = String(Math.floor(clamped / 3600)).padStart(2, '0')
+  const mm = String(Math.floor((clamped % 3600) / 60)).padStart(2, '0')
+  const ss = String(clamped % 60).padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+}
+
 interface TempoPageDto {
   results: TempoWorklogDto[]
   metadata: { next?: string }
@@ -88,13 +99,19 @@ export class TempoClient implements TempoApi {
 
   async createWorklogs(accountId: string, worklogs: NewWorklog[]): Promise<Worklog[]> {
     const created: Worklog[] = []
+    // Entries of one day are laid out back-to-back instead of all starting at
+    // the same hour; days with existing worklogs continue after them.
+    const startOffsets = await this.initialStartOffsets(accountId, worklogs)
     for (const worklog of worklogs) {
+      const offset = startOffsets.get(worklog.startDate) ?? WORKDAY_START_SECONDS
+      startOffsets.set(worklog.startDate, offset + worklog.timeSpentSeconds)
+
       const issue = await this.jira.getIssue(worklog.issueKey)
       const dto = (await this.request(`${TEMPO_BASE_URL}/worklogs`, 'POST', {
         issueId: Number(issue.id),
         timeSpentSeconds: worklog.timeSpentSeconds,
         startDate: worklog.startDate,
-        startTime: '09:00:00',
+        startTime: toStartTime(offset),
         description: worklog.description,
         authorAccountId: accountId,
         ...(worklog.attributes.length > 0 ? { attributes: worklog.attributes } : {})
@@ -111,6 +128,35 @@ export class TempoClient implements TempoApi {
       })
     }
     return created
+  }
+
+  /**
+   * Start-of-day offsets per date: 09:00 plus whatever is already logged
+   * that day, so new entries continue after existing ones.
+   */
+  private async initialStartOffsets(
+    accountId: string,
+    worklogs: NewWorklog[]
+  ): Promise<Map<string, number>> {
+    const offsets = new Map<string, number>()
+    if (worklogs.length === 0) return offsets
+    const dates = worklogs.map((w) => w.startDate).sort()
+
+    let loggedByDate = new Map<string, number>()
+    try {
+      const existing = await this.getWorklogs(accountId, dates[0], dates[dates.length - 1])
+      loggedByDate = existing.reduce(
+        (map, w) => map.set(w.startDate, (map.get(w.startDate) ?? 0) + w.timeSpentSeconds),
+        new Map<string, number>()
+      )
+    } catch {
+      // Reading existing worklogs is best-effort; fall back to a 09:00 start.
+    }
+
+    for (const date of new Set(dates)) {
+      offsets.set(date, WORKDAY_START_SECONDS + (loggedByDate.get(date) ?? 0))
+    }
+    return offsets
   }
 
   private async request(url: string, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
