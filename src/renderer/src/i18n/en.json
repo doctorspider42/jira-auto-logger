@@ -56,9 +56,7 @@
     "submitting": "Logging time…",
     "submitted": "Logged {{count}} entries.",
     "missingIssue": "Fill in the issue for every entry.",
-    "dayTotal": "{{date}} — total {{hours}} h",
-    "allDays": "All days",
-    "filterByDay": "Show only this day's entries"
+    "allDays": "All days"
   },
   "settings": {
     "title": "Settings",

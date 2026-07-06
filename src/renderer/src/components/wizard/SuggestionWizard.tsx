@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { format } from 'date-fns'
 import type {
   AppError,
   CommitInfo,
@@ -13,7 +14,7 @@ import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { FunnyLoader } from '@/components/common/FunnyLoader'
 import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
-import { formatHours } from '@/utils/format'
+import { dateLocale, formatHours } from '@/utils/format'
 import { SuggestionRow } from './SuggestionRow'
 import './wizard.css'
 
@@ -112,7 +113,8 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     }
     setCommitsByProject(Object.fromEntries(commitResults.map((c) => [c.projectId, c.commits])))
     setGroups(suggestionsResult.value)
-    setDateFilter(null)
+    // Multi-day runs start focused on the first day; the tabs make it obvious.
+    setDateFilter(dates.length > 1 ? [...dates].sort()[0] : null)
     setStep('suggestions')
   }
 
@@ -147,6 +149,66 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     ])
 
   const allSuggestions = groups.flatMap((g) => g.suggestions)
+
+  // ---------- Day tabs (step 2) ----------
+
+  const targetHours = config.workingHoursPerDay
+  /** Requested dates plus any date an entry was manually moved to. */
+  const tabDates = useMemo(
+    () => [...new Set([...dates, ...allSuggestions.map((s) => s.date)])].sort(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dates, groups]
+  )
+  const totalsByDate = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const s of allSuggestions) map.set(s.date, (map.get(s.date) ?? 0) + s.hours)
+    return map
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups])
+
+  const hoursStatus = (hours: number, target: number): string =>
+    hours === target ? 'ok' : hours < target ? 'under' : 'over'
+
+  const renderDayTabs = (): JSX.Element | null => {
+    if (tabDates.length < 2) return null
+    const locale = dateLocale(config.language)
+    const totalAll = allSuggestions.reduce((sum, s) => sum + s.hours, 0)
+    return (
+      <div className="day-tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={dateFilter === null}
+          className={`day-tab ${dateFilter === null ? 'selected' : ''}`}
+          onClick={() => setDateFilter(null)}
+        >
+          <span className="day-tab-weekday">{t('wizard.allDays')}</span>
+          <span className="day-tab-date">{tabDates.length} × {formatHours(targetHours * 3600)}h</span>
+          <span className={`day-tab-hours ${hoursStatus(totalAll, targetHours * tabDates.length)}`}>
+            {formatHours(totalAll * 3600)}h
+          </span>
+        </button>
+        {tabDates.map((date) => {
+          const day = new Date(date)
+          const hours = totalsByDate.get(date) ?? 0
+          return (
+            <button
+              key={date}
+              role="tab"
+              aria-selected={dateFilter === date}
+              className={`day-tab ${dateFilter === date ? 'selected' : ''}`}
+              onClick={() => setDateFilter(date)}
+            >
+              <span className="day-tab-weekday">{format(day, 'EEEE', { locale })}</span>
+              <span className="day-tab-date">{format(day, 'd MMM', { locale })}</span>
+              <span className={`day-tab-hours ${hoursStatus(hours, targetHours)}`}>
+                {formatHours(hours * 3600)}/{formatHours(targetHours * 3600)}h
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
 
   const submit = async (): Promise<void> => {
     if (allSuggestions.some((s) => !s.issueKey.trim())) {
@@ -263,36 +325,20 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     const project = projectById.get(group.projectId)
     const connection = config.connections.find((c) => c.id === group.connectionId)
     const selection = selections.find((s) => s.projectId === group.projectId)
-    const totalsByDate = [...group.suggestions
-      .reduce((map, s) => map.set(s.date, (map.get(s.date) ?? 0) + s.hours), new Map<string, number>())
-      .entries()].sort(([a], [b]) => a.localeCompare(b))
     const visible = dateFilter
       ? group.suggestions.filter((s) => s.date === dateFilter)
       : group.suggestions
+    const visibleHours = visible.reduce((sum, s) => sum + s.hours, 0)
 
     return (
       <section key={group.projectId} className="wizard-connection-group">
-        <h4>{group.projectName}</h4>
-        <div className="wizard-totals">
-          {totalsByDate.length > 1 && (
-            <button
-              className={`chip ${dateFilter === null ? 'selected' : ''}`}
-              onClick={() => setDateFilter(null)}
-            >
-              {t('wizard.allDays')}
-            </button>
+        <h4>
+          {project?.color && (
+            <span className="project-color-dot" style={{ background: project.color }} />
           )}
-          {totalsByDate.map(([date, hours]) => (
-            <button
-              key={date}
-              className={`chip ${dateFilter === date ? 'selected' : ''}`}
-              title={t('wizard.filterByDay')}
-              onClick={() => setDateFilter((current) => (current === date ? null : date))}
-            >
-              {t('wizard.dayTotal', { date, hours: formatHours(hours * 3600) })}
-            </button>
-          ))}
-        </div>
+          {group.projectName}
+          <span className="hint"> · {formatHours(visibleHours * 3600)}h</span>
+        </h4>
         {visible.map((suggestion) => (
           <SuggestionRow
             key={suggestion.id}
@@ -361,6 +407,7 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
         </>
       ) : (
         <>
+          {renderDayTabs()}
           <p className="hint wizard-info">{t('wizard.suggestionsInfo')}</p>
           {groups.map(renderGroup)}
         </>

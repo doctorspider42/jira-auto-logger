@@ -56,9 +56,7 @@
     "submitting": "Loguję czas…",
     "submitted": "Zalogowano {{count}} wpisów.",
     "missingIssue": "Uzupełnij zadanie we wszystkich wpisach.",
-    "dayTotal": "{{date}} — razem {{hours}} h",
-    "allDays": "Wszystkie dni",
-    "filterByDay": "Pokaż tylko wpisy z tego dnia"
+    "allDays": "Wszystkie dni"
   },
   "settings": {
     "title": "Ustawienia",
