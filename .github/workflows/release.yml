@@ -37,7 +37,10 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Registry hiccups (ECONNRESET) show up on hosted runners now and
+        # then - retry twice with a pause before giving up.
+        run: npm ci || (sleep 20 && npm ci) || (sleep 60 && npm ci)
+        shell: bash
 
       - name: Type check
         run: npm run typecheck
