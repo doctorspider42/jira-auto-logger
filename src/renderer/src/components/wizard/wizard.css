@@ -1,0 +1,232 @@
+.wizard-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wizard-label-row > label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.wizard-info {
+  margin-top: 0;
+}
+
+.wizard-connection-group {
+  margin-bottom: 20px;
+}
+
+.wizard-connection-group h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--color-accent);
+}
+
+.wizard-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.wizard-totals .chip {
+  cursor: pointer;
+}
+
+.suggestion-row {
+  margin-bottom: 14px;
+}
+
+.suggestion-row.invalid {
+  border-color: var(--color-warning);
+}
+
+.suggestion-row-grid {
+  display: grid;
+  grid-template-columns: 1fr 140px 80px auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.wizard-project-section {
+  margin-bottom: 14px;
+}
+
+.wizard-project-section h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.suggestion-remove {
+  margin-top: 24px;
+}
+
+.suggestion-row .field {
+  margin-bottom: 10px;
+}
+
+.project-color-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.issue-type-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 3px;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1;
+  flex-shrink: 0;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+
+.suggestion-custom-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.suggestion-custom-field-text {
+  margin-bottom: 0 !important;
+  min-width: 220px;
+}
+
+.regenerate-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.regenerate-box input {
+  flex: 1;
+}
+
+.prompt-preview {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  font-family: Consolas, 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+/* ---------- Issue autocomplete ---------- */
+
+.issue-autocomplete {
+  position: relative;
+}
+
+.issue-autocomplete input {
+  width: 100%;
+}
+
+.issue-autocomplete-input-row {
+  position: relative;
+}
+
+.issue-autocomplete-spinner {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+}
+
+.issue-input-badge {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  pointer-events: auto;
+}
+
+.issue-input-badge .issue-type-badge {
+  margin-right: 0;
+  vertical-align: 0;
+}
+
+.issue-autocomplete input.with-type-badge {
+  padding-left: 30px;
+}
+
+.issue-link-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.issue-link-btn:hover {
+  background: var(--color-accent-soft);
+}
+
+.issue-autocomplete-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-popup);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.issue-autocomplete-list button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.issue-autocomplete-list .issue-result-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.issue-autocomplete-list .issue-link-btn {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.issue-autocomplete-list button:hover {
+  background: var(--color-bg-hover);
+}

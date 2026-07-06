@@ -1,0 +1,154 @@
+.settings {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+.settings-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: -10px;
+}
+
+.settings-paths .hint {
+  margin: 0;
+  font-size: 11.5px;
+}
+
+.settings h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.connection-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.connection-card.invalid {
+  border-color: var(--color-warning);
+}
+
+.settings-test-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-test-ok {
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.settings-folder-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-folder-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.settings-folder-list li.invalid {
+  border-color: var(--color-warning);
+}
+
+.settings-folder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-folder-head > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-folder-author {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.settings-folder-author input[type='text'],
+.settings-folder-author input:not([type]) {
+  flex: 1;
+  max-width: 320px;
+}
+
+.settings-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.settings-folder-warning {
+  color: var(--color-warning);
+  margin: 10px 0 0;
+}
+
+.custom-fields-group {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.custom-fields-group h4 {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+  color: var(--color-accent);
+}
+
+.custom-field-instruction {
+  min-height: 48px;
+}
+
+.emoji-select {
+  padding: 3px 6px;
+  font-size: 15px;
+  width: 58px;
+}
+
+.model-select {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-prompt {
+  min-height: 220px;
+  font-family: Consolas, 'SF Mono', 'Cascadia Code', monospace;
+  font-size: 12.5px;
+}
+
+.settings-save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  background: linear-gradient(transparent, var(--color-bg) 40%);
+}

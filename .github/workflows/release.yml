@@ -1,0 +1,53 @@
+name: Release
+
+# Builds installers for Windows, macOS and Linux and attaches them to a
+# GitHub release. Trigger by pushing a version tag, e.g. `git tag v0.1.0`.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifacts: dist/*.exe
+          - os: macos-latest
+            artifacts: dist/*.dmg
+          - os: ubuntu-latest
+            artifacts: dist/*.AppImage
+    runs-on: ${{ matrix.os }}
+    env:
+      # No code-signing certificates in CI - produce unsigned builds.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Package
+        run: npx electron-builder --publish never
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifacts }}
+          generate_release_notes: true
