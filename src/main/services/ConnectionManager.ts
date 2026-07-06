@@ -2,7 +2,7 @@ import { AppException } from '@shared/domain'
 import type { AppConfig, JiraConnection } from '@shared/domain'
 import { JiraClient } from './JiraClient'
 import type { JiraApi } from './JiraClient'
-import { TempoClient } from './TempoClient'
+import { TempoClient, parseWorkdayStart } from './TempoClient'
 import type { TempoApi } from './TempoClient'
 import { isMockMode, mockJira, mockTempo } from './mock'
 
@@ -40,7 +40,9 @@ export class ConnectionManager {
     if (!client) {
       client = isMockMode()
         ? mockTempo(id)
-        : new TempoClient(() => this.connection(id).tempo, this.jira(id))
+        : new TempoClient(() => this.connection(id).tempo, this.jira(id), () =>
+            parseWorkdayStart(this.getConfig().workdayStart)
+          )
       this.tempoClients.set(id, client)
     }
     return client

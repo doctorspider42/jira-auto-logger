@@ -696,6 +696,14 @@ export function SettingsView(): JSX.Element {
               onChange={(e) => patch({ workingHoursPerDay: Number(e.target.value) || 8 })}
             />
           </div>
+          <div className="field">
+            <label>{t('settings.workdayStart')}</label>
+            <input
+              type="time"
+              value={draft.workdayStart}
+              onChange={(e) => patch({ workdayStart: e.target.value || '09:00' })}
+            />
+          </div>
         </div>
       </section>
 

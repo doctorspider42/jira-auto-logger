@@ -137,6 +137,7 @@
     "themeWin95": "Windows 95",
     "themeFallout": "Terminal Fallout",
     "workingHours": "Godziny robocze dziennie",
+    "workdayStart": "Początek dnia pracy",
     "saved": "Zapisano ustawienia.",
     "configLocation": "Ustawienia zapisują się w: {{path}}",
     "logLocation": "Logi diagnostyczne: {{path}}"

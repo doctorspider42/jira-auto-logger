@@ -144,6 +144,8 @@ export interface AppConfig {
   themeId: ThemeId
   /** Target working hours per day used as a hint for the LLM. */
   workingHoursPerDay: number
+  /** "HH:MM" start time of the first worklog of a day. */
+  workdayStart: string
   /** Tuning of the existing-issue pool offered to the LLM. */
   issuePool: IssuePoolConfig
   lastUsed: LastUsedSelection

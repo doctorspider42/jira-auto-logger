@@ -137,6 +137,7 @@
     "themeWin95": "Windows 95",
     "themeFallout": "Fallout terminal",
     "workingHours": "Working hours per day",
+    "workdayStart": "Workday start",
     "saved": "Settings saved.",
     "configLocation": "Settings are stored in: {{path}}",
     "logLocation": "Diagnostic logs: {{path}}"

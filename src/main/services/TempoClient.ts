@@ -19,7 +19,14 @@ const toAttributes = (dto: TempoWorklogDto): Array<{ key: string; value: string 
     value: typeof a.value === 'boolean' ? a.value : String(a.value ?? '')
   }))
 
-const WORKDAY_START_SECONDS = 9 * 3600
+/** "HH:MM" -> seconds from midnight; falls back to 09:00 when malformed. */
+export function parseWorkdayStart(value: string): number {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+  if (!match) return 9 * 3600
+  const hours = Math.min(Number(match[1]), 23)
+  const minutes = Math.min(Number(match[2]), 59)
+  return hours * 3600 + minutes * 60
+}
 
 /** Seconds-from-midnight -> "HH:MM:SS", clamped to stay within the day. */
 function toStartTime(seconds: number): string {
@@ -50,7 +57,9 @@ export interface TempoApi {
 export class TempoClient implements TempoApi {
   constructor(
     private readonly getConfig: () => TempoConfig,
-    private readonly jira: JiraApi
+    private readonly jira: JiraApi,
+    /** Configured start of the workday, in seconds from midnight. */
+    private readonly getWorkdayStartSeconds: () => number = () => 9 * 3600
   ) {}
 
   /** Cheapest call that proves the token works: one worklog page of size 1. */
@@ -103,7 +112,7 @@ export class TempoClient implements TempoApi {
     // the same hour; days with existing worklogs continue after them.
     const startOffsets = await this.initialStartOffsets(accountId, worklogs)
     for (const worklog of worklogs) {
-      const offset = startOffsets.get(worklog.startDate) ?? WORKDAY_START_SECONDS
+      const offset = startOffsets.get(worklog.startDate) ?? this.getWorkdayStartSeconds()
       startOffsets.set(worklog.startDate, offset + worklog.timeSpentSeconds)
 
       const issue = await this.jira.getIssue(worklog.issueKey)
@@ -154,7 +163,7 @@ export class TempoClient implements TempoApi {
     }
 
     for (const date of new Set(dates)) {
-      offsets.set(date, WORKDAY_START_SECONDS + (loggedByDate.get(date) ?? 0))
+      offsets.set(date, this.getWorkdayStartSeconds() + (loggedByDate.get(date) ?? 0))
     }
     return offsets
   }

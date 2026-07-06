@@ -51,6 +51,7 @@ export function defaultConfig(): AppConfig {
     language: 'pl',
     themeId: 'dark',
     workingHoursPerDay: 8,
+    workdayStart: '09:00',
     issuePool: { lookbackDays: 60, maxIssues: 100 },
     lastUsed: { selections: [] }
   }
