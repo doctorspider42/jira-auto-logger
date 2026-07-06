@@ -132,6 +132,9 @@ textarea {
   flex: 1;
   overflow: auto;
   padding: 20px;
+  /* Column flex so the calendar can claim the exact viewport height. */
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1100px) {
