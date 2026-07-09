@@ -21,7 +21,14 @@
     "totalForDay": "Suma: {{hours}} h",
     "selectHint": "Kliknij dzień, aby od razu dodać wpisy, albo kliknij i przeciągnij, aby zaznaczyć kilka dni.",
     "weekdays": ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"],
-    "activeConnections": "Aktywne połączenia Jira"
+    "activeConnections": "Aktywne połączenia Jira",
+    "editor": {
+      "title": "Edytuj wpis",
+      "editHint": "kliknij, aby edytować",
+      "delete": "Usuń wpis",
+      "confirmDelete": "Usunąć ten wpis?",
+      "confirmDeleteYes": "Usuń"
+    }
   },
   "wizard": {
     "title": "Nowe wpisy czasu pracy",

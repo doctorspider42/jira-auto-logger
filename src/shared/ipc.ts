@@ -45,6 +45,13 @@ export interface IpcApi {
     testConnection(connectionId: string): Promise<Result<void>>
     getWorklogs(connectionId: string, fromDate: string, toDate: string): Promise<Result<Worklog[]>>
     createWorklogs(connectionId: string, worklogs: NewWorklog[]): Promise<Result<Worklog[]>>
+    /** Overwrites an existing worklog with new values, keeping its start time. */
+    updateWorklog(
+      connectionId: string,
+      tempoWorklogId: number,
+      worklog: NewWorklog
+    ): Promise<Result<Worklog>>
+    deleteWorklog(connectionId: string, tempoWorklogId: number): Promise<Result<void>>
     /** Custom worklog fields (work attributes) defined in this Tempo. */
     getWorkAttributes(connectionId: string): Promise<Result<TempoWorkAttribute[]>>
   }
@@ -92,6 +99,8 @@ export const IPC_CHANNELS = {
   tempoTestConnection: 'tempo:testConnection',
   tempoGetWorklogs: 'tempo:getWorklogs',
   tempoCreateWorklogs: 'tempo:createWorklogs',
+  tempoUpdateWorklog: 'tempo:updateWorklog',
+  tempoDeleteWorklog: 'tempo:deleteWorklog',
   tempoGetWorkAttributes: 'tempo:getWorkAttributes',
   gitGetCommits: 'git:getCommits',
   llmGenerateSuggestions: 'llm:generateSuggestions',

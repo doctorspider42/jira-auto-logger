@@ -145,6 +145,11 @@
   border-radius: 4px;
   padding: 1px 5px;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.calendar-entry:hover {
+  background: color-mix(in srgb, var(--entry-color, var(--color-accent)) 30%, transparent);
 }
 
 .calendar-entry-key {
