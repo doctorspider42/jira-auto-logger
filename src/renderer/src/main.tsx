@@ -12,6 +12,10 @@ async function bootstrap(): Promise<void> {
   applyTheme(config.themeId)
   useAppStore.setState({ config })
 
+  // Subscribe before fetching the current snapshot so no transition is missed.
+  window.api.updates.onStateChange((state) => useAppStore.getState().setUpdate(state))
+  void window.api.updates.getState().then((state) => useAppStore.getState().setUpdate(state))
+
   createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <App />

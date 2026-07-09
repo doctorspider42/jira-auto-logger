@@ -241,6 +241,22 @@ textarea {
   color: var(--color-success);
 }
 
+.banner-update {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--color-accent);
+}
+
+/* Small dot on the Settings tab while an update is available. */
+.nav-tab-badge {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  vertical-align: middle;
+}
+
 .spinner {
   width: 16px;
   height: 16px;

@@ -53,6 +53,7 @@ export function defaultConfig(): AppConfig {
     workingHoursPerDay: 8,
     workdayStart: '09:00',
     issuePool: { lookbackDays: 60, maxIssues: 100 },
+    updates: { mode: 'ask' },
     lastUsed: { selections: [] }
   }
 }
@@ -105,6 +106,7 @@ export class ConfigService {
       const config: AppConfig = { ...defaultConfig(), ...stored.config }
       config.llm = { ...defaultConfig().llm, ...stored.config.llm }
       config.issuePool = { ...defaultConfig().issuePool, ...stored.config.issuePool }
+      config.updates = { ...defaultConfig().updates, ...stored.config.updates }
       config.connections = stored.config.connections ?? []
       // lastUsed changed shape over time; keep only the current fields.
       config.lastUsed = { selections: stored.config.lastUsed?.selections ?? [] }

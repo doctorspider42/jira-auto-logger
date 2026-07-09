@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppConfig, NewWorklog, RegenerateDescriptionRequest, SuggestionRequest } from '@shared/domain'
-import { IPC_CHANNELS } from '@shared/ipc'
+import type {
+  AppConfig,
+  NewWorklog,
+  RegenerateDescriptionRequest,
+  SuggestionRequest,
+  UpdateState
+} from '@shared/domain'
+import { IPC_CHANNELS, UPDATES_STATE_EVENT } from '@shared/ipc'
 import type { IpcApi } from '@shared/ipc'
 
 const api: IpcApi = {
@@ -46,6 +52,17 @@ const api: IpcApi = {
     regenerateDescription: (request: RegenerateDescriptionRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.llmRegenerateDescription, request),
     startClaudeLogin: () => ipcRenderer.invoke(IPC_CHANNELS.llmStartClaudeLogin)
+  },
+  updates: {
+    getState: () => ipcRenderer.invoke(IPC_CHANNELS.updatesGetState),
+    check: () => ipcRenderer.invoke(IPC_CHANNELS.updatesCheck),
+    download: () => ipcRenderer.invoke(IPC_CHANNELS.updatesDownload),
+    quitAndInstall: () => ipcRenderer.invoke(IPC_CHANNELS.updatesQuitAndInstall),
+    onStateChange: (callback: (state: UpdateState) => void) => {
+      const listener = (_e: unknown, state: UpdateState): void => callback(state)
+      ipcRenderer.on(UPDATES_STATE_EVENT, listener)
+      return () => ipcRenderer.removeListener(UPDATES_STATE_EVENT, listener)
+    }
   }
 }
 

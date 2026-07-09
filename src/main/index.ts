@@ -37,8 +37,9 @@ function createWindow(): BrowserWindow {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers()
+  const updates = registerIpcHandlers()
   const window = createWindow()
+  updates.start()
 
   const screenshotDir = process.env.JAL_SCREENSHOTS
   if (screenshotDir) {

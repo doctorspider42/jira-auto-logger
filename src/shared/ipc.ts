@@ -11,6 +11,7 @@ import type {
   RegenerateDescriptionRequest,
   Result,
   SuggestionRequest,
+  UpdateState,
   Worklog
 } from './domain'
 
@@ -59,6 +60,21 @@ export interface IpcApi {
     /** Attempts to start the Claude CLI login flow in a system terminal. */
     startClaudeLogin(): Promise<Result<void>>
   }
+  updates: {
+    /** Current updater snapshot (safe to poll on mount). */
+    getState(): Promise<UpdateState>
+    /** Manually trigger a check regardless of the configured mode. */
+    check(): Promise<Result<void>>
+    /** Start downloading the available update (auto-updatable platforms only). */
+    download(): Promise<Result<void>>
+    /** Quit and install a downloaded update. */
+    quitAndInstall(): Promise<Result<void>>
+    /**
+     * Subscribe to updater state changes. Returns an unsubscribe function.
+     * Unlike the request/response methods this is a push channel.
+     */
+    onStateChange(callback: (state: UpdateState) => void): () => void
+  }
 }
 
 /** IPC channel names derived from the API shape: `domain:method`. */
@@ -81,7 +97,14 @@ export const IPC_CHANNELS = {
   llmGenerateSuggestions: 'llm:generateSuggestions',
   llmPreviewPrompt: 'llm:previewPrompt',
   llmRegenerateDescription: 'llm:regenerateDescription',
-  llmStartClaudeLogin: 'llm:startClaudeLogin'
+  llmStartClaudeLogin: 'llm:startClaudeLogin',
+  updatesGetState: 'updates:getState',
+  updatesCheck: 'updates:check',
+  updatesDownload: 'updates:download',
+  updatesQuitAndInstall: 'updates:quitAndInstall'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
+
+/** Push channel: main → renderer updater state snapshots (see IpcApi.updates.onStateChange). */
+export const UPDATES_STATE_EVENT = 'updates:stateChange'

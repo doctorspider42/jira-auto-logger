@@ -17,13 +17,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Installers plus the electron-updater metadata (latest*.yml) and
+        # blockmaps that the in-app auto-updater reads from the release.
         include:
           - os: windows-latest
-            artifacts: dist/*.exe
+            artifacts: |
+              dist/*.exe
+              dist/*.blockmap
+              dist/latest.yml
           - os: macos-latest
-            artifacts: dist/*.dmg
+            artifacts: |
+              dist/*.dmg
+              dist/latest-mac.yml
           - os: ubuntu-latest
-            artifacts: dist/*.AppImage
+            artifacts: |
+              dist/*.AppImage
+              dist/latest-linux.yml
     runs-on: ${{ matrix.os }}
     env:
       # No code-signing certificates in CI - produce unsigned builds.

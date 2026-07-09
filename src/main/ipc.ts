@@ -9,6 +9,7 @@ import { GitService } from './services/GitService'
 import { logger } from './services/logger'
 import { LlmService } from './services/llm/LlmService'
 import { isMockMode, MockGitService } from './services/mock'
+import { UpdateService } from './services/UpdateService'
 
 /**
  * Wraps a service call so every IPC handler returns a serializable Result,
@@ -35,7 +36,7 @@ async function toResult<T>(channel: string, fn: () => Promise<T>): Promise<Resul
   }
 }
 
-export function registerIpcHandlers(): void {
+export function registerIpcHandlers(): UpdateService {
   const configService = new ConfigService()
   const getConfig = (): AppConfig => configService.get()
   const connections = new ConnectionManager(getConfig)
@@ -43,6 +44,7 @@ export function registerIpcHandlers(): void {
     ? new MockGitService()
     : new GitService(() => getConfig().projects.flatMap((p) => (p.gitFolder ? [p.gitFolder] : [])))
   const llm = new LlmService(getConfig, git, connections)
+  const updates = new UpdateService(() => getConfig().updates.mode)
 
   logger.info('app', 'IPC handlers registered', {
     logFile: logger.filePath,
@@ -51,7 +53,11 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC_CHANNELS.configGet, () => configService.get())
   ipcMain.handle(IPC_CHANNELS.configSet, (_e, config: AppConfig) =>
-    toResult(IPC_CHANNELS.configSet, async () => configService.set(config))
+    toResult(IPC_CHANNELS.configSet, async () => {
+      configService.set(config)
+      // Re-read the update mode (may have just been enabled/changed).
+      updates.onConfigChanged()
+    })
   )
   ipcMain.handle(IPC_CHANNELS.configGetDefaultMainPrompt, () => DEFAULT_MAIN_PROMPT)
   ipcMain.handle(IPC_CHANNELS.configGetFilePath, () => configService.filePath)
@@ -129,4 +135,17 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.llmStartClaudeLogin, () =>
     toResult(IPC_CHANNELS.llmStartClaudeLogin, () => llm.startClaudeLogin())
   )
+
+  ipcMain.handle(IPC_CHANNELS.updatesGetState, () => updates.getState())
+  ipcMain.handle(IPC_CHANNELS.updatesCheck, () =>
+    toResult(IPC_CHANNELS.updatesCheck, () => updates.check())
+  )
+  ipcMain.handle(IPC_CHANNELS.updatesDownload, () =>
+    toResult(IPC_CHANNELS.updatesDownload, () => updates.download())
+  )
+  ipcMain.handle(IPC_CHANNELS.updatesQuitAndInstall, () =>
+    toResult(IPC_CHANNELS.updatesQuitAndInstall, async () => updates.quitAndInstall())
+  )
+
+  return updates
 }
