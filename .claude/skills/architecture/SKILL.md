@@ -22,13 +22,15 @@ Key main-process services (`src/main/services/`):
 
 ## Domain model in one breath
 
-`JiraConnection` (Jira instance + Tempo token) → `ProjectConfig` (name, one Jira
-project of one connection, optional `gitFolder` with per-repo author filter,
-standing LLM instruction, calendar color) → the wizard generates **one isolated
-LLM pass per selected project** (only that project's issues, commits, Tempo
-style examples and note go into the context). `CustomFieldConfig` maps Tempo
-work attributes (bool/string) per connection; values can be LLM-filled and can
-mark calendar entries with an icon.
+`JiraConnection` (Jira instance + Tempo token) → `ProjectConfig` (name, one or
+more `targets` - each a Jira project of one connection, e.g. the client's Jira
+and the company Jira - `gitFolders` with per-repo author filter, standing LLM
+instruction, calendar color) → the wizard generates **one isolated LLM pass per
+target of every selected project** (only that target's issues, Tempo style
+examples, the project's commits and note go into the context; hours are NOT
+split between targets - each Jira gets full, independent entries).
+`CustomFieldConfig` maps Tempo work attributes (bool/string) per connection;
+values can be LLM-filled and can mark calendar entries with an icon.
 
 ## Checklists
 

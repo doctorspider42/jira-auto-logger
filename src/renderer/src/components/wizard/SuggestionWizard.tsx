@@ -65,7 +65,7 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     setSelections((current) =>
       current.some((s) => s.projectId === project.id)
         ? current.filter((s) => s.projectId !== project.id)
-        : [...current, { projectId: project.id, note: '', useCommits: project.gitFolder !== null }]
+        : [...current, { projectId: project.id, note: '', useCommits: project.gitFolders.length > 0 }]
     )
 
   const patchSelection = (projectId: string, changes: Partial<ProjectSelection>): void =>
@@ -97,10 +97,13 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
       Promise.all(
         selections.map(async (selection) => {
           const project = projectById.get(selection.projectId)
-          if (!selection.useCommits || !project?.gitFolder) {
+          if (!selection.useCommits || !project || project.gitFolders.length === 0) {
             return { projectId: selection.projectId, commits: [] as CommitInfo[] }
           }
-          const result = await window.api.git.getCommits([project.gitFolder.path], dates)
+          const result = await window.api.git.getCommits(
+            project.gitFolders.map((f) => f.path),
+            dates
+          )
           return { projectId: selection.projectId, commits: result.ok ? result.value : [] }
         })
       )
@@ -118,19 +121,20 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     setStep('suggestions')
   }
 
+  // Groups are one per (project, target) pair; the target id identifies them.
   const patchGroup = (
-    projectId: string,
+    targetId: string,
     update: (suggestions: WorklogSuggestion[]) => WorklogSuggestion[]
   ): void =>
     setGroups((all) =>
-      all.map((g) => (g.projectId === projectId ? { ...g, suggestions: update(g.suggestions) } : g))
+      all.map((g) => (g.targetId === targetId ? { ...g, suggestions: update(g.suggestions) } : g))
     )
 
   const fieldsForConnection = (connectionId: string) =>
     config.customFields.filter((f) => f.connectionId === connectionId)
 
   const addSuggestion = (group: ProjectSuggestions): void =>
-    patchGroup(group.projectId, (list) => [
+    patchGroup(group.targetId, (list) => [
       ...list,
       {
         id: nextId(),
@@ -288,25 +292,31 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
   const renderSelectionSection = (selection: ProjectSelection): JSX.Element | null => {
     const project = projectById.get(selection.projectId)
     if (!project) return null
-    const connection = config.connections.find((c) => c.id === project.connectionId)
+    const targetLabels = project.targets.map((target) => {
+      const connection = config.connections.find((c) => c.id === target.connectionId)
+      return connection
+        ? `${target.jiraProjectKey} · ${connection.name || connection.jira.baseUrl}`
+        : target.jiraProjectKey
+    })
     return (
       <section key={project.id} className="wizard-project-section card">
         <h4>
           {project.name}
-          <span className="hint">
-            {' '}
-            {project.jiraProjectKey}
-            {connection ? ` · ${connection.name || connection.jira.baseUrl}` : ''}
-          </span>
+          <span className="hint"> {targetLabels.join(' + ')}</span>
         </h4>
-        {project.gitFolder && (
+        {project.targets.length > 1 && (
+          <p className="hint">{t('wizard.multiTargetHint', { count: project.targets.length })}</p>
+        )}
+        {project.gitFolders.length > 0 && (
           <label className="settings-checkbox">
             <input
               type="checkbox"
               checked={selection.useCommits}
               onChange={(e) => patchSelection(project.id, { useCommits: e.target.checked })}
             />
-            {t('wizard.useRepoCommits', { folder: project.gitFolder.path })}
+            {t('wizard.useRepoCommits', {
+              folders: project.gitFolders.map((f) => f.label || f.path).join(', ')
+            })}
           </label>
         )}
         <div className="field" style={{ marginTop: 8, marginBottom: 0 }}>
@@ -329,15 +339,23 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
       ? group.suggestions.filter((s) => s.date === dateFilter)
       : group.suggestions
     const visibleHours = visible.reduce((sum, s) => sum + s.hours, 0)
+    // A multi-target project produces one group per Jira - label them apart.
+    const multiTarget = (project?.targets.length ?? 0) > 1
 
     return (
-      <section key={group.projectId} className="wizard-connection-group">
+      <section key={group.targetId} className="wizard-connection-group">
         <h4>
           {project?.color && (
             <span className="project-color-dot" style={{ background: project.color }} />
           )}
           {group.projectName}
-          <span className="hint"> · {formatHours(visibleHours * 3600)}h</span>
+          <span className="hint">
+            {multiTarget
+              ? ` · ${group.jiraProjectKey} · ${group.connectionName}`
+              : ''}
+            {' · '}
+            {formatHours(visibleHours * 3600)}h
+          </span>
         </h4>
         {visible.map((suggestion) => (
           <SuggestionRow
@@ -350,10 +368,10 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
             freeText={selection?.note ?? project?.instruction ?? ''}
             commits={commitsByProject[group.projectId] ?? []}
             onChange={(next) =>
-              patchGroup(group.projectId, (list) => list.map((s) => (s.id === next.id ? next : s)))
+              patchGroup(group.targetId, (list) => list.map((s) => (s.id === next.id ? next : s)))
             }
             onRemove={() =>
-              patchGroup(group.projectId, (list) => list.filter((s) => s.id !== suggestion.id))
+              patchGroup(group.targetId, (list) => list.filter((s) => s.id !== suggestion.id))
             }
           />
         ))}
@@ -390,7 +408,7 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
                   <button
                     key={project.id}
                     className={`chip ${selections.some((s) => s.projectId === project.id) ? 'selected' : ''}`}
-                    title={project.jiraProjectKey}
+                    title={project.targets.map((target) => target.jiraProjectKey).join(', ')}
                     onClick={() => toggleProject(project)}
                   >
                     {project.color && (

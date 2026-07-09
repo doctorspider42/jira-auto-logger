@@ -42,37 +42,49 @@ export function mockConfig(): AppConfig {
       {
         id: 'mock-project-app',
         name: 'Mobile App',
-        connectionId: CONN_MAIN,
-        jiraProjectKey: 'APP',
-        gitFolder: {
-          path: 'C:\\dev\\mobile-app',
-          label: 'mobile-app',
-          author: 'dev@acme.dev',
-          includeAllAuthors: false
-        },
+        targets: [{ id: 'mock-target-app', connectionId: CONN_MAIN, jiraProjectKey: 'APP' }],
+        gitFolders: [
+          {
+            path: 'C:\\dev\\mobile-app',
+            label: 'mobile-app',
+            author: 'dev@acme.dev',
+            includeAllAuthors: false
+          }
+        ],
         instruction: 'Prefer logging to stories over the epic.',
         color: '#6d9eff'
       },
       {
         id: 'mock-project-int',
         name: 'Internal Tools',
-        connectionId: CONN_MAIN,
-        jiraProjectKey: 'INT',
-        gitFolder: null,
+        targets: [{ id: 'mock-target-int', connectionId: CONN_MAIN, jiraProjectKey: 'INT' }],
+        gitFolders: [],
         instruction: '',
         color: '#ffc857'
       },
       {
+        // Demo of both multi-target and multi-repo: client work is logged in
+        // the client's Jira (SHOP) AND mirrored in the company Jira (CLX).
         id: 'mock-project-shop',
         name: 'Client X Shop',
-        connectionId: CONN_CLIENT,
-        jiraProjectKey: 'SHOP',
-        gitFolder: {
-          path: 'C:\\dev\\shop-frontend',
-          label: 'shop-frontend',
-          author: 'dev@acme.dev',
-          includeAllAuthors: false
-        },
+        targets: [
+          { id: 'mock-target-shop', connectionId: CONN_CLIENT, jiraProjectKey: 'SHOP' },
+          { id: 'mock-target-clx', connectionId: CONN_MAIN, jiraProjectKey: 'CLX' }
+        ],
+        gitFolders: [
+          {
+            path: 'C:\\dev\\shop-frontend',
+            label: 'shop-frontend',
+            author: 'dev@acme.dev',
+            includeAllAuthors: false
+          },
+          {
+            path: 'C:\\dev\\shop-backend',
+            label: 'shop-backend',
+            author: 'dev@acme.dev',
+            includeAllAuthors: false
+          }
+        ],
         instruction: 'Descriptions must be client-friendly, no internal jargon.',
         color: '#4fd28a'
       }
@@ -144,6 +156,11 @@ export const MOCK_ISSUES: Record<string, JiraIssue[]> = {
     issue(10202, 'INT-12', 'Flaky tests in the CI pipeline', 'Bug'),
     issue(10203, 'INT-13', 'Onboarding checklist app', 'Story')
   ],
+  CLX: [
+    issue(10401, 'CLX-1', 'Client X — development', 'Task'),
+    issue(10402, 'CLX-2', 'Client X — meetings and support', 'Task'),
+    issue(10403, 'CLX-3', 'Client X — code review', 'Task')
+  ],
   SHOP: [
     issue(10301, 'SHOP-201', 'Checkout: BLIK payments', 'Story'),
     issue(10302, 'SHOP-202', 'Cart total rounding bug', 'Bug'),
@@ -157,6 +174,7 @@ export const PROJECTS_BY_CONNECTION: Record<string, Array<{ key: string; name: s
   [CONN_MAIN]: [
     { key: 'APP', name: 'Mobile App' },
     { key: 'INT', name: 'Internal Tools' },
+    { key: 'CLX', name: 'Client X (internal mirror)' },
     { key: 'HR', name: 'HR Requests' }
   ],
   [CONN_CLIENT]: [
@@ -190,6 +208,11 @@ const DESCRIPTIONS: Record<string, string[]> = {
     'Stabilized flaky integration tests in CI',
     'Prepared the onboarding checklist data model'
   ],
+  CLX: [
+    'Client X: checkout and payments development',
+    'Client X: sync meeting and code review',
+    'Client X: bugfixing on the shop frontend'
+  ],
   SHOP: [
     'Integrated BLIK payment confirmation in checkout',
     'Fixed rounding of cart totals for mixed VAT rates',
@@ -203,7 +226,7 @@ const isoDate = (d: Date): string => d.toISOString().slice(0, 10)
 
 /** Six weeks of plausible weekday history for one connection. */
 export function generateWorklogs(connectionId: string): Worklog[] {
-  const projectKeys = connectionId === CONN_MAIN ? ['APP', 'INT'] : ['SHOP']
+  const projectKeys = connectionId === CONN_MAIN ? ['APP', 'INT', 'CLX'] : ['SHOP']
   const random = mulberry32(connectionId === CONN_MAIN ? 1337 : 4242)
   const worklogs: Worklog[] = []
   let id = connectionId === CONN_MAIN ? 90_000 : 95_000

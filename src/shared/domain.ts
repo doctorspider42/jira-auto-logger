@@ -73,19 +73,30 @@ export interface GitFolder {
 }
 
 /**
- * A user-defined project: the unit of work selection. Pins one Jira project
- * of one connection, optionally a git repository and a standing instruction
+ * One Jira project of one connection a user project logs time to. A project
+ * with several targets (e.g. the client's Jira and the company Jira) gets an
+ * independent generation pass per target - each Jira has its own issues.
+ */
+export interface ProjectTarget {
+  id: string
+  connectionId: string
+  /** Key of the matched Jira project, e.g. "SHOP". */
+  jiraProjectKey: string
+}
+
+/**
+ * A user-defined project: the unit of work selection. Pins one or more Jira
+ * projects (targets), optionally git repositories and a standing instruction
  * for the LLM.
  */
 export interface ProjectConfig {
   id: string
   /** Display name, e.g. "Sklep Klienta X". */
   name: string
-  connectionId: string
-  /** Key of the matched Jira project, e.g. "SHOP". */
-  jiraProjectKey: string
-  /** Optional repository the project's commits come from. */
-  gitFolder: GitFolder | null
+  /** Jira projects this project logs to; entries are generated per target. */
+  targets: ProjectTarget[]
+  /** Repositories the project's commits come from. */
+  gitFolders: GitFolder[]
   /** Optional standing instruction sent to the LLM with every generation. */
   instruction: string
   /** Hex color used to tint this project's entries in the calendar. */
@@ -283,10 +294,12 @@ export interface SuggestionRequest {
   selections: ProjectSelection[]
 }
 
-/** Suggestions generated for one configured project. */
+/** Suggestions generated for one target (Jira project) of one configured project. */
 export interface ProjectSuggestions {
   projectId: string
   projectName: string
+  /** Target this group was generated for; a project has one group per target. */
+  targetId: string
   connectionId: string
   connectionName: string
   jiraProjectKey: string

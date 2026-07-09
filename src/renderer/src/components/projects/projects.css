@@ -22,7 +22,21 @@
   cursor: pointer;
 }
 
+.projects-targets-hint {
+  margin: 0 0 6px;
+}
+
+.projects-target-row {
+  align-items: flex-end;
+  margin-bottom: 6px;
+}
+
+.projects-target-remove {
+  margin-bottom: 6px;
+}
+
 .projects-folder {
+  margin-bottom: 8px;
   display: flex;
   flex-direction: column;
   gap: 8px;

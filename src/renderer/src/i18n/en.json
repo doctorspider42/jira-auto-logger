@@ -36,7 +36,8 @@
     "step2": "Suggestions",
     "projects": "Projects you worked on",
     "noProjects": "No projects configured — add them in settings.",
-    "useRepoCommits": "Include commits from the repository ({{folder}})",
+    "useRepoCommits": "Include commits from the repositories: {{folders}}",
+    "multiTargetHint": "This project logs to {{count}} Jiras — independent entries will be generated for each.",
     "projectNote": "Note / instruction for the LLM",
     "projectNotePlaceholder": "e.g. mostly meetings and code review, log 2h chunks…",
     "useRecent": "Use recent",
@@ -77,7 +78,7 @@
     "projectNamePlaceholder": "e.g. Client X Shop",
     "projectConnection": "Jira connection",
     "projectJiraKey": "Jira project (key)",
-    "projectFolder": "Repository (optional)",
+    "projectFolder": "Repositories (optional)",
     "projectInstruction": "Standing LLM instruction (optional)",
     "projectInstructionPlaceholder": "e.g. only log to Task issues, descriptions in English…",
     "addProject": "Add project",
@@ -156,14 +157,18 @@
     "updateManualOnly": "On this platform (unsigned build) updates are manual — we'll show a link to download the new version."
   },
   "projects": {
-    "hint": "A project combines a name, a matched Jira project, an optional repository (with its commit-author filter) and a standing LLM instruction. When generating entries you pick which projects you worked on.",
+    "hint": "A project combines a name, one or more Jira projects (e.g. the client's Jira and the company Jira), optional repositories (each with its commit-author filter) and a standing LLM instruction. When generating entries you pick which projects you worked on.",
     "color": "Color",
     "colorHint": "Calendar entries of this project are tinted with this color",
     "noConnections": "Add a Jira connection in settings first.",
-    "pickFolder": "Pick a repository folder…",
+    "jiraTargets": "Jira projects",
+    "jiraTargetsHint": "If you log the same time in several Jiras (e.g. the client's and your company's), add several rows — independent entries are generated for each Jira with its own issues.",
+    "addTarget": "Add Jira",
+    "removeTarget": "Remove",
+    "pickFolder": "Add a repository folder…",
     "changeFolder": "Change",
     "detachFolder": "Detach",
-    "invalidHint": "Every project needs a name, a connection and a Jira project; a repository needs an author e-mail or \"Include everyone's commits\"."
+    "invalidHint": "Every project needs a name and at least one Jira project (connection + key); every repository needs an author e-mail or \"Include everyone's commits\"."
   },
   "funnyLoading": [
     "Splitting atoms…",

@@ -25,10 +25,12 @@ interface LegacyFields {
   gitFolders?: GitFolder[]
 }
 
-/** Legacy project shape referencing a folder from the old registry by path. */
+/** Legacy project shape: single connection/Jira project and a single folder. */
 interface LegacyProjectFields {
   gitFolderPath?: string
   gitFolder?: GitFolder | null
+  connectionId?: string
+  jiraProjectKey?: string
 }
 
 export function defaultConfig(): AppConfig {
@@ -114,31 +116,49 @@ export class ConfigService {
       config.lastUsed = { selections: stored.config.lastUsed?.selections ?? [] }
 
       // Repositories used to live in a standalone registry with a global
-      // author filter; both are now embedded per project.
+      // author filter; both are now embedded per project. Projects also used
+      // to pin a single connection/Jira project and a single folder - both
+      // are now arrays (`targets`, `gitFolders`).
       const legacy = stored.config as unknown as LegacyFields
       config.projects = (stored.config.projects ?? []).map((project, index) => {
         const legacyProject = project as unknown as LegacyProjectFields
-        let gitFolder = legacyProject.gitFolder ?? null
-        if (!gitFolder && legacyProject.gitFolderPath) {
-          gitFolder =
-            legacy.gitFolders?.find((f) => f.path === legacyProject.gitFolderPath) ?? {
-              path: legacyProject.gitFolderPath,
-              label: '',
-              author: legacy.gitAuthor ?? '',
-              includeAllAuthors: false
-            }
-        }
-        if (gitFolder) {
-          gitFolder = {
-            path: gitFolder.path,
-            label: gitFolder.label ?? '',
-            author: gitFolder.author ?? legacy.gitAuthor ?? '',
-            includeAllAuthors: gitFolder.includeAllAuthors ?? false
+        let folders = (project.gitFolders ?? []).filter((f) => f?.path)
+        if (folders.length === 0) {
+          let gitFolder = legacyProject.gitFolder ?? null
+          if (!gitFolder && legacyProject.gitFolderPath) {
+            gitFolder =
+              legacy.gitFolders?.find((f) => f.path === legacyProject.gitFolderPath) ?? {
+                path: legacyProject.gitFolderPath,
+                label: '',
+                author: legacy.gitAuthor ?? '',
+                includeAllAuthors: false
+              }
           }
+          if (gitFolder) folders = [gitFolder]
         }
+        folders = folders.map((f) => ({
+          path: f.path,
+          label: f.label ?? '',
+          author: f.author ?? legacy.gitAuthor ?? '',
+          includeAllAuthors: f.includeAllAuthors ?? false
+        }))
+
+        let targets = (project.targets ?? []).filter((t) => t?.connectionId && t.jiraProjectKey)
+        if (targets.length === 0 && legacyProject.connectionId && legacyProject.jiraProjectKey) {
+          targets = [
+            {
+              id: randomUUID(),
+              connectionId: legacyProject.connectionId,
+              jiraProjectKey: legacyProject.jiraProjectKey
+            }
+          ]
+        }
+        targets = targets.map((t) => ({ ...t, id: t.id ?? randomUUID() }))
+
         return {
           ...project,
-          gitFolder,
+          targets,
+          gitFolders: folders,
           color: project.color ?? PROJECT_COLOR_PALETTE[index % PROJECT_COLOR_PALETTE.length]
         }
       })
@@ -158,7 +178,12 @@ export class ConfigService {
 
       // Projects and custom fields must reference an existing connection.
       const knownConnections = new Set(config.connections.map((c) => c.id))
-      config.projects = config.projects.filter((p) => knownConnections.has(p.connectionId))
+      config.projects = config.projects
+        .map((p) => ({
+          ...p,
+          targets: p.targets.filter((t) => knownConnections.has(t.connectionId))
+        }))
+        .filter((p) => p.targets.length > 0)
       config.customFields = (stored.config.customFields ?? [])
         .filter((f) => knownConnections.has(f.connectionId))
         .map((f) => ({

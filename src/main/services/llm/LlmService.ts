@@ -9,6 +9,7 @@ import type {
   ProjectConfig,
   ProjectSelection,
   ProjectSuggestions,
+  ProjectTarget,
   PromptPreview,
   RegenerateDescriptionRequest,
   SuggestionRequest,
@@ -65,45 +66,57 @@ export class LlmService {
     const loggedByDate = await this.fetchLoggedHoursByDate(request)
 
     // Sequential on purpose: CLI backends dislike concurrent invocations.
+    // Every target (Jira project) of a selected project gets its own isolated
+    // pass - the Jiras have different issues, so entries are independent and
+    // hours are NOT split between them.
     for (const selection of this.validSelections(request)) {
       const project = this.getProject(selection.projectId)
-      const connection = this.connections.connection(project.connectionId)
-      const built = await this.buildProjectPrompt(request, selection, project, loggedByDate)
-      logger.info('llm', `generate for project "${project.name}"`, {
-        backend: this.getConfig().llm.backend,
-        dates: request.dates.length,
-        commits: built.commits.length,
-        candidateIssues: built.candidates.length,
-        promptLength: built.prompt.length
-      })
-      const text = await this.completeFor(project.name, built.prompt)
-      const suggestions = this.parseSuggestions(text, request.dates, built.candidates, project)
-      logger.info('llm', `"${project.name}": ${suggestions.length} suggestions parsed`)
-      results.push({
-        projectId: project.id,
-        projectName: project.name,
-        connectionId: connection.id,
-        connectionName: connection.name,
-        jiraProjectKey: project.jiraProjectKey,
-        suggestions
-      })
+      const commits = await this.fetchCommits(request, selection, project)
+      for (const target of project.targets) {
+        const connection = this.connections.connection(target.connectionId)
+        const label = this.passLabel(project, target, connection.name)
+        const built = await this.buildTargetPrompt(request, selection, project, target, commits, loggedByDate)
+        logger.info('llm', `generate for "${label}"`, {
+          backend: this.getConfig().llm.backend,
+          dates: request.dates.length,
+          commits: built.commits.length,
+          candidateIssues: built.candidates.length,
+          promptLength: built.prompt.length
+        })
+        const text = await this.completeFor(label, built.prompt)
+        const suggestions = this.parseSuggestions(text, request.dates, built.candidates, target)
+        logger.info('llm', `"${label}": ${suggestions.length} suggestions parsed`)
+        results.push({
+          projectId: project.id,
+          projectName: project.name,
+          targetId: target.id,
+          connectionId: connection.id,
+          connectionName: connection.name,
+          jiraProjectKey: target.jiraProjectKey,
+          suggestions
+        })
+      }
     }
     return results
   }
 
-  /** Debug: the exact prompts generateSuggestions would send, per project. */
+  /** Debug: the exact prompts generateSuggestions would send, per target. */
   async previewPrompt(request: SuggestionRequest): Promise<PromptPreview[]> {
     const previews: PromptPreview[] = []
     const loggedByDate = await this.fetchLoggedHoursByDate(request)
     for (const selection of this.validSelections(request)) {
       const project = this.getProject(selection.projectId)
-      const { prompt } = await this.buildProjectPrompt(request, selection, project, loggedByDate)
-      previews.push({
-        label: project.name,
-        prompt,
-        // ~4 chars per token is a common rough heuristic; good enough for debugging.
-        approxTokens: Math.ceil(prompt.length / 4)
-      })
+      const commits = await this.fetchCommits(request, selection, project)
+      for (const target of project.targets) {
+        const connection = this.connections.connection(target.connectionId)
+        const { prompt } = await this.buildTargetPrompt(request, selection, project, target, commits, loggedByDate)
+        previews.push({
+          label: this.passLabel(project, target, connection.name),
+          prompt,
+          // ~4 chars per token is a common rough heuristic; good enough for debugging.
+          approxTokens: Math.ceil(prompt.length / 4)
+        })
+      }
     }
     return previews
   }
@@ -177,23 +190,40 @@ export class LlmService {
     }
   }
 
-  private async buildProjectPrompt(
+  /** Distinguishes the passes of a multi-target project in logs and previews. */
+  private passLabel(project: ProjectConfig, target: ProjectTarget, connectionName: string): string {
+    if (project.targets.length < 2) return project.name
+    return `${project.name} (${target.jiraProjectKey} · ${connectionName})`
+  }
+
+  /** Commits are shared by all targets of a project - fetched once per selection. */
+  private async fetchCommits(
+    request: SuggestionRequest,
+    selection: ProjectSelection,
+    project: ProjectConfig
+  ): Promise<CommitInfo[]> {
+    if (!selection.useCommits || project.gitFolders.length === 0) return []
+    return this.git.getCommits(
+      project.gitFolders.map((f) => f.path),
+      request.dates
+    )
+  }
+
+  private async buildTargetPrompt(
     request: SuggestionRequest,
     selection: ProjectSelection,
     project: ProjectConfig,
+    target: ProjectTarget,
+    commits: CommitInfo[],
     loggedByDate: Record<string, number>
   ): Promise<BuiltPrompt> {
     const config = this.getConfig()
-    const commits =
-      selection.useCommits && project.gitFolder
-        ? await this.git.getCommits([project.gitFolder.path], request.dates)
-        : []
-    const recentWorklogs = await this.fetchRecentWorklogs(project.connectionId)
+    const recentWorklogs = await this.fetchRecentWorklogs(target.connectionId)
     const projectWorklogs = recentWorklogs.filter((w) =>
-      w.issueKey.startsWith(`${project.jiraProjectKey}-`)
+      w.issueKey.startsWith(`${target.jiraProjectKey}-`)
     )
-    const candidates = await this.collectProjectCandidates(project, commits, projectWorklogs)
-    const autoFillFields = this.fieldsFor(project).filter((f) => f.autoFill)
+    const candidates = await this.collectTargetCandidates(target, commits, projectWorklogs)
+    const autoFillFields = this.fieldsFor(target).filter((f) => f.autoFill)
 
     // Few-shot examples: the newest entries show the user's real logging style.
     const examples = [...projectWorklogs]
@@ -221,7 +251,7 @@ export class LlmService {
       dates: request.dates,
       ...(Object.keys(hoursAlreadyLogged).length > 0 ? { hoursAlreadyLogged } : {}),
       project: {
-        key: project.jiraProjectKey,
+        key: target.jiraProjectKey,
         name: project.name,
         ...(project.instruction.trim() ? { instructions: clip(project.instruction, 600) } : {})
       },
@@ -276,7 +306,7 @@ export class LlmService {
     const connectionIds = new Set(config.activeConnectionIds)
     for (const selection of request.selections) {
       const project = config.projects.find((p) => p.id === selection.projectId)
-      if (project) connectionIds.add(project.connectionId)
+      for (const target of project?.targets ?? []) connectionIds.add(target.connectionId)
     }
 
     const totals: Record<string, number> = {}
@@ -314,18 +344,18 @@ export class LlmService {
   }
 
   /**
-   * Builds the pool of existing issues of THIS project the model may assign
+   * Builds the pool of existing issues of THIS target the model may assign
    * work to: recently updated issues, the user's recent worklog targets and
    * issues referenced in commit messages.
    */
-  private async collectProjectCandidates(
-    project: ProjectConfig,
+  private async collectTargetCandidates(
+    target: ProjectTarget,
     commits: CommitInfo[],
     projectWorklogs: Worklog[]
   ): Promise<JiraIssue[]> {
     const { lookbackDays, maxIssues } = this.getConfig().issuePool
-    const jira = this.connections.jira(project.connectionId)
-    const keyPrefix = `${project.jiraProjectKey}-`
+    const jira = this.connections.jira(target.connectionId)
+    const keyPrefix = `${target.jiraProjectKey}-`
     const candidates: JiraIssue[] = []
     const known = new Set<string>()
     const add = (issue: JiraIssue): void => {
@@ -355,7 +385,7 @@ export class LlmService {
     }
 
     try {
-      const recent = await jira.getRecentIssues([project.jiraProjectKey], lookbackDays, maxIssues)
+      const recent = await jira.getRecentIssues([target.jiraProjectKey], lookbackDays, maxIssues)
       recent.forEach(add)
     } catch {
       // A stale project key can break the JQL - the pool is still usable without it.
@@ -378,9 +408,9 @@ export class LlmService {
     }
   }
 
-  /** Custom fields of the project's connection. */
-  private fieldsFor(project: ProjectConfig): CustomFieldConfig[] {
-    return this.getConfig().customFields.filter((f) => f.connectionId === project.connectionId)
+  /** Custom fields of the target's connection. */
+  private fieldsFor(target: ProjectTarget): CustomFieldConfig[] {
+    return this.getConfig().customFields.filter((f) => f.connectionId === target.connectionId)
   }
 
   /**
@@ -407,12 +437,12 @@ export class LlmService {
     text: string,
     allowedDates: string[],
     candidates: JiraIssue[],
-    project: ProjectConfig
+    target: ProjectTarget
   ): WorklogSuggestion[] {
     const raw = this.extractJsonArray(text)
     const dates = new Set(allowedDates)
     const candidateByKey = new Map(candidates.map((i) => [i.key, i]))
-    const fields = this.fieldsFor(project)
+    const fields = this.fieldsFor(target)
     const suggestions = raw
       .filter((s): s is RawSuggestion => typeof s === 'object' && s !== null)
       .map((s) => {
@@ -423,7 +453,7 @@ export class LlmService {
           id: randomUUID(),
           date: typeof s.date === 'string' ? s.date : '',
           // The project is fixed by configuration - the model never picks it.
-          projectKey: project.jiraProjectKey,
+          projectKey: target.jiraProjectKey,
           issueKey: issue?.key ?? '',
           issueSummary: issue?.summary ?? '',
           issueTypeName: issue?.typeName ?? '',

@@ -41,7 +41,7 @@ export function registerIpcHandlers(): UpdateService {
   const connections = new ConnectionManager(getConfig)
   const git = isMockMode()
     ? new MockGitService()
-    : new GitService(() => getConfig().projects.flatMap((p) => (p.gitFolder ? [p.gitFolder] : [])))
+    : new GitService(() => getConfig().projects.flatMap((p) => p.gitFolders))
   const llm = new LlmService(getConfig, git, connections)
   const updates = new UpdateService(() => getConfig().updates.mode)
 
