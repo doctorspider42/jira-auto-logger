@@ -50,6 +50,8 @@ export function SettingsView(): JSX.Element {
   const { t } = useTranslation()
   const saved = useAppStore((s) => s.config)
   const saveConfig = useAppStore((s) => s.saveConfig)
+  const update = useAppStore((s) => s.update)
+  const [checking, setChecking] = useState(false)
 
   const [draft, setDraft] = useState<AppConfig>(() => structuredClone(saved))
   const [tests, setTests] = useState<Record<string, ConnectionTest>>({})
@@ -202,6 +204,35 @@ export function SettingsView(): JSX.Element {
   const resetPrompt = async (): Promise<void> => {
     const defaultPrompt = await window.api.config.getDefaultMainPrompt()
     patchSection('llm', { mainPrompt: defaultPrompt })
+  }
+
+  const checkForUpdates = async (): Promise<void> => {
+    setChecking(true)
+    // Persist the mode first so the check honours the current selection.
+    if (dirty) await saveConfig(draft)
+    await window.api.updates.check()
+    setChecking(false)
+  }
+
+  /** One-line status shown next to the "check now" button. */
+  const updateStatusText = (): string | null => {
+    if (!update) return null
+    switch (update.status) {
+      case 'checking':
+        return t('updates.statusChecking')
+      case 'available':
+        return t('updates.available', { version: update.availableVersion })
+      case 'downloading':
+        return t('updates.downloading', { percent: update.progressPercent })
+      case 'downloaded':
+        return t('updates.ready', { version: update.availableVersion })
+      case 'not-available':
+        return t('updates.statusUpToDate')
+      case 'error':
+        return t('updates.statusError')
+      default:
+        return null
+    }
   }
 
   const save = async (): Promise<void> => {
@@ -705,6 +736,39 @@ export function SettingsView(): JSX.Element {
             />
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <h3>{t('settings.sectionUpdates')}</h3>
+        <div className="field-row">
+          <div className="field">
+            <label>{t('settings.updateMode')}</label>
+            <select
+              value={draft.updates.mode}
+              onChange={(e) =>
+                patchSection('updates', { mode: e.target.value as AppConfig['updates']['mode'] })
+              }
+            >
+              <option value="ask">{t('settings.updateModeAsk')}</option>
+              <option value="auto">{t('settings.updateModeAuto')}</option>
+              <option value="off">{t('settings.updateModeOff')}</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>{t('settings.currentVersion')}</label>
+            <input value={update?.currentVersion ?? ''} readOnly spellCheck={false} />
+          </div>
+        </div>
+        <div className="settings-test-row">
+          <button className="btn" onClick={checkForUpdates} disabled={checking}>
+            {checking && <span className="spinner" />}
+            {t('settings.checkForUpdates')}
+          </button>
+          {updateStatusText() && <span className="hint">{updateStatusText()}</span>}
+        </div>
+        {update && !update.canAutoUpdate && (
+          <p className="hint">{t('settings.updateManualOnly')}</p>
+        )}
       </section>
 
       <div className="settings-save-bar">

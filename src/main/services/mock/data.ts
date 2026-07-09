@@ -117,6 +117,7 @@ export function mockConfig(): AppConfig {
     workingHoursPerDay: 8,
     workdayStart: '09:00',
     issuePool: { lookbackDays: 60, maxIssues: 100 },
+    updates: { mode: 'ask' },
     lastUsed: { selections: [] }
   }
 }

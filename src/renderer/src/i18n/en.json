@@ -138,7 +138,15 @@
     "workdayStart": "Workday start",
     "saved": "Settings saved.",
     "configLocation": "Settings are stored in: {{path}}",
-    "logLocation": "Diagnostic logs: {{path}}"
+    "logLocation": "Diagnostic logs: {{path}}",
+    "sectionUpdates": "Updates",
+    "updateMode": "Automatic updates",
+    "updateModeAsk": "Notify and ask before downloading",
+    "updateModeAuto": "Download automatically, install on quit",
+    "updateModeOff": "Off",
+    "currentVersion": "Installed version",
+    "checkForUpdates": "Check now",
+    "updateManualOnly": "On this platform (unsigned build) updates are manual — we'll show a link to download the new version."
   },
   "projects": {
     "hint": "A project combines a name, a matched Jira project, an optional repository (with its commit-author filter) and a standing LLM instruction. When generating entries you pick which projects you worked on.",
@@ -191,5 +199,18 @@
     "UNKNOWN": "An unexpected error occurred.",
     "claudeLogin": "Open Claude login",
     "claudeLoginStarted": "A terminal was opened — finish logging in and retry."
+  },
+  "updates": {
+    "available": "A new version {{version}} is available.",
+    "download": "Download",
+    "openReleasePage": "Download from the site ↗",
+    "later": "Later",
+    "downloading": "Downloading update… {{percent}}%",
+    "ready": "Version {{version}} is ready to install.",
+    "restart": "Restart now",
+    "badgeTitle": "A new version is available",
+    "statusChecking": "Checking…",
+    "statusUpToDate": "You're on the latest version.",
+    "statusError": "Couldn't check for updates."
   }
 }

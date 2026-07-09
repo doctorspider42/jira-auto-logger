@@ -148,6 +148,8 @@ export interface AppConfig {
   workdayStart: string
   /** Tuning of the existing-issue pool offered to the LLM. */
   issuePool: IssuePoolConfig
+  /** Automatic-update preference. */
+  updates: UpdateConfig
   lastUsed: LastUsedSelection
 }
 
@@ -156,6 +158,48 @@ export interface IssuePoolConfig {
   lookbackDays: number
   /** Upper bound on the number of issues sent to the LLM. */
   maxIssues: number
+}
+
+/**
+ * How the app handles new releases.
+ * - `ask`: check on start, notify, download only when the user asks (default).
+ * - `auto`: download in the background and install on the next quit.
+ * - `off`: never check automatically (a manual "check now" button still works).
+ */
+export type UpdateMode = 'ask' | 'auto' | 'off'
+
+export interface UpdateConfig {
+  mode: UpdateMode
+}
+
+export type UpdateStatus =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'downloaded'
+  | 'not-available'
+  | 'error'
+
+/**
+ * Snapshot of the updater, broadcast to the renderer on every change. On
+ * platforms that cannot self-update (unsigned macOS builds) `canAutoUpdate`
+ * is false and the UI offers a manual download link (`releaseUrl`) instead.
+ */
+export interface UpdateState {
+  status: UpdateStatus
+  /** Version currently running (from package.json). */
+  currentVersion: string
+  /** Newest available version, without the leading "v"; '' when unknown. */
+  availableVersion: string
+  /** Download progress percentage (0-100) while `status` is `downloading`. */
+  progressPercent: number
+  /** GitHub release page for the manual-download fallback; '' when unknown. */
+  releaseUrl: string
+  /** False on platforms/builds that cannot install updates themselves. */
+  canAutoUpdate: boolean
+  /** Raw error text when `status` is `error`. */
+  errorMessage: string
 }
 
 /** Remembers the last dialog selection for the "use recent" shortcut. */

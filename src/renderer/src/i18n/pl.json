@@ -138,7 +138,15 @@
     "workdayStart": "Początek dnia pracy",
     "saved": "Zapisano ustawienia.",
     "configLocation": "Ustawienia zapisują się w: {{path}}",
-    "logLocation": "Logi diagnostyczne: {{path}}"
+    "logLocation": "Logi diagnostyczne: {{path}}",
+    "sectionUpdates": "Aktualizacje",
+    "updateMode": "Automatyczne aktualizacje",
+    "updateModeAsk": "Powiadamiaj i pytaj o pobranie",
+    "updateModeAuto": "Pobieraj automatycznie, instaluj przy zamknięciu",
+    "updateModeOff": "Wyłączone",
+    "currentVersion": "Zainstalowana wersja",
+    "checkForUpdates": "Sprawdź teraz",
+    "updateManualOnly": "Na tej platformie (niepodpisany build) aktualizacja jest ręczna — pokażemy link do pobrania nowej wersji."
   },
   "projects": {
     "hint": "Projekt łączy nazwę, projekt z Jiry, opcjonalne repozytorium (z filtrem autora commitów) i stałą instrukcję dla LLM. Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
@@ -191,5 +199,18 @@
     "UNKNOWN": "Wystąpił nieoczekiwany błąd.",
     "claudeLogin": "Otwórz logowanie Claude",
     "claudeLoginStarted": "Otworzono terminal — dokończ logowanie i spróbuj ponownie."
+  },
+  "updates": {
+    "available": "Dostępna nowa wersja {{version}}.",
+    "download": "Pobierz",
+    "openReleasePage": "Pobierz ze strony ↗",
+    "later": "Później",
+    "downloading": "Pobieranie aktualizacji… {{percent}}%",
+    "ready": "Wersja {{version}} gotowa do instalacji.",
+    "restart": "Uruchom ponownie",
+    "badgeTitle": "Dostępna nowa wersja",
+    "statusChecking": "Sprawdzanie…",
+    "statusUpToDate": "Masz najnowszą wersję.",
+    "statusError": "Nie udało się sprawdzić aktualizacji."
   }
 }
