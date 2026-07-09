@@ -6,7 +6,12 @@ import { applyTheme } from '@/theme/themes'
 export type AppView = 'calendar' | 'projects' | 'settings'
 
 /** Statuses that mean an update is worth surfacing (banner + tab badge). */
-const NOTIFYING = new Set<UpdateState['status']>(['available', 'downloading', 'downloaded'])
+const NOTIFYING = new Set<UpdateState['status']>([
+  'available',
+  'downloading',
+  'downloaded',
+  'error'
+])
 
 interface AppState {
   config: AppConfig

@@ -215,6 +215,7 @@
     "downloading": "Downloading update… {{percent}}%",
     "ready": "Version {{version}} is ready to install.",
     "restart": "Restart now",
+    "error": "Couldn't download the update automatically.",
     "badgeTitle": "A new version is available",
     "statusChecking": "Checking…",
     "statusUpToDate": "You're on the latest version.",

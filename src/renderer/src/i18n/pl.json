@@ -215,6 +215,7 @@
     "downloading": "Pobieranie aktualizacji… {{percent}}%",
     "ready": "Wersja {{version}} gotowa do instalacji.",
     "restart": "Uruchom ponownie",
+    "error": "Nie udało się pobrać aktualizacji automatycznie.",
     "badgeTitle": "Dostępna nowa wersja",
     "statusChecking": "Sprawdzanie…",
     "statusUpToDate": "Masz najnowszą wersję.",

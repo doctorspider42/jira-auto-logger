@@ -15,7 +15,9 @@ export function UpdateBanner(): JSX.Element | null {
   const dismiss = useAppStore((s) => s.dismissUpdateBanner)
 
   if (!update || dismissed || !UPDATE_NOTIFYING_STATUSES.has(update.status)) return null
-  const { status, availableVersion, progressPercent, releaseUrl, canAutoUpdate } = update
+  const { status, availableVersion, progressPercent, releaseUrl, canAutoUpdate, errorMessage } =
+    update
+  const fallbackUrl = releaseUrl || 'https://github.com/doctorspider42/jira-auto-logger/releases/latest'
 
   const dismissButton = (
     <button className="btn btn-sm btn-ghost" onClick={dismiss}>
@@ -57,6 +59,18 @@ export function UpdateBanner(): JSX.Element | null {
           <span style={{ flex: 1 }}>{t('updates.ready', { version: availableVersion })}</span>
           <button className="btn btn-sm" onClick={() => void window.api.updates.quitAndInstall()}>
             {t('updates.restart')}
+          </button>
+          {dismissButton}
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          <span style={{ flex: 1 }} title={errorMessage}>
+            {t('updates.error')}
+          </span>
+          <button className="btn btn-sm" onClick={() => openExternal(fallbackUrl)}>
+            {t('updates.openReleasePage')}
           </button>
           {dismissButton}
         </>

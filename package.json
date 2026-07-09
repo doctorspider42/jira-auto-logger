@@ -41,6 +41,7 @@
   "build": {
     "appId": "com.doctorspider42.jira-auto-logger",
     "productName": "Jira Auto Logger",
+    "artifactName": "${name}-${version}-${arch}.${ext}",
     "files": [
       "out/**/*",
       "package.json"
