@@ -9,6 +9,8 @@ interface TempoWorklogDto {
   issue: { id: number }
   timeSpentSeconds: number
   startDate: string
+  /** "HH:MM:SS" position within the day; preserved when updating. */
+  startTime?: string
   description: string
   attributes?: { values?: Array<{ key: string; value: unknown }> }
 }
@@ -47,6 +49,8 @@ export interface TempoApi {
   testConnection(accountId: string): Promise<void>
   getWorklogs(accountId: string, fromDate: string, toDate: string): Promise<Worklog[]>
   createWorklogs(accountId: string, worklogs: NewWorklog[]): Promise<Worklog[]>
+  updateWorklog(accountId: string, tempoWorklogId: number, worklog: NewWorklog): Promise<Worklog>
+  deleteWorklog(accountId: string, tempoWorklogId: number): Promise<void>
   getWorkAttributes(): Promise<TempoWorkAttribute[]>
 }
 
@@ -139,6 +143,51 @@ export class TempoClient implements TempoApi {
     return created
   }
 
+  /** Overwrites an existing worklog, keeping its position within the day. */
+  async updateWorklog(
+    accountId: string,
+    tempoWorklogId: number,
+    worklog: NewWorklog
+  ): Promise<Worklog> {
+    const issue = await this.jira.getIssue(worklog.issueKey)
+    // The v4 API has no partial update: PUT replaces the whole worklog, so we
+    // preserve the existing start time instead of shifting the entry to 09:00.
+    let startTime = toStartTime(this.getWorkdayStartSeconds())
+    try {
+      const existing = (await this.request(
+        `${TEMPO_BASE_URL}/worklogs/${tempoWorklogId}`,
+        'GET'
+      )) as TempoWorklogDto
+      if (existing.startTime) startTime = existing.startTime
+    } catch {
+      // Reading the current start time is best-effort; fall back to 09:00.
+    }
+    const dto = (await this.request(`${TEMPO_BASE_URL}/worklogs/${tempoWorklogId}`, 'PUT', {
+      issueId: Number(issue.id),
+      timeSpentSeconds: worklog.timeSpentSeconds,
+      startDate: worklog.startDate,
+      startTime,
+      description: worklog.description,
+      authorAccountId: accountId,
+      // Always sent so cleared fields are dropped (PUT replaces attributes).
+      attributes: worklog.attributes
+    })) as TempoWorklogDto
+    return {
+      tempoWorklogId: dto.tempoWorklogId,
+      issueId: issue.id,
+      issueKey: issue.key,
+      issueSummary: issue.summary,
+      description: dto.description ?? worklog.description,
+      timeSpentSeconds: dto.timeSpentSeconds,
+      startDate: dto.startDate,
+      attributes: toAttributes(dto)
+    }
+  }
+
+  async deleteWorklog(_accountId: string, tempoWorklogId: number): Promise<void> {
+    await this.request(`${TEMPO_BASE_URL}/worklogs/${tempoWorklogId}`, 'DELETE')
+  }
+
   /**
    * Start-of-day offsets per date: 09:00 plus whatever is already logged
    * that day, so new entries continue after existing ones.
@@ -168,7 +217,11 @@ export class TempoClient implements TempoApi {
     return offsets
   }
 
-  private async request(url: string, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
+  private async request(
+    url: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    body?: unknown
+  ): Promise<unknown> {
     const { apiToken } = this.getConfig()
     if (!apiToken) {
       throw new AppException('CONFIG_INVALID', 'Tempo API token is not configured')
@@ -193,6 +246,9 @@ export class TempoClient implements TempoApi {
     if (!response.ok) {
       throw new AppException('TEMPO_UNREACHABLE', `Tempo returned HTTP ${response.status}`, await response.text())
     }
-    return response.json()
+    // DELETE (and some PUTs) answer 204 with no body; guard against JSON.parse.
+    if (response.status === 204) return null
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
   }
 }

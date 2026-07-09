@@ -31,6 +31,10 @@ const api: IpcApi = {
       ipcRenderer.invoke(IPC_CHANNELS.tempoGetWorklogs, connectionId, fromDate, toDate),
     createWorklogs: (connectionId: string, worklogs: NewWorklog[]) =>
       ipcRenderer.invoke(IPC_CHANNELS.tempoCreateWorklogs, connectionId, worklogs),
+    updateWorklog: (connectionId: string, tempoWorklogId: number, worklog: NewWorklog) =>
+      ipcRenderer.invoke(IPC_CHANNELS.tempoUpdateWorklog, connectionId, tempoWorklogId, worklog),
+    deleteWorklog: (connectionId: string, tempoWorklogId: number) =>
+      ipcRenderer.invoke(IPC_CHANNELS.tempoDeleteWorklog, connectionId, tempoWorklogId),
     getWorkAttributes: (connectionId: string) =>
       ipcRenderer.invoke(IPC_CHANNELS.tempoGetWorkAttributes, connectionId)
   },

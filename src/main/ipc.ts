@@ -107,6 +107,25 @@ export function registerIpcHandlers(): void {
     )
   )
 
+  ipcMain.handle(
+    IPC_CHANNELS.tempoUpdateWorklog,
+    (_e, connectionId: string, tempoWorklogId: number, worklog: NewWorklog) =>
+      toResult(IPC_CHANNELS.tempoUpdateWorklog, async () =>
+        connections
+          .tempo(connectionId)
+          .updateWorklog(await connections.accountId(connectionId), tempoWorklogId, worklog)
+      )
+  )
+  ipcMain.handle(
+    IPC_CHANNELS.tempoDeleteWorklog,
+    (_e, connectionId: string, tempoWorklogId: number) =>
+      toResult(IPC_CHANNELS.tempoDeleteWorklog, async () =>
+        connections
+          .tempo(connectionId)
+          .deleteWorklog(await connections.accountId(connectionId), tempoWorklogId)
+      )
+  )
+
   ipcMain.handle(IPC_CHANNELS.tempoGetWorkAttributes, (_e, connectionId: string) =>
     toResult(IPC_CHANNELS.tempoGetWorkAttributes, () =>
       connections.tempo(connectionId).getWorkAttributes()

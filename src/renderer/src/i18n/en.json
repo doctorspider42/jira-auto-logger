@@ -21,7 +21,14 @@
     "totalForDay": "Total: {{hours}} h",
     "selectHint": "Click a day to add entries right away, or click and drag to select several days.",
     "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    "activeConnections": "Active Jira connections"
+    "activeConnections": "Active Jira connections",
+    "editor": {
+      "title": "Edit entry",
+      "editHint": "click to edit",
+      "delete": "Delete entry",
+      "confirmDelete": "Delete this entry?",
+      "confirmDeleteYes": "Delete"
+    }
   },
   "wizard": {
     "title": "New worklog entries",

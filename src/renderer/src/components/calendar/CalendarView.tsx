@@ -5,7 +5,8 @@ import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
-import { useCalendar } from './useCalendar'
+import { EntryEditor } from './EntryEditor'
+import { useCalendar, type CalendarEntry } from './useCalendar'
 import './calendar.css'
 
 export function CalendarView(): JSX.Element {
@@ -14,6 +15,7 @@ export function CalendarView(): JSX.Element {
   const saveConfig = useAppStore((s) => s.saveConfig)
   const language = config.language
   const [wizardDates, setWizardDates] = useState<string[] | null>(null)
+  const [editing, setEditing] = useState<CalendarEntry | null>(null)
   const openWizard = useCallback((dates: string[]) => setWizardDates(dates), [])
   const calendar = useCalendar(openWizard)
 
@@ -125,12 +127,16 @@ export function CalendarView(): JSX.Element {
                   <div
                     key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
                     className="calendar-entry"
+                    role="button"
                     style={
                       worklog.projectColor
                         ? ({ '--entry-color': worklog.projectColor } as React.CSSProperties)
                         : undefined
                     }
-                    title={`[${worklog.projectName || worklog.connectionName}] ${worklog.issueKey} ${worklog.issueSummary}\n${worklog.description}`}
+                    title={`[${worklog.projectName || worklog.connectionName}] ${worklog.issueKey} ${worklog.issueSummary}\n${worklog.description}\n— ${t('calendar.editor.editHint')}`}
+                    // Stop the click from starting a day drag/selection.
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={() => setEditing(worklog)}
                   >
                     <span className="calendar-entry-key">
                       {multipleActive && (
@@ -156,6 +162,28 @@ export function CalendarView(): JSX.Element {
 
       {wizardDates && (
         <SuggestionWizard dates={wizardDates} onClose={() => setWizardDates(null)} onDone={onWizardDone} />
+      )}
+
+      {editing && (
+        <EntryEditor
+          entry={editing}
+          jiraBaseUrl={
+            config.connections.find((c) => c.id === editing.connectionId)?.jira.baseUrl ?? ''
+          }
+          customFields={config.customFields.filter((f) => f.connectionId === editing.connectionId)}
+          instruction={
+            config.projects.find(
+              (p) =>
+                p.connectionId === editing.connectionId &&
+                editing.issueKey.startsWith(`${p.jiraProjectKey}-`)
+            )?.instruction ?? ''
+          }
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null)
+            calendar.reload()
+          }}
+        />
       )}
     </div>
   )

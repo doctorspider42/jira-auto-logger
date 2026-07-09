@@ -107,6 +107,36 @@ export class MockTempoApi implements TempoApi {
     return created
   }
 
+  async updateWorklog(
+    _accountId: string,
+    tempoWorklogId: number,
+    worklog: NewWorklog
+  ): Promise<Worklog> {
+    await sleep(300)
+    const issues = PROJECTS_BY_CONNECTION[this.connectionId].flatMap((p) => MOCK_ISSUES[p.key] ?? [])
+    const issue = issues.find((i) => i.key === worklog.issueKey)
+    const index = this.history.findIndex((w) => w.tempoWorklogId === tempoWorklogId)
+    const updated: Worklog = {
+      tempoWorklogId,
+      issueId: issue?.id ?? (index >= 0 ? this.history[index].issueId : '0'),
+      issueKey: worklog.issueKey,
+      issueSummary: issue?.summary ?? '',
+      description: worklog.description,
+      timeSpentSeconds: worklog.timeSpentSeconds,
+      startDate: worklog.startDate,
+      attributes: worklog.attributes
+    }
+    if (index >= 0) this.history[index] = updated
+    else this.history.push(updated)
+    return updated
+  }
+
+  async deleteWorklog(_accountId: string, tempoWorklogId: number): Promise<void> {
+    await sleep(200)
+    const index = this.history.findIndex((w) => w.tempoWorklogId === tempoWorklogId)
+    if (index >= 0) this.history.splice(index, 1)
+  }
+
   async getWorkAttributes(): Promise<TempoWorkAttribute[]> {
     await sleep(200)
     return WORK_ATTRIBUTES[this.connectionId] ?? []
