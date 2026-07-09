@@ -7,12 +7,13 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "electron-vite dev",
-    "dev:mock": "cross-env JAL_MOCK=1 electron-vite dev",
-    "screenshots": "cross-env JAL_MOCK=1 JAL_SCREENSHOTS=screenshots electron-vite dev",
+    "postinstall": "node scripts/ensure-electron.mjs",
+    "dev": "node scripts/ensure-electron.mjs && electron-vite dev",
+    "dev:mock": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 electron-vite dev",
+    "screenshots": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 JAL_SCREENSHOTS=screenshots electron-vite dev",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "start": "electron-vite preview",
+    "start": "node scripts/ensure-electron.mjs && electron-vite preview",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac",
     "dist:linux": "electron-vite build && electron-builder --linux"
