@@ -1,19 +1,41 @@
 name: Release
 
-# Builds installers for Windows, macOS and Linux. Pushing a version tag
-# (e.g. `git tag v0.1.0`) attaches them to a GitHub release; a manual run
-# (workflow_dispatch) only uploads them as workflow artifacts.
+# Every push to main publishes a new release. The version is derived from the
+# latest published release (patch-bumped) - or from package.json when it is
+# set higher, to deliberately jump a minor/major. A manual run does the same;
+# it does not commit anything back, so package.json in the repo is only the
+# "floor" version, while the built app always reports the released version.
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
+
+# Serialize runs so two quick pushes don't compute (and fight over) the same
+# version; never cancel a build that is already producing installers.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute next version
+        id: compute
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/next-version.js
+        shell: bash
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -51,6 +73,12 @@ jobs:
         run: npm ci || (sleep 20 && npm ci) || (sleep 60 && npm ci)
         shell: bash
 
+      - name: Set version
+        # Runner-only bump: sets the version electron-builder stamps into the
+        # app and the installer name. Not committed back to the repo.
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
+        shell: bash
+
       - name: Type check
         run: npm run typecheck
 
@@ -60,16 +88,12 @@ jobs:
       - name: Package
         run: npx electron-builder --publish never
 
-      - name: Upload build artifacts (manual run)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ runner.os }}-build
-          path: ${{ matrix.artifacts }}
-
-      - name: Attach to release (tag run)
-        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      - name: Publish release
+        # Each matrix job targets the same tag: the first creates the release,
+        # the others upload their platform's files to it.
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
           files: ${{ matrix.artifacts }}
           generate_release_notes: true

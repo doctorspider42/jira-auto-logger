@@ -7,31 +7,36 @@ description: How to release Jira Auto Logger - version bumping, tagging, the Git
 
 ## Releasing a version
 
-```bash
-# 1. bump "version" in package.json (semver), commit, push
-# 2. tag and push the tag - this is what triggers the release build:
-git tag v0.2.0
-git push origin v0.2.0
-```
+Releases are **automatic**: every push to `main` publishes one. There is no
+manual tag step - just merge to `main`.
 
-The `Release` workflow (`.github/workflows/release.yml`) then builds on a
-3-OS matrix and attaches to a GitHub release (with auto-generated notes):
-- Windows: NSIS installer `dist/*.exe`
-- macOS: `dist/*.dmg`
-- Linux: `dist/*.AppImage`
+The `Release` workflow (`.github/workflows/release.yml`) runs a `version` job
+that computes the next version, then a 3-OS `build` matrix that packages and
+publishes a GitHub release (auto-generated notes):
+- Windows: NSIS installer `dist/*.exe` + `latest.yml` + `*.blockmap`
+- macOS: `dist/*.dmg` + `latest-mac.yml`
+- Linux: `dist/*.AppImage` + `latest-linux.yml`
+
+The `latest*.yml` / blockmap files are what the in-app auto-updater
+(electron-updater) reads - keep them in the uploaded `files:` globs.
 
 Repo: `doctorspider42/jira-auto-logger`. Inspect runs with
 `gh run list --repo doctorspider42/jira-auto-logger` / `gh run view <id>`.
 
-## Manual runs
+## Versioning
 
-The workflow also has `workflow_dispatch`: a manual run (Actions → Release →
-Run workflow, or `gh workflow run Release`) builds all three platforms and
-uploads them as **workflow artifacts only** - no release is created. Use it to
-smoke-test the pipeline without publishing.
+`.github/scripts/next-version.js` computes the version: **latest published
+release, patch-bumped** (0.1.4 → 0.1.5). `package.json` is *not* committed back
+- it is only the "floor". The built app still reports the correct version
+because CI runs `npm version <computed>` on the runner before building.
 
-The release-attach step is conditional on `startsWith(github.ref, 'refs/tags/')`;
-keep that guard if you edit the workflow.
+To jump a **minor/major**, bump `"version"` in `package.json` above the latest
+release (e.g. to `0.2.0`) and push - the script honours it because it exceeds
+the latest release, and patch-bumping resumes from there. With no releases yet,
+the first release uses `package.json`'s version as-is.
+
+`concurrency: group: release` serializes runs so two quick pushes don't compute
+the same version. `workflow_dispatch` behaves the same as a push (publishes).
 
 ## Facts about the build
 
