@@ -4,7 +4,6 @@ import { randomUUID } from 'crypto'
 import { dirname, join } from 'path'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
 import type { AppConfig, GitFolder, JiraConfig, JiraConnection, TempoConfig } from '@shared/domain'
-import { DEFAULT_MAIN_PROMPT } from './defaultPrompt'
 import { isMockMode, mockConfig } from './mock'
 
 interface StoredConfig {
@@ -47,7 +46,7 @@ export function defaultConfig(): AppConfig {
       claudeModel: '',
       copilotCliPath: 'copilot',
       copilotModel: '',
-      mainPrompt: DEFAULT_MAIN_PROMPT,
+      additionalInstructions: '',
       enableThinking: true
     },
     language: 'pl',
@@ -107,6 +106,9 @@ export class ConfigService {
       // Merge over defaults so new fields added in future versions get sane values.
       const config: AppConfig = { ...defaultConfig(), ...stored.config }
       config.llm = { ...defaultConfig().llm, ...stored.config.llm }
+      // The main prompt is now baked into the app; drop any user-edited copy
+      // left over from older versions so it never resurfaces.
+      delete (config.llm as { mainPrompt?: string }).mainPrompt
       config.issuePool = { ...defaultConfig().issuePool, ...stored.config.issuePool }
       config.updates = { ...defaultConfig().updates, ...stored.config.updates }
       config.connections = stored.config.connections ?? []

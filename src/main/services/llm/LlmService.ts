@@ -16,7 +16,7 @@ import type {
   Worklog,
   WorklogSuggestion
 } from '@shared/domain'
-import { REGENERATE_PROMPT } from '../defaultPrompt'
+import { MAIN_PROMPT, REGENERATE_PROMPT } from '../defaultPrompt'
 import type { ConnectionManager } from '../ConnectionManager'
 import type { CommitSource } from '../GitService'
 import { logger } from '../logger'
@@ -63,6 +63,7 @@ export class LlmService {
 
   async generateSuggestions(request: SuggestionRequest): Promise<ProjectSuggestions[]> {
     const results: ProjectSuggestions[] = []
+    const loggedByDate = await this.fetchLoggedHoursByDate(request)
 
     // Sequential on purpose: CLI backends dislike concurrent invocations.
     // Every target (Jira project) of a selected project gets its own isolated
@@ -74,7 +75,7 @@ export class LlmService {
       for (const target of project.targets) {
         const connection = this.connections.connection(target.connectionId)
         const label = this.passLabel(project, target, connection.name)
-        const built = await this.buildTargetPrompt(request, selection, project, target, commits)
+        const built = await this.buildTargetPrompt(request, selection, project, target, commits, loggedByDate)
         logger.info('llm', `generate for "${label}"`, {
           backend: this.getConfig().llm.backend,
           dates: request.dates.length,
@@ -102,12 +103,13 @@ export class LlmService {
   /** Debug: the exact prompts generateSuggestions would send, per target. */
   async previewPrompt(request: SuggestionRequest): Promise<PromptPreview[]> {
     const previews: PromptPreview[] = []
+    const loggedByDate = await this.fetchLoggedHoursByDate(request)
     for (const selection of this.validSelections(request)) {
       const project = this.getProject(selection.projectId)
       const commits = await this.fetchCommits(request, selection, project)
       for (const target of project.targets) {
         const connection = this.connections.connection(target.connectionId)
-        const { prompt } = await this.buildTargetPrompt(request, selection, project, target, commits)
+        const { prompt } = await this.buildTargetPrompt(request, selection, project, target, commits, loggedByDate)
         previews.push({
           label: this.passLabel(project, target, connection.name),
           prompt,
@@ -212,7 +214,8 @@ export class LlmService {
     selection: ProjectSelection,
     project: ProjectConfig,
     target: ProjectTarget,
-    commits: CommitInfo[]
+    commits: CommitInfo[],
+    loggedByDate: Record<string, number>
   ): Promise<BuiltPrompt> {
     const config = this.getConfig()
     const recentWorklogs = await this.fetchRecentWorklogs(target.connectionId)
@@ -234,9 +237,19 @@ export class LlmService {
         hours: Math.round((w.timeSpentSeconds / 3600) * 100) / 100
       }))
 
+    // Hours already logged on the requested dates (across all the developer's
+    // projects) so the model fills only the day's remaining budget, not a fresh
+    // full day on top of existing entries. Only nonzero dates are sent.
+    const hoursAlreadyLogged = Object.fromEntries(
+      request.dates
+        .map((date) => [date, Math.round((loggedByDate[date] ?? 0) * 100) / 100] as const)
+        .filter(([, hours]) => hours > 0)
+    )
+
     // Compact JSON on purpose: pretty-printing burns 25-30% more input tokens.
     const input = JSON.stringify({
       dates: request.dates,
+      ...(Object.keys(hoursAlreadyLogged).length > 0 ? { hoursAlreadyLogged } : {}),
       project: {
         key: target.jiraProjectKey,
         name: project.name,
@@ -262,12 +275,55 @@ export class LlmService {
       })),
       notes: selection.note
     })
-    const prompt = config.llm.mainPrompt
+    // The user's extra guidance overrides the built-in defaults; a blank field
+    // leaves the placeholder empty so the base prompt is unchanged.
+    const extra = config.llm.additionalInstructions.trim()
+    const additionalInstructions = extra
+      ? `\nADDITIONAL INSTRUCTIONS FROM THE DEVELOPER (highest priority - follow them even when they conflict with the rules above):\n${extra}\n`
+      : ''
+    const prompt = MAIN_PROMPT
       .replaceAll('{{workingHoursPerDay}}', String(config.workingHoursPerDay))
       .replaceAll('{{language}}', LANGUAGE_NAMES[config.language] ?? 'English')
+      .replaceAll('{{additionalInstructions}}', additionalInstructions)
       .replaceAll('{{input}}', input)
 
     return { prompt, commits, candidates }
+  }
+
+  /**
+   * Hours already logged in Tempo on each requested date, summed across every
+   * connection in play (active connections plus the selected projects' own), so
+   * suggestions top a day up to {{workingHoursPerDay}} instead of adding a full
+   * day on top of what is already there.
+   */
+  private async fetchLoggedHoursByDate(request: SuggestionRequest): Promise<Record<string, number>> {
+    const config = this.getConfig()
+    const requested = new Set(request.dates)
+    const sorted = [...request.dates].sort()
+    const from = sorted[0]
+    const to = sorted[sorted.length - 1]
+
+    const connectionIds = new Set(config.activeConnectionIds)
+    for (const selection of request.selections) {
+      const project = config.projects.find((p) => p.id === selection.projectId)
+      for (const target of project?.targets ?? []) connectionIds.add(target.connectionId)
+    }
+
+    const totals: Record<string, number> = {}
+    for (const connectionId of connectionIds) {
+      try {
+        const accountId = await this.connections.accountId(connectionId)
+        const worklogs = await this.connections.tempo(connectionId).getWorklogs(accountId, from, to)
+        for (const w of worklogs) {
+          if (requested.has(w.startDate)) {
+            totals[w.startDate] = (totals[w.startDate] ?? 0) + w.timeSpentSeconds / 3600
+          }
+        }
+      } catch {
+        // Tempo unavailable or not configured for this connection - skip it.
+      }
+    }
+    return totals
   }
 
   /** Tempo worklogs from the lookback window; empty when Tempo is unavailable. */

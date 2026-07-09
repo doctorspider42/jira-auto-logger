@@ -201,11 +201,6 @@ export function SettingsView(): JSX.Element {
   const saveBlocked = invalidCustomFields.length > 0
   const saveBlockedReason = saveBlocked ? t('settings.fieldRequired') : undefined
 
-  const resetPrompt = async (): Promise<void> => {
-    const defaultPrompt = await window.api.config.getDefaultMainPrompt()
-    patchSection('llm', { mainPrompt: defaultPrompt })
-  }
-
   const checkForUpdates = async (): Promise<void> => {
     setChecking(true)
     // Persist the mode first so the check honours the current selection.
@@ -677,19 +672,15 @@ export function SettingsView(): JSX.Element {
         </p>
 
         <div className="field">
-          <div className="wizard-label-row">
-            <label>{t('settings.mainPrompt')}</label>
-            <button className="btn btn-ghost btn-sm" onClick={resetPrompt}>
-              {t('settings.resetPrompt')}
-            </button>
-          </div>
+          <label>{t('settings.additionalInstructions')}</label>
           <textarea
             className="settings-prompt"
-            value={draft.llm.mainPrompt}
-            onChange={(e) => patchSection('llm', { mainPrompt: e.target.value })}
+            value={draft.llm.additionalInstructions}
+            placeholder={t('settings.additionalInstructionsPlaceholder')}
+            onChange={(e) => patchSection('llm', { additionalInstructions: e.target.value })}
             spellCheck={false}
           />
-          <span className="hint">{t('settings.mainPromptHint')}</span>
+          <span className="hint">{t('settings.additionalInstructionsHint')}</span>
         </div>
       </section>
 

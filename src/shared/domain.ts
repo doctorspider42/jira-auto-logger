@@ -50,8 +50,11 @@ export interface LlmConfig {
   copilotCliPath: string
   /** Model passed to the Copilot CLI; empty = CLI default. */
   copilotModel: string
-  /** Main prompt sent with every suggestion request; enforces the response format. */
-  mainPrompt: string
+  /**
+   * Optional extra guidance the user appends to the built-in prompt (tone,
+   * wording, house rules). The base prompt itself is baked into the app.
+   */
+  additionalInstructions: string
   /**
    * Model thinking/reasoning. Off = faster and cheaper. Applies to the
    * Claude CLI and OpenAI reasoning models; the Copilot CLI ignores it.

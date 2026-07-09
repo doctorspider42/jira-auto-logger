@@ -1,5 +1,4 @@
 import type { AppConfig, JiraIssue, TempoWorkAttribute, Worklog } from '@shared/domain'
-import { DEFAULT_MAIN_PROMPT } from '../defaultPrompt'
 
 /**
  * Deterministic fake data for mock mode (JAL_MOCK=1): two Jira connections,
@@ -121,7 +120,7 @@ export function mockConfig(): AppConfig {
       claudeModel: '',
       copilotCliPath: 'copilot',
       copilotModel: '',
-      mainPrompt: DEFAULT_MAIN_PROMPT,
+      additionalInstructions: '',
       enableThinking: true
     },
     language: 'en',
