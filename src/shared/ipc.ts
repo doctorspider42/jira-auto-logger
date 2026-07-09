@@ -24,7 +24,6 @@ export interface IpcApi {
   config: {
     get(): Promise<AppConfig>
     set(config: AppConfig): Promise<Result<void>>
-    getDefaultMainPrompt(): Promise<string>
     /** Absolute path of the persisted config.json (shown in settings). */
     getFilePath(): Promise<string>
     /** Absolute path of the main-process debug log (shown in settings). */
@@ -88,7 +87,6 @@ export interface IpcApi {
 export const IPC_CHANNELS = {
   configGet: 'config:get',
   configSet: 'config:set',
-  configGetDefaultMainPrompt: 'config:getDefaultMainPrompt',
   configGetFilePath: 'config:getFilePath',
   configGetLogFilePath: 'config:getLogFilePath',
   dialogPickFolder: 'dialog:pickFolder',

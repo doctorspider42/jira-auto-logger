@@ -13,7 +13,6 @@ const api: IpcApi = {
   config: {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.configGet),
     set: (config: AppConfig) => ipcRenderer.invoke(IPC_CHANNELS.configSet, config),
-    getDefaultMainPrompt: () => ipcRenderer.invoke(IPC_CHANNELS.configGetDefaultMainPrompt),
     getFilePath: () => ipcRenderer.invoke(IPC_CHANNELS.configGetFilePath),
     getLogFilePath: () => ipcRenderer.invoke(IPC_CHANNELS.configGetLogFilePath)
   },

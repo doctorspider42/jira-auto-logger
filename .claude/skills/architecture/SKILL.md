@@ -58,8 +58,8 @@ keep working.
 
 ## LLM pipeline specifics
 
-- The main prompt is **user-editable and stored in config** (`llm.mainPrompt`). If you change `DEFAULT_MAIN_PROMPT` (`src/main/services/defaultPrompt.ts`), existing users keep the old prompt until they click "Restore default" in settings - mention this in your summary whenever you touch the default prompt.
-- Placeholders substituted by `LlmService`: `{{input}}` (compact JSON), `{{workingHoursPerDay}}`, `{{language}}`.
+- The main prompt is **baked into the app** (`MAIN_PROMPT` in `src/main/services/defaultPrompt.ts`), not stored in config - editing it takes effect for everyone on the next release. The user can only append free-form guidance via `llm.additionalInstructions`, which `LlmService` injects at the `{{additionalInstructions}}` placeholder as a highest-priority override.
+- Placeholders substituted by `LlmService`: `{{input}}` (compact JSON), `{{workingHoursPerDay}}`, `{{language}}`, `{{additionalInstructions}}`. The last also carries the per-date `hoursAlreadyLogged` context so suggestions top a day up to `workingHoursPerDay` instead of re-logging existing entries.
 - Token discipline: input JSON is compact (no pretty-print), long fields are clipped, and per-project passes deliberately exclude other projects. Keep it that way.
 - LLM output is never trusted: `parseSuggestions` validates issue keys against the real candidate pool, normalizes hours and custom-field types.
 - Providers run sequentially across projects (CLI backends dislike concurrency).

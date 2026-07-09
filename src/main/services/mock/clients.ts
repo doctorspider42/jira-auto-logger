@@ -185,6 +185,7 @@ export class MockGitService implements CommitSource {
 
 interface MockPromptInput {
   dates: string[]
+  hoursAlreadyLogged?: Record<string, number>
   projectCount: number
   issues: Array<{ key: string; summary: string }>
   customFields?: Array<{ key: string; type: string }>
@@ -207,27 +208,37 @@ export class MockLlmProvider implements LlmProvider {
     if (!input) return '[]'
     const random = mulberry32(input.issues.length * 7 + input.dates.length)
     const perDay = input.projectCount > 1 ? [4] : [5, 3]
+    const dayTarget = perDay.reduce((sum, h) => sum + h, 0)
 
-    const entries = input.dates.flatMap((date) =>
-      perDay.map((hours, slot) => {
-        const issue = input.issues[Math.floor(random() * Math.max(input.issues.length, 1))]
-        const customFields = Object.fromEntries(
-          (input.customFields ?? []).map((f) => [
-            f.key,
-            f.type === 'boolean' ? random() < 0.2 : ''
-          ])
-        )
-        return {
-          date,
-          issueKey: issue?.key ?? '',
-          description: issue
-            ? `${slot === 0 ? 'Worked on' : 'Continued'} ${issue.summary.toLowerCase()}; addressed review remarks`
-            : 'Project work',
-          hours,
-          ...(input.customFields?.length ? { customFields } : {})
-        }
-      })
-    )
+    const entries = input.dates.flatMap((date) => {
+      // Only fill the day's remaining budget, mirroring the real prompt so the
+      // "already has entries" case does not double-log a full day.
+      const remaining = Math.max(0, dayTarget - (input.hoursAlreadyLogged?.[date] ?? 0))
+      if (remaining <= 0) return []
+      const scale = remaining / dayTarget
+      return perDay
+        .map((hours, slot) => {
+          const scaled = Math.round(hours * scale * 4) / 4
+          if (scaled <= 0) return null
+          const issue = input.issues[Math.floor(random() * Math.max(input.issues.length, 1))]
+          const customFields = Object.fromEntries(
+            (input.customFields ?? []).map((f) => [
+              f.key,
+              f.type === 'boolean' ? random() < 0.2 : ''
+            ])
+          )
+          return {
+            date,
+            issueKey: issue?.key ?? '',
+            description: issue
+              ? `${slot === 0 ? 'Worked on' : 'Continued'} ${issue.summary.toLowerCase()}; addressed review remarks`
+              : 'Project work',
+            hours: scaled,
+            ...(input.customFields?.length ? { customFields } : {})
+          }
+        })
+        .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+    })
     return JSON.stringify(entries)
   }
 

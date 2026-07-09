@@ -4,7 +4,6 @@ import type { AppConfig, NewWorklog, RegenerateDescriptionRequest, Result, Sugge
 import { IPC_CHANNELS } from '@shared/ipc'
 import { ConfigService } from './services/ConfigService'
 import { ConnectionManager } from './services/ConnectionManager'
-import { DEFAULT_MAIN_PROMPT } from './services/defaultPrompt'
 import { GitService } from './services/GitService'
 import { logger } from './services/logger'
 import { LlmService } from './services/llm/LlmService'
@@ -59,7 +58,6 @@ export function registerIpcHandlers(): UpdateService {
       updates.onConfigChanged()
     })
   )
-  ipcMain.handle(IPC_CHANNELS.configGetDefaultMainPrompt, () => DEFAULT_MAIN_PROMPT)
   ipcMain.handle(IPC_CHANNELS.configGetFilePath, () => configService.filePath)
   ipcMain.handle(IPC_CHANNELS.configGetLogFilePath, () => logger.filePath)
 
