@@ -219,6 +219,7 @@
     "badgeTitle": "Dostępna nowa wersja",
     "statusChecking": "Sprawdzanie…",
     "statusUpToDate": "Masz najnowszą wersję.",
-    "statusError": "Nie udało się sprawdzić aktualizacji."
+    "statusError": "Nie udało się sprawdzić aktualizacji.",
+    "checkNow": "Sprawdź aktualizacje"
   }
 }

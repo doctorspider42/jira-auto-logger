@@ -163,6 +163,12 @@ textarea {
   }
 }
 
+.update-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .nav-tabs {
   display: flex;
   gap: 4px;

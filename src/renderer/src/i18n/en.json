@@ -219,6 +219,7 @@
     "badgeTitle": "A new version is available",
     "statusChecking": "Checking…",
     "statusUpToDate": "You're on the latest version.",
-    "statusError": "Couldn't check for updates."
+    "statusError": "Couldn't check for updates.",
+    "checkNow": "Check for updates"
   }
 }

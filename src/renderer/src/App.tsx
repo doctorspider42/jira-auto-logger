@@ -3,6 +3,7 @@ import { CalendarView } from './components/calendar/CalendarView'
 import { ProjectsView } from './components/projects/ProjectsView'
 import { SettingsView } from './components/settings/SettingsView'
 import { UpdateBanner } from './components/common/UpdateBanner'
+import { UpdateCheckButton } from './components/common/UpdateCheckButton'
 import { useAppStore, UPDATE_NOTIFYING_STATUSES } from './store/appStore'
 import type { AppView } from './store/appStore'
 
@@ -23,6 +24,7 @@ export default function App(): JSX.Element {
     <div className="app-shell">
       <header className="app-header">
         <h1>{t('app.title')}</h1>
+        <UpdateCheckButton />
         <nav className="nav-tabs">
           {tabs.map((tab) => (
             <button
