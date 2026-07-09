@@ -36,7 +36,8 @@
     "step2": "Sugestie",
     "projects": "Projekty, nad którymi pracowałeś/aś",
     "noProjects": "Brak skonfigurowanych projektów — dodaj je w ustawieniach.",
-    "useRepoCommits": "Uwzględnij commity z repozytorium ({{folder}})",
+    "useRepoCommits": "Uwzględnij commity z repozytoriów: {{folders}}",
+    "multiTargetHint": "Ten projekt loguje do {{count}} Jir — dla każdej powstaną niezależne wpisy.",
     "projectNote": "Notatka / instrukcja dla LLM",
     "projectNotePlaceholder": "np. głównie spotkania i code review, loguj po 2h…",
     "useRecent": "Użyj ostatnich",
@@ -77,7 +78,7 @@
     "projectNamePlaceholder": "np. Sklep Klienta X",
     "projectConnection": "Połączenie Jira",
     "projectJiraKey": "Projekt w Jirze (klucz)",
-    "projectFolder": "Repozytorium (opcjonalnie)",
+    "projectFolder": "Repozytoria (opcjonalnie)",
     "projectInstruction": "Stała instrukcja dla LLM (opcjonalnie)",
     "projectInstructionPlaceholder": "np. loguj tylko na zadania typu Task, opisy po angielsku…",
     "addProject": "Dodaj projekt",
@@ -156,14 +157,18 @@
     "updateManualOnly": "Na tej platformie (niepodpisany build) aktualizacja jest ręczna — pokażemy link do pobrania nowej wersji."
   },
   "projects": {
-    "hint": "Projekt łączy nazwę, projekt z Jiry, opcjonalne repozytorium (z filtrem autora commitów) i stałą instrukcję dla LLM. Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
+    "hint": "Projekt łączy nazwę, jeden lub więcej projektów z Jiry (np. Jirę klienta i firmową), opcjonalne repozytoria (z filtrem autora commitów) i stałą instrukcję dla LLM. Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
     "color": "Kolor",
     "colorHint": "Tym kolorem będą oznaczone wpisy projektu w kalendarzu",
     "noConnections": "Najpierw dodaj połączenie Jira w ustawieniach.",
-    "pickFolder": "Wybierz folder repozytorium…",
+    "jiraTargets": "Projekty Jira",
+    "jiraTargetsHint": "Jeśli logujesz ten sam czas w kilku Jirach (np. u klienta i w firmie), dodaj kilka pozycji — dla każdej Jiry wygenerują się niezależne wpisy z jej zadaniami.",
+    "addTarget": "Dodaj Jirę",
+    "removeTarget": "Usuń",
+    "pickFolder": "Dodaj folder repozytorium…",
     "changeFolder": "Zmień",
     "detachFolder": "Odepnij",
-    "invalidHint": "Każdy projekt musi mieć nazwę, połączenie i projekt z Jiry, a repozytorium — e-mail autora albo „Zawrzyj commity wszystkich”."
+    "invalidHint": "Każdy projekt musi mieć nazwę i co najmniej jeden projekt z Jiry (połączenie + klucz), a każde repozytorium — e-mail autora albo „Zawrzyj commity wszystkich”."
   },
   "funnyLoading": [
     "Rozszczepianie atomów…",

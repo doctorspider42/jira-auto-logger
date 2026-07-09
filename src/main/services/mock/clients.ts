@@ -156,6 +156,12 @@ const COMMIT_MESSAGES: Record<string, string[]> = {
     'SHOP-202 fix rounding for mixed VAT carts',
     'SHOP-204 discount codes: expiry validation',
     'refactor product gallery grid'
+  ],
+  'shop-backend': [
+    'SHOP-201 BLIK payment webhook handling',
+    'SHOP-204 discount codes: persistence layer',
+    'fix: race condition in order status updates',
+    'chore: upgrade payment SDK'
   ]
 }
 

@@ -101,10 +101,14 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
         if (result.ok) {
           merged.push(
             ...result.value.map((w) => {
-              const project = config.projects.find(
-                (p) =>
-                  p.connectionId === connection.id &&
-                  w.issueKey.startsWith(`${p.jiraProjectKey}-`)
+              // Match through the targets: entries of one project coming from
+              // different Jiras share the same color and name in the calendar.
+              const project = config.projects.find((p) =>
+                p.targets.some(
+                  (t) =>
+                    t.connectionId === connection.id &&
+                    w.issueKey.startsWith(`${t.jiraProjectKey}-`)
+                )
               )
               const attributeByKey = new Map(w.attributes.map((a) => [a.key, a.value]))
               const fieldIcons = config.customFields

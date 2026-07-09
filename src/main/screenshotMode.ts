@@ -52,10 +52,10 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
     await sleep(300)
     await js(`window.dispatchEvent(new MouseEvent('mouseup'))`)
     await sleep(800)
-    // Select the first two projects and add a note to the first section.
+    // Select projects incl. the multi-Jira one and add a note to the first section.
     await js(`(() => {
       const chips = [...document.querySelectorAll('.modal .chip')]
-      chips.slice(0, 2).forEach((c) => c.click())
+      chips.slice(0, 3).forEach((c) => c.click())
     })()`)
     await sleep(400)
     await js(`(() => {
@@ -69,8 +69,9 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
     await shot('wizard-input')
 
     // Generate suggestions with the mock LLM and capture the review step.
+    // Four passes now (the multi-Jira project generates once per target).
     await js(`[...document.querySelectorAll('.modal-footer .btn-primary')].at(-1)?.click()`)
-    await sleep(6000)
+    await sleep(10000)
     await shot('wizard-suggestions')
   } catch (e) {
     logger.error('screenshots', 'screenshot run failed', String(e))

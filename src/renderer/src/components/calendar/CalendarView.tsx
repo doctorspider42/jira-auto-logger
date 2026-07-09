@@ -172,10 +172,12 @@ export function CalendarView(): JSX.Element {
           }
           customFields={config.customFields.filter((f) => f.connectionId === editing.connectionId)}
           instruction={
-            config.projects.find(
-              (p) =>
-                p.connectionId === editing.connectionId &&
-                editing.issueKey.startsWith(`${p.jiraProjectKey}-`)
+            config.projects.find((p) =>
+              p.targets.some(
+                (t) =>
+                  t.connectionId === editing.connectionId &&
+                  editing.issueKey.startsWith(`${t.jiraProjectKey}-`)
+              )
             )?.instruction ?? ''
           }
           onClose={() => setEditing(null)}
