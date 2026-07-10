@@ -18,6 +18,7 @@
     "generateSuggestions": "Suggest entries",
     "clearSelection": "Clear selection",
     "noWorklogs": "No entries",
+    "moreEntries": "+{{count}} more",
     "totalForDay": "Total: {{hours}} h",
     "selectHint": "Click a day to add entries right away, or click and drag to select several days.",
     "viewMonth": "Month",

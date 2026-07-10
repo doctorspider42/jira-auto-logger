@@ -18,6 +18,7 @@
     "generateSuggestions": "Zaproponuj wpisy",
     "clearSelection": "Wyczyść zaznaczenie",
     "noWorklogs": "Brak wpisów",
+    "moreEntries": "+{{count}} więcej",
     "totalForDay": "Suma: {{hours}} h",
     "selectHint": "Kliknij dzień, aby od razu dodać wpisy, albo kliknij i przeciągnij, aby zaznaczyć kilka dni.",
     "viewMonth": "Miesiąc",
