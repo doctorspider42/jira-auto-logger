@@ -7,6 +7,7 @@ import { useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
 import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
+import { MonthDayEntries } from './MonthDayEntries'
 import { useCalendar, type CalendarEntry } from './useCalendar'
 import './calendar.css'
 
@@ -185,39 +186,12 @@ export function CalendarView(): JSX.Element {
                   </span>
                 )}
               </div>
-              <div className="calendar-day-entries">
-                {worklogs.map((worklog) => (
-                  <div
-                    key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
-                    className="calendar-entry"
-                    role="button"
-                    style={
-                      worklog.projectColor
-                        ? ({ '--entry-color': worklog.projectColor } as React.CSSProperties)
-                        : undefined
-                    }
-                    title={`[${worklog.projectName || worklog.connectionName}] ${worklog.issueKey} ${worklog.issueSummary}\n${worklog.description}\n— ${t('calendar.editor.editHint')}`}
-                    // Stop the click from starting a day drag/selection.
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => setEditing(worklog)}
-                  >
-                    <span className="calendar-entry-key">
-                      {multipleActive && (
-                        <span className="calendar-entry-conn">
-                          {(worklog.connectionName || '?').charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                      {worklog.issueKey}
-                    </span>
-                    <span className="calendar-entry-hours">
-                      {worklog.fieldIcons.length > 0 && (
-                        <span className="calendar-entry-icons">{worklog.fieldIcons.join('')}</span>
-                      )}
-                      {formatHours(worklog.timeSpentSeconds)}{t('app.hoursShort')}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <MonthDayEntries
+                entries={worklogs}
+                multipleActive={multipleActive}
+                onEditEntry={setEditing}
+                onShowMore={() => calendar.openDay(day)}
+              />
             </div>
           )
         })}
