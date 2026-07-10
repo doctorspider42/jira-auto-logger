@@ -34,19 +34,66 @@ jobs:
         run: node .github/scripts/next-version.js
         shell: bash
 
-  build:
+  # Windows is the primary platform, so it builds first and creates the
+  # release; macOS and Linux then upload their files to the existing tag.
+  build-windows:
     needs: version
+    runs-on: windows-latest
+    env:
+      # No code-signing certificates in CI - produce unsigned builds.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        # Registry hiccups (ECONNRESET) show up on hosted runners now and
+        # then - retry twice with a pause before giving up.
+        run: npm ci || (sleep 20 && npm ci) || (sleep 60 && npm ci)
+        shell: bash
+
+      - name: Set version
+        # Runner-only bump: sets the version electron-builder stamps into the
+        # app and the installer name. Not committed back to the repo.
+        run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
+        shell: bash
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Package
+        run: npx electron-builder --publish never
+
+      - name: Publish release
+        # First job to run: creates the release; the mac/linux jobs below add
+        # their files to the same tag. Installer plus the electron-updater
+        # metadata (latest.yml) and blockmap the in-app auto-updater reads.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
+          files: |
+            dist/*.exe
+            dist/*.blockmap
+            dist/latest.yml
+          generate_release_notes: true
+
+  # macOS and Linux run in parallel after Windows has created the release.
+  build:
+    needs: [version, build-windows]
     strategy:
       fail-fast: false
       matrix:
-        # Installers plus the electron-updater metadata (latest*.yml) and
-        # blockmaps that the in-app auto-updater reads from the release.
+        # Installers plus the electron-updater metadata (latest*.yml) the
+        # in-app auto-updater reads from the release.
         include:
-          - os: windows-latest
-            artifacts: |
-              dist/*.exe
-              dist/*.blockmap
-              dist/latest.yml
           - os: macos-latest
             artifacts: |
               dist/*.dmg
@@ -89,8 +136,7 @@ jobs:
         run: npx electron-builder --publish never
 
       - name: Publish release
-        # Each matrix job targets the same tag: the first creates the release,
-        # the others upload their platform's files to it.
+        # Uploads this platform's files to the tag the Windows job created.
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
