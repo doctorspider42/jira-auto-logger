@@ -97,6 +97,7 @@ export class TempoClient implements TempoApi {
         description: d.description ?? '',
         timeSpentSeconds: d.timeSpentSeconds,
         startDate: d.startDate,
+        startTime: d.startTime,
         attributes: toAttributes(d)
       }
     })

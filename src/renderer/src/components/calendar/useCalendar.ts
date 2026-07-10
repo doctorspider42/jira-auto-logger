@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  addDays,
   addMonths,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
+  isSameMonth,
   startOfMonth,
   startOfWeek
 } from 'date-fns'
@@ -29,8 +31,14 @@ function isTruthyAttribute(type: 'string' | 'boolean', value: string | boolean |
   return typeof value === 'string' && value.trim() !== '' && value !== 'false'
 }
 
+export type CalendarView = 'month' | 'day'
+
 export interface CalendarState {
+  view: CalendarView
+  setView(view: CalendarView): void
   month: Date
+  /** Day focused in the day view. */
+  focusedDay: Date
   /** All days of the visible grid (full weeks covering the month). */
   days: Date[]
   worklogsByDate: Map<string, CalendarEntry[]>
@@ -39,6 +47,9 @@ export interface CalendarState {
   loading: boolean
   error: AppError | null
   goToMonth(offset: number): void
+  goToDay(offset: number): void
+  /** Focus a specific day and switch to the day view. */
+  openDay(date: Date): void
   goToToday(): void
   onDayMouseDown(date: Date): void
   onDayMouseEnter(date: Date): void
@@ -59,7 +70,9 @@ function isoRange(a: string, b: string): string[] {
  */
 export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarState {
   const config = useAppStore((s) => s.config)
+  const [view, setView] = useState<CalendarView>('month')
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
+  const [focusedDay, setFocusedDay] = useState(() => new Date())
   const [entries, setEntries] = useState<CalendarEntry[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [drag, setDrag] = useState<{ anchor: string; current: string } | null>(null)
@@ -183,15 +196,40 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     [drag, selected]
   )
 
+  // Moving the focused day into another month re-points the fetch window (the
+  // month grid) so its worklogs are loaded.
+  const goToDay = useCallback((offset: number): void => {
+    setFocusedDay((d) => {
+      const next = addDays(d, offset)
+      setMonth((m) => (isSameMonth(next, m) ? m : startOfMonth(next)))
+      return next
+    })
+  }, [])
+
+  const openDay = useCallback((date: Date): void => {
+    setFocusedDay(date)
+    setMonth((m) => (isSameMonth(date, m) ? m : startOfMonth(date)))
+    setView('day')
+  }, [])
+
   return {
+    view,
+    setView,
     month,
+    focusedDay,
     days,
     worklogsByDate,
     selected: visibleSelection,
     loading,
     error,
     goToMonth: (offset) => setMonth((m) => addMonths(m, offset)),
-    goToToday: () => setMonth(startOfMonth(new Date())),
+    goToDay,
+    openDay,
+    goToToday: () => {
+      const now = new Date()
+      setMonth(startOfMonth(now))
+      setFocusedDay(now)
+    },
     onDayMouseDown,
     onDayMouseEnter,
     clearSelection: () => setSelected(new Set()),

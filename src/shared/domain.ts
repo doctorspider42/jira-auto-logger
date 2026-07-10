@@ -253,6 +253,8 @@ export interface Worklog {
   timeSpentSeconds: number
   /** ISO date (yyyy-MM-dd). */
   startDate: string
+  /** "HH:MM:SS" position within the day; drives the calendar day view. */
+  startTime?: string
   /** Work-attribute values stored on the worklog. */
   attributes: Array<{ key: string; value: string | boolean }>
 }

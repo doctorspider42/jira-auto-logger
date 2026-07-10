@@ -29,6 +29,19 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
     await sleep(3000)
     await shot('calendar')
 
+    // Open the Tempo-style day view on a populated day (click its day number),
+    // capture it, then switch back to the month grid for the rest of the run.
+    await js(`(() => {
+      const cells = [...document.querySelectorAll('.calendar-day:not(.outside)')]
+      const withEntries = cells.filter((c) => c.querySelector('.calendar-entry'))
+      const cell = withEntries[Math.floor(withEntries.length / 2)] ?? cells[10]
+      cell.querySelector('.calendar-day-number')?.click()
+    })()`)
+    await sleep(1500)
+    await shot('calendar-day')
+    await js(`document.querySelector('.calendar-view-toggle .btn')?.click()`)
+    await sleep(600)
+
     await clickTab(1)
     await sleep(800)
     await shot('projects')

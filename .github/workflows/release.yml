@@ -34,8 +34,24 @@ jobs:
         run: node .github/scripts/next-version.js
         shell: bash
 
-  build:
+  # Create the (empty) release up front so the platform builds don't race to
+  # create it - previously whichever build finished first won, and the slower
+  # Windows build ended up appending its installer last. Now all three build
+  # jobs run in parallel and only upload to this pre-made tag.
+  create-release:
     needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
+          generate_release_notes: true
+
+  build:
+    needs: [version, create-release]
     strategy:
       fail-fast: false
       matrix:
@@ -89,11 +105,9 @@ jobs:
         run: npx electron-builder --publish never
 
       - name: Publish release
-        # Each matrix job targets the same tag: the first creates the release,
-        # the others upload their platform's files to it.
+        # Uploads this platform's files to the release create-release made.
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: v${{ needs.version.outputs.version }}
           files: ${{ matrix.artifacts }}
-          generate_release_notes: true

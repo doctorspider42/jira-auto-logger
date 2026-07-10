@@ -20,6 +20,9 @@
     "noWorklogs": "No entries",
     "totalForDay": "Total: {{hours}} h",
     "selectHint": "Click a day to add entries right away, or click and drag to select several days.",
+    "viewMonth": "Month",
+    "viewDay": "Day",
+    "openDay": "Open day view",
     "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     "activeConnections": "Active Jira connections",
     "editor": {

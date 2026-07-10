@@ -239,6 +239,8 @@ export function generateWorklogs(connectionId: string): Worklog[] {
     if (connectionId === CONN_CLIENT && random() < 0.4) continue
 
     const splits = random() < 0.6 ? [5, 3] : [8]
+    // Entries of a day sit back-to-back starting at 09:00, like Tempo lays them.
+    let dayOffsetSeconds = 9 * 3600
     for (const hours of splits) {
       const projectKey = projectKeys[Math.floor(random() * projectKeys.length)]
       const issues = MOCK_ISSUES[projectKey]
@@ -253,11 +255,13 @@ export function generateWorklogs(connectionId: string): Worklog[] {
         description: texts[Math.floor(random() * texts.length)],
         timeSpentSeconds: hours * 3600,
         startDate: isoDate(day),
+        startTime: `${String(Math.floor(dayOffsetSeconds / 3600)).padStart(2, '0')}:00:00`,
         attributes:
           connectionId === CONN_MAIN
             ? [{ key: '_Overtime_', value: overtime }]
             : [{ key: '_Remote_', value: random() < 0.5 }]
       })
+      dayOffsetSeconds += hours * 3600
     }
   }
   return worklogs
