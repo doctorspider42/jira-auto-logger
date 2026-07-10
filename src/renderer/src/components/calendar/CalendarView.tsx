@@ -5,6 +5,7 @@ import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
+import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
 import { useCalendar, type CalendarEntry } from './useCalendar'
 import './calendar.css'
@@ -27,9 +28,12 @@ export function CalendarView(): JSX.Element {
   }
 
   const multipleActive = config.activeConnectionIds.length > 1
+  const isDayView = calendar.view === 'day'
 
   const weekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
   const monthLabel = format(calendar.month, 'LLLL yyyy', { locale: dateLocale(language) })
+  const dayLabel = format(calendar.focusedDay, 'EEEE, d LLLL yyyy', { locale: dateLocale(language) })
+  const focusedIso = toIsoDate(calendar.focusedDay)
   const selectedDates = [...calendar.selected].sort()
 
   const onWizardDone = (): void => {
@@ -42,16 +46,38 @@ export function CalendarView(): JSX.Element {
     <div className="calendar">
       <div className="calendar-toolbar">
         <div className="calendar-nav">
-          <button className="btn btn-sm" onClick={() => calendar.goToMonth(-1)} aria-label="previous month">
+          <button
+            className="btn btn-sm"
+            onClick={() => (isDayView ? calendar.goToDay(-1) : calendar.goToMonth(-1))}
+            aria-label={isDayView ? 'previous day' : 'previous month'}
+          >
             ‹
           </button>
-          <span className="calendar-month-label">{monthLabel}</span>
-          <button className="btn btn-sm" onClick={() => calendar.goToMonth(1)} aria-label="next month">
+          <span className="calendar-month-label">{isDayView ? dayLabel : monthLabel}</span>
+          <button
+            className="btn btn-sm"
+            onClick={() => (isDayView ? calendar.goToDay(1) : calendar.goToMonth(1))}
+            aria-label={isDayView ? 'next day' : 'next month'}
+          >
             ›
           </button>
           <button className="btn btn-ghost btn-sm" onClick={calendar.goToToday}>
             {t('calendar.today')}
           </button>
+          <div className="calendar-view-toggle">
+            <button
+              className={`btn btn-sm ${!isDayView ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => calendar.setView('month')}
+            >
+              {t('calendar.viewMonth')}
+            </button>
+            <button
+              className={`btn btn-sm ${isDayView ? 'btn-primary' : 'btn-ghost'}`}
+              onClick={() => calendar.setView('day')}
+            >
+              {t('calendar.viewDay')}
+            </button>
+          </div>
           {calendar.loading && <span className="spinner" />}
         </div>
         {config.connections.length > 1 && (
@@ -68,24 +94,53 @@ export function CalendarView(): JSX.Element {
           </div>
         )}
         <div className="calendar-actions">
-          {calendar.selected.size > 1 && (
-            <>
-              <span className="hint">{t('calendar.selectedDays', { count: calendar.selected.size })}</span>
-              <button className="btn btn-ghost btn-sm" onClick={calendar.clearSelection}>
-                {t('calendar.clearSelection')}
-              </button>
-              <button className="btn btn-primary" onClick={() => setWizardDates(selectedDates)}>
-                {t('calendar.generateSuggestions')}
-              </button>
-            </>
+          {isDayView ? (
+            <button className="btn btn-primary" onClick={() => setWizardDates([focusedIso])}>
+              {t('calendar.generateSuggestions')}
+            </button>
+          ) : (
+            calendar.selected.size > 1 && (
+              <>
+                <span className="hint">{t('calendar.selectedDays', { count: calendar.selected.size })}</span>
+                <button className="btn btn-ghost btn-sm" onClick={calendar.clearSelection}>
+                  {t('calendar.clearSelection')}
+                </button>
+                <button className="btn btn-primary" onClick={() => setWizardDates(selectedDates)}>
+                  {t('calendar.generateSuggestions')}
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
 
       {calendar.error && <ErrorBanner error={calendar.error} onRetry={calendar.reload} />}
-      {calendar.selected.size <= 1 && <p className="hint calendar-hint">{t('calendar.selectHint')}</p>}
+      {!isDayView && calendar.selected.size <= 1 && (
+        <p className="hint calendar-hint">{t('calendar.selectHint')}</p>
+      )}
 
-      <div className="calendar-grid" role="grid">
+      {isDayView ? (
+        (() => {
+          const dayEntries = calendar.worklogsByDate.get(focusedIso) ?? []
+          const daySeconds = dayEntries.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
+          return dayEntries.length === 0 ? (
+            <p className="hint calendar-hint">{t('calendar.noWorklogs')}</p>
+          ) : (
+            <>
+              <p className="hint calendar-hint">
+                {t('calendar.totalForDay', { hours: formatHours(daySeconds) })}
+              </p>
+              <DayView
+                day={calendar.focusedDay}
+                entries={dayEntries}
+                multipleActive={multipleActive}
+                onEditEntry={setEditing}
+              />
+            </>
+          )
+        })()
+      ) : (
+        <div className="calendar-grid" role="grid">
         {weekdays.map((day) => (
           <div key={day} className="calendar-weekday">
             {day}
@@ -115,7 +170,15 @@ export function CalendarView(): JSX.Element {
               onMouseEnter={() => calendar.onDayMouseEnter(day)}
             >
               <div className="calendar-day-head">
-                <span className="calendar-day-number">{day.getDate()}</span>
+                <span
+                  className="calendar-day-number"
+                  role="button"
+                  title={t('calendar.openDay')}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => calendar.openDay(day)}
+                >
+                  {day.getDate()}
+                </span>
                 {totalSeconds > 0 && (
                   <span className="calendar-day-total">
                     {formatHours(totalSeconds)}{t('app.hoursShort')}
@@ -158,7 +221,8 @@ export function CalendarView(): JSX.Element {
             </div>
           )
         })}
-      </div>
+        </div>
+      )}
 
       {wizardDates && (
         <SuggestionWizard dates={wizardDates} onClose={() => setWizardDates(null)} onDone={onWizardDone} />
