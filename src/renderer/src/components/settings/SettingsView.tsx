@@ -9,10 +9,12 @@ import type {
   TempoWorkAttribute
 } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
 import { useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
 import { openExternal } from '@/utils/external'
 import { ModelSelect } from './ModelSelect'
+import { TokenHelp } from './TokenHelp'
 import './settings.css'
 
 /** Applies a partial update to a nested config section immutably. */
@@ -362,7 +364,12 @@ export function SettingsView(): JSX.Element {
                 </div>
                 <div className="field">
                   <div className="wizard-label-row">
-                    <label>{t('settings.jiraApiToken')}</label>
+                    <label>
+                      {t('settings.jiraApiToken')}
+                      <HelpTip label={t('settings.jiraTokenHelp.title')}>
+                        <TokenHelp kind="jira" />
+                      </HelpTip>
+                    </label>
                     <button className="btn btn-ghost btn-sm" onClick={() => openExternal(JIRA_TOKEN_URL)}>
                       {t('settings.getToken')}
                     </button>
@@ -380,7 +387,12 @@ export function SettingsView(): JSX.Element {
                 </div>
                 <div className="field">
                   <div className="wizard-label-row">
-                    <label>{t('settings.tempoApiToken')}</label>
+                    <label>
+                      {t('settings.tempoApiToken')}
+                      <HelpTip label={t('settings.tempoTokenHelp.title')}>
+                        <TokenHelp kind="tempo" />
+                      </HelpTip>
+                    </label>
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => openExternal(tempoTokenUrl(connection.jira.baseUrl))}

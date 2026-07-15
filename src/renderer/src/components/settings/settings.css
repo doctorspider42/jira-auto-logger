@@ -185,6 +185,89 @@
   width: 58px;
 }
 
+/* ---------- Help tip (API tokens) ---------- */
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.help-tip-trigger {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.help-tip-trigger:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.help-tip-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 320px;
+  max-width: 80vw;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-popup);
+  display: none;
+  cursor: default;
+  text-align: left;
+  white-space: normal;
+}
+
+.help-tip:hover .help-tip-popover,
+.help-tip:focus-within .help-tip-popover {
+  display: block;
+}
+
+.token-help-title {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.token-help-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.token-help-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.token-help-steps li {
+  line-height: 1.4;
+}
+
 .model-select {
   display: flex;
   flex-direction: column;

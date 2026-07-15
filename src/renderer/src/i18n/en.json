@@ -112,11 +112,33 @@
     "jiraEmail": "Account e-mail",
     "jiraApiToken": "Jira API token",
     "getToken": "Generate token ↗",
+    "jiraTokenHelp": {
+      "title": "Where to get the Jira API token",
+      "address": "id.atlassian.com › API tokens",
+      "pageTitle": "API tokens",
+      "button": "Create API token",
+      "steps": [
+        "Click \"Generate token ↗\" — it opens the Atlassian API tokens page.",
+        "Click \"Create API token\" and give it a name, e.g. \"Jira Auto Logger\".",
+        "Copy the token (it is shown only once) and paste it into this field."
+      ]
+    },
     "testConnection": "Test connection",
     "connectionOk": "Jira: connected as {{name}}",
     "tempoOk": "Tempo: token works",
     "tempoSkipped": "Tempo: no token — test skipped",
     "tempoApiToken": "Tempo API token",
+    "tempoTokenHelp": {
+      "title": "Where to get the Tempo API token",
+      "address": "your-org.atlassian.net › Tempo › API integration",
+      "pageTitle": "API integration",
+      "button": "New Token",
+      "steps": [
+        "Click \"Generate token ↗\" — it opens Tempo's API integration page in your Jira.",
+        "Click \"New Token\", name it and choose an expiry.",
+        "Copy the token and paste it into this field (it is separate from the Jira token)."
+      ]
+    },
     "removeFolder": "Remove",
     "gitAuthorEmail": "Commit author e-mail",
     "includeAllAuthors": "Include everyone's commits",

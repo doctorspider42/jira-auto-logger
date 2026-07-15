@@ -112,11 +112,33 @@
     "jiraEmail": "E-mail konta",
     "jiraApiToken": "Token API Jira",
     "getToken": "Wygeneruj token ↗",
+    "jiraTokenHelp": {
+      "title": "Skąd wziąć token API Jiry",
+      "address": "id.atlassian.com › API tokens",
+      "pageTitle": "API tokens",
+      "button": "Create API token",
+      "steps": [
+        "Kliknij „Wygeneruj token ↗” — otworzy się strona tokenów API Atlassian.",
+        "Kliknij „Create API token” i nadaj mu nazwę, np. „Jira Auto Logger”.",
+        "Skopiuj token (pokazywany tylko raz) i wklej go w to pole."
+      ]
+    },
     "testConnection": "Testuj połączenie",
     "connectionOk": "Jira: połączono jako {{name}}",
     "tempoOk": "Tempo: token działa",
     "tempoSkipped": "Tempo: brak tokenu — test pominięty",
     "tempoApiToken": "Token API Tempo",
+    "tempoTokenHelp": {
+      "title": "Skąd wziąć token API Tempo",
+      "address": "twoja-org.atlassian.net › Tempo › API integration",
+      "pageTitle": "API integration",
+      "button": "New Token",
+      "steps": [
+        "Kliknij „Wygeneruj token ↗” — otworzy się strona API integration Tempo w Twojej Jirze.",
+        "Kliknij „New Token”, nazwij go i wybierz datę wygaśnięcia.",
+        "Skopiuj token i wklej go w to pole (jest inny niż token Jiry)."
+      ]
+    },
     "removeFolder": "Usuń",
     "gitAuthorEmail": "E-mail autora commitów",
     "includeAllAuthors": "Zawrzyj commity wszystkich",
