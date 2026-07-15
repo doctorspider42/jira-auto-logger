@@ -34,6 +34,14 @@ const TEMPO_TOKEN_HELP_URL = 'https://help.tempo.io/timesheets/latest/rest-api-a
 /** Icons available for the "show in calendar" marker of a custom field. */
 const CALENDAR_ICONS = ['⭐', '🔥', '🏠', '💰', '🌙', '🚨', '📞', '✈️', '🎓', '🐛', '🖌️']
 
+/** Sections listed in the side navigation, in document order. */
+const SETTINGS_SECTIONS = [
+  { id: 'connections', labelKey: 'settings.sectionConnections' },
+  { id: 'llm', labelKey: 'settings.sectionLlm' },
+  { id: 'appearance', labelKey: 'settings.sectionAppearance' },
+  { id: 'updates', labelKey: 'settings.sectionUpdates' }
+] as const
+
 /** Deep link to the API Integration page of the user's own Tempo instance. */
 function tempoTokenUrl(jiraBaseUrl: string): string {
   if (!jiraBaseUrl) return TEMPO_TOKEN_HELP_URL
@@ -62,10 +70,41 @@ export function SettingsView(): JSX.Element {
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
 
+  const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id)
+
   useEffect(() => {
     void window.api.config.getFilePath().then(setConfigPath)
     void window.api.config.getLogFilePath().then(setLogPath)
   }, [])
+
+  // Highlight the section currently scrolled into view in the side nav. The
+  // scroll container is `.app-main`; the bottom margin biases toward the
+  // section near the top of the viewport rather than whatever is centred.
+  useEffect(() => {
+    const root = document.querySelector('.app-main')
+    if (!root) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const onScreen = entries.filter((e) => e.isIntersecting)
+        if (onScreen.length === 0) return
+        const topmost = onScreen.reduce((a, b) =>
+          a.boundingClientRect.top <= b.boundingClientRect.top ? a : b
+        )
+        setActiveSection(topmost.target.id.replace('settings-section-', ''))
+      },
+      { root, rootMargin: '0px 0px -65% 0px', threshold: 0 }
+    )
+    for (const section of SETTINGS_SECTIONS) {
+      const el = document.getElementById(`settings-section-${section.id}`)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [])
+
+  const goToSection = (id: string): void =>
+    document
+      .getElementById(`settings-section-${id}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
 
@@ -256,10 +295,23 @@ export function SettingsView(): JSX.Element {
   }
 
   return (
-    <div className="settings">
+    <div className="settings-layout">
+      <nav className="settings-nav" aria-label={t('settings.title')}>
+        {SETTINGS_SECTIONS.map((section) => (
+          <button
+            key={section.id}
+            className={`settings-nav-item ${activeSection === section.id ? 'active' : ''}`}
+            onClick={() => goToSection(section.id)}
+          >
+            {t(section.labelKey)}
+          </button>
+        ))}
+      </nav>
+
+      <div className="settings">
       {error && <ErrorBanner error={error} />}
 
-      <section className="card">
+      <section id="settings-section-connections" className="card settings-section">
         <h3>{t('settings.sectionConnections')}</h3>
         <p className="hint">{t('settings.connectionsHint')}</p>
         {draft.connections.map((connection) => {
@@ -550,7 +602,7 @@ export function SettingsView(): JSX.Element {
         </button>
       </section>
 
-      <section className="card">
+      <section id="settings-section-llm" className="card settings-section">
         <h3>{t('settings.sectionLlm')}</h3>
         <div className="field">
           <label>{t('settings.llmBackend')}</label>
@@ -698,7 +750,7 @@ export function SettingsView(): JSX.Element {
         </div>
       </section>
 
-      <section className="card">
+      <section id="settings-section-appearance" className="card settings-section">
         <h3>{t('settings.sectionAppearance')}</h3>
         <div className="field-row">
           <div className="field">
@@ -743,7 +795,7 @@ export function SettingsView(): JSX.Element {
         </div>
       </section>
 
-      <section className="card">
+      <section id="settings-section-updates" className="card settings-section">
         <h3>{t('settings.sectionUpdates')}</h3>
         <div className="field-row">
           <div className="field">
@@ -799,6 +851,7 @@ export function SettingsView(): JSX.Element {
       <div className="settings-paths">
         {configPath && <p className="hint">{t('settings.configLocation', { path: configPath })}</p>}
         {logPath && <p className="hint">{t('settings.logLocation', { path: logPath })}</p>}
+      </div>
       </div>
     </div>
   )
