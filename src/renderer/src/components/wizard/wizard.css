@@ -104,6 +104,102 @@
   background: color-mix(in srgb, var(--color-danger) 15%, transparent);
 }
 
+/* ---------- Step 2 header + layout toggle ---------- */
+
+.wizard-step2-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.wizard-layout-toggle {
+  display: inline-flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.wizard-exp-badge {
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--color-warning) 22%, transparent);
+  color: var(--color-warning);
+}
+
+/* ---------- Experimental tabular layout ---------- */
+
+.suggestion-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+
+.suggestion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.suggestion-table th {
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.suggestion-table td {
+  padding: 4px 6px;
+  vertical-align: middle;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+
+.suggestion-table input {
+  width: 100%;
+  padding: 5px 8px;
+}
+
+.suggestion-table .col-issue {
+  min-width: 190px;
+}
+
+.suggestion-table .col-date {
+  width: 140px;
+}
+
+.suggestion-table .col-hours {
+  width: 78px;
+}
+
+.suggestion-table .col-desc {
+  min-width: 220px;
+}
+
+.suggestion-table .col-field {
+  min-width: 90px;
+}
+
+.suggestion-table td.col-field {
+  text-align: center;
+}
+
+.suggestion-table .col-remove {
+  width: 34px;
+  text-align: right;
+}
+
+/* Flag a row that still needs an issue, mirroring the card layout. */
+.suggestion-table tr.invalid td {
+  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+
 .suggestion-row {
   margin-bottom: 14px;
 }

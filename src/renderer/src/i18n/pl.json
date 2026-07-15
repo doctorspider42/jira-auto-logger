@@ -71,7 +71,12 @@
     "submitting": "Loguję czas…",
     "submitted": "Zalogowano {{count}} wpisów.",
     "missingIssue": "Uzupełnij zadanie we wszystkich wpisach.",
-    "allDays": "Wszystkie dni"
+    "allDays": "Wszystkie dni",
+    "layout": "Układ",
+    "layoutCards": "Karty",
+    "layoutTable": "Tabela",
+    "layoutTableHint": "Kompaktowy widok tabeli — gęściej, edycja wielu wpisów naraz.",
+    "experimental": "eksperymentalne"
   },
   "settings": {
     "title": "Ustawienia",

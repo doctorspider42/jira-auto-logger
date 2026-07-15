@@ -71,7 +71,12 @@
     "submitting": "Logging time…",
     "submitted": "Logged {{count}} entries.",
     "missingIssue": "Fill in the issue for every entry.",
-    "allDays": "All days"
+    "allDays": "All days",
+    "layout": "Layout",
+    "layoutCards": "Cards",
+    "layoutTable": "Table",
+    "layoutTableHint": "Compact table view — denser, edit many entries at once.",
+    "experimental": "experimental"
   },
   "settings": {
     "title": "Settings",

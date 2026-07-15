@@ -16,6 +16,7 @@ import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours } from '@/utils/format'
 import { SuggestionRow } from './SuggestionRow'
+import { SuggestionTable } from './SuggestionTable'
 import './wizard.css'
 
 interface SuggestionWizardProps {
@@ -42,6 +43,8 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
   const rememberLastUsed = useAppStore((s) => s.rememberLastUsed)
 
   const [step, setStep] = useState<Step>('input')
+  /** Step-2 layout: stacked cards (default) or the experimental dense table. */
+  const [layout, setLayout] = useState<'cards' | 'table'>('cards')
   /** Selected projects with their per-generation inputs, in selection order. */
   const [selections, setSelections] = useState<ProjectSelection[]>([])
 
@@ -366,24 +369,40 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
             {formatHours(visibleHours * 3600)}h
           </span>
         </h4>
-        {visible.map((suggestion) => (
-          <SuggestionRow
-            key={suggestion.id}
-            suggestion={suggestion}
+        {layout === 'table' ? (
+          <SuggestionTable
+            suggestions={visible}
             connectionId={group.connectionId}
             jiraBaseUrl={connection?.jira.baseUrl ?? ''}
             projectKey={group.jiraProjectKey}
             customFields={fieldsForConnection(group.connectionId)}
-            freeText={selection?.note ?? project?.instruction ?? ''}
-            commits={commitsByProject[group.projectId] ?? []}
             onChange={(next) =>
               patchGroup(group.targetId, (list) => list.map((s) => (s.id === next.id ? next : s)))
             }
-            onRemove={() =>
-              patchGroup(group.targetId, (list) => list.filter((s) => s.id !== suggestion.id))
+            onRemove={(id) =>
+              patchGroup(group.targetId, (list) => list.filter((s) => s.id !== id))
             }
           />
-        ))}
+        ) : (
+          visible.map((suggestion) => (
+            <SuggestionRow
+              key={suggestion.id}
+              suggestion={suggestion}
+              connectionId={group.connectionId}
+              jiraBaseUrl={connection?.jira.baseUrl ?? ''}
+              projectKey={group.jiraProjectKey}
+              customFields={fieldsForConnection(group.connectionId)}
+              freeText={selection?.note ?? project?.instruction ?? ''}
+              commits={commitsByProject[group.projectId] ?? []}
+              onChange={(next) =>
+                patchGroup(group.targetId, (list) => list.map((s) => (s.id === next.id ? next : s)))
+              }
+              onRemove={() =>
+                patchGroup(group.targetId, (list) => list.filter((s) => s.id !== suggestion.id))
+              }
+            />
+          ))
+        )}
         <button className="btn" onClick={() => addSuggestion(group)}>
           + {t('wizard.addEntry')}
         </button>
@@ -435,7 +454,25 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
       ) : (
         <>
           {renderDayTabs()}
-          <p className="hint wizard-info">{t('wizard.suggestionsInfo')}</p>
+          <div className="wizard-step2-head">
+            <p className="hint wizard-info">{t('wizard.suggestionsInfo')}</p>
+            <div className="wizard-layout-toggle" role="group" aria-label={t('wizard.layout')}>
+              <button
+                className={`btn btn-sm ${layout === 'cards' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setLayout('cards')}
+              >
+                {t('wizard.layoutCards')}
+              </button>
+              <button
+                className={`btn btn-sm ${layout === 'table' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setLayout('table')}
+                title={t('wizard.layoutTableHint')}
+              >
+                {t('wizard.layoutTable')}
+                <span className="wizard-exp-badge">{t('wizard.experimental')}</span>
+              </button>
+            </div>
+          </div>
           {groups.map(renderGroup)}
         </>
       )}
