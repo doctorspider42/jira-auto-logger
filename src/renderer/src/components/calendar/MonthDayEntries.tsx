@@ -9,6 +9,8 @@ interface Props {
   onEditEntry: (entry: CalendarEntry) => void
   /** Open the day view so the hidden entries become reachable. */
   onShowMore: () => void
+  /** When set, entries it rejects are dimmed and matches are emphasised. */
+  matchEntry?: (entry: CalendarEntry) => boolean
 }
 
 /** Vertical gap between entry chips, mirrored from `.calendar-day-entries` in calendar.css. */
@@ -47,7 +49,13 @@ function useVisibleCount(ref: React.RefObject<HTMLElement>, total: number): numb
   return Math.min(visible, total)
 }
 
-export function MonthDayEntries({ entries, multipleActive, onEditEntry, onShowMore }: Props): JSX.Element {
+export function MonthDayEntries({
+  entries,
+  multipleActive,
+  onEditEntry,
+  onShowMore,
+  matchEntry
+}: Props): JSX.Element {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
   const visible = useVisibleCount(ref, entries.length)
@@ -58,7 +66,7 @@ export function MonthDayEntries({ entries, multipleActive, onEditEntry, onShowMo
       {entries.slice(0, visible).map((worklog) => (
         <div
           key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
-          className="calendar-entry"
+          className={`calendar-entry ${matchEntry ? (matchEntry(worklog) ? 'matched' : 'dimmed') : ''}`}
           role="button"
           style={
             worklog.projectColor
