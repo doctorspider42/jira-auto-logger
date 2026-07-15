@@ -57,6 +57,7 @@ export function SettingsView(): JSX.Element {
   const [tests, setTests] = useState<Record<string, ConnectionTest>>({})
   const [testingId, setTestingId] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [showBlockReason, setShowBlockReason] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
@@ -231,6 +232,12 @@ export function SettingsView(): JSX.Element {
   }
 
   const save = async (): Promise<void> => {
+    // The button stays clickable even when blocked so the reason is reachable;
+    // clicking while blocked just surfaces why instead of silently doing nothing.
+    if (saveBlocked) {
+      setShowBlockReason(true)
+      return
+    }
     setError(null)
     const result = await saveConfig(draft)
     if (!result.ok) {
@@ -239,6 +246,13 @@ export function SettingsView(): JSX.Element {
     }
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 2500)
+  }
+
+  /** Reverts every unsaved edit back to the persisted config. */
+  const discard = (): void => {
+    setDraft(structuredClone(saved))
+    setError(null)
+    setShowBlockReason(false)
   }
 
   return (
@@ -365,7 +379,7 @@ export function SettingsView(): JSX.Element {
 
               <div className="custom-fields-group">
                 <h4>{t('settings.sectionCustomFields')}</h4>
-                {fields.length === 0 && <p className="hint">{t('settings.customFieldsHint')}</p>}
+                <p className="hint">{t('settings.customFieldsHint')}</p>
                 {fields.map((field) => (
                 <div
                   key={field.id}
@@ -764,10 +778,18 @@ export function SettingsView(): JSX.Element {
 
       <div className="settings-save-bar">
         {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
+        {saveBlocked && showBlockReason && (
+          <span className="settings-save-blocked">{saveBlockedReason}</span>
+        )}
+        {dirty && (
+          <button className="btn btn-ghost" onClick={discard}>
+            {t('settings.discardChanges')}
+          </button>
+        )}
         <button
-          className="btn btn-primary"
+          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
           onClick={save}
-          disabled={!dirty || saveBlocked}
+          disabled={!dirty && !saveBlocked}
           title={saveBlockedReason}
         >
           {t('app.save')}

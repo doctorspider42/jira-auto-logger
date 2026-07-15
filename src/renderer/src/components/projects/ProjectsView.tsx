@@ -20,6 +20,7 @@ export function ProjectsView(): JSX.Element {
   const [projects, setProjects] = useState<ProjectConfig[]>(() => structuredClone(config.projects))
   const [jiraProjectsByConnection, setJiraProjectsByConnection] = useState<Record<string, JiraProject[]>>({})
   const [savedFlash, setSavedFlash] = useState(false)
+  const [showBlockReason, setShowBlockReason] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
 
   const dirty = useMemo(
@@ -107,7 +108,14 @@ export function ProjectsView(): JSX.Element {
       p.gitFolders.some((f) => !f.includeAllAuthors && !f.author.trim())
   )
 
+  const saveBlocked = invalidProjects.length > 0
+
   const save = async (): Promise<void> => {
+    // Kept clickable while blocked so the reason is reachable (see settings).
+    if (saveBlocked) {
+      setShowBlockReason(true)
+      return
+    }
     setError(null)
     const result = await saveConfig({ ...config, projects })
     if (!result.ok) {
@@ -116,6 +124,13 @@ export function ProjectsView(): JSX.Element {
     }
     setSavedFlash(true)
     setTimeout(() => setSavedFlash(false), 2500)
+  }
+
+  /** Reverts every unsaved edit back to the persisted projects. */
+  const discard = (): void => {
+    setProjects(structuredClone(config.projects))
+    setError(null)
+    setShowBlockReason(false)
   }
 
   return (
@@ -218,6 +233,7 @@ export function ProjectsView(): JSX.Element {
 
             <div className="field">
               <label>{t('settings.projectFolder')}</label>
+              <p className="hint projects-targets-hint">{t('projects.foldersHint')}</p>
               {project.gitFolders.map((folder, index) => (
                 <div key={`${folder.path}-${index}`} className="projects-folder">
                   <div className="projects-folder-head">
@@ -295,11 +311,19 @@ export function ProjectsView(): JSX.Element {
 
       <div className="settings-save-bar">
         {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
+        {saveBlocked && showBlockReason && (
+          <span className="settings-save-blocked">{t('projects.invalidHint')}</span>
+        )}
+        {dirty && (
+          <button className="btn btn-ghost" onClick={discard}>
+            {t('settings.discardChanges')}
+          </button>
+        )}
         <button
-          className="btn btn-primary"
+          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
           onClick={save}
-          disabled={!dirty || invalidProjects.length > 0}
-          title={invalidProjects.length > 0 ? t('projects.invalidHint') : undefined}
+          disabled={!dirty && !saveBlocked}
+          title={saveBlocked ? t('projects.invalidHint') : undefined}
         >
           {t('app.save')}
         </button>

@@ -86,6 +86,20 @@ textarea {
   filter: brightness(1.1);
 }
 
+/* A primary action that is blocked by validation: still clickable (to reveal
+   the reason) but clearly not ready, so the disabled-looking state that used to
+   confuse users is replaced by an obvious "something's wrong" red. */
+.btn-primary.blocked {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+
+.btn-primary.blocked:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(1.1);
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;
