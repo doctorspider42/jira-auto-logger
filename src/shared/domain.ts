@@ -160,6 +160,8 @@ export interface AppConfig {
   workingHoursPerDay: number
   /** "HH:MM" start time of the first worklog of a day. */
   workdayStart: string
+  /** Show Saturday/Sunday columns in the month calendar. */
+  showWeekends: boolean
   /** Tuning of the existing-issue pool offered to the LLM. */
   issuePool: IssuePoolConfig
   /** Automatic-update preference. */

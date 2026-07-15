@@ -148,6 +148,7 @@
     "themeFallout": "Fallout terminal",
     "workingHours": "Working hours per day",
     "workdayStart": "Workday start",
+    "showWeekends": "Show weekends in the calendar",
     "discardChanges": "Discard changes",
     "saved": "Settings saved.",
     "configLocation": "Settings are stored in: {{path}}",

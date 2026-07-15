@@ -148,6 +148,7 @@
     "themeFallout": "Terminal Fallout",
     "workingHours": "Godziny robocze dziennie",
     "workdayStart": "Początek dnia pracy",
+    "showWeekends": "Pokazuj weekendy w kalendarzu",
     "discardChanges": "Odrzuć zmiany",
     "saved": "Zapisano ustawienia.",
     "configLocation": "Ustawienia zapisują się w: {{path}}",

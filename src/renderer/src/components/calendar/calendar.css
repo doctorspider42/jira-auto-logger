@@ -58,6 +58,11 @@
   overflow-y: auto;
 }
 
+/* Weekends hidden: five weekday columns instead of seven. */
+.calendar-grid.no-weekends {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .calendar-weekday {
   font-size: 12px;
   font-weight: 600;
@@ -147,7 +152,7 @@
 
 .calendar-entry {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 4px;
   font-size: 11px;
   background: color-mix(in srgb, var(--entry-color, var(--color-accent)) 16%, transparent);
@@ -163,6 +168,8 @@
 }
 
 .calendar-entry-key {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
@@ -183,10 +190,16 @@
 
 .calendar-entry-hours {
   flex-shrink: 0;
+  /* Fixed, right-aligned width so the hour numbers - and therefore the field
+     icons that sit just to their left - line up in a column across rows,
+     regardless of whether the value is "1h" or "1.5h". */
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .calendar-entry-icons {
-  margin-right: 3px;
+  flex-shrink: 0;
   font-size: 10px;
 }
 
@@ -294,6 +307,11 @@
 .day-entry-hours {
   flex-shrink: 0;
   color: var(--color-text-muted);
+}
+
+/* In the day view the icons sit inline before the number (no flex gap). */
+.day-entry-hours .calendar-entry-icons {
+  margin-right: 3px;
 }
 
 .day-entry-summary {

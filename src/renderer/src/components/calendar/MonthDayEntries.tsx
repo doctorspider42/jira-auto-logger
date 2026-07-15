@@ -78,10 +78,10 @@ export function MonthDayEntries({ entries, multipleActive, onEditEntry, onShowMo
             )}
             {worklog.issueKey}
           </span>
+          {worklog.fieldIcons.length > 0 && (
+            <span className="calendar-entry-icons">{worklog.fieldIcons.join('')}</span>
+          )}
           <span className="calendar-entry-hours">
-            {worklog.fieldIcons.length > 0 && (
-              <span className="calendar-entry-icons">{worklog.fieldIcons.join('')}</span>
-            )}
             {formatHours(worklog.timeSpentSeconds)}
             {t('app.hoursShort')}
           </span>

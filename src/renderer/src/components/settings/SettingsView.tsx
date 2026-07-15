@@ -793,6 +793,16 @@ export function SettingsView(): JSX.Element {
             />
           </div>
         </div>
+        <div className="field">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={draft.showWeekends}
+              onChange={(e) => patch({ showWeekends: e.target.checked })}
+            />
+            {t('settings.showWeekends')}
+          </label>
+        </div>
       </section>
 
       <section id="settings-section-updates" className="card settings-section">

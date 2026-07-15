@@ -31,7 +31,11 @@ export function CalendarView(): JSX.Element {
   const multipleActive = config.activeConnectionIds.length > 1
   const isDayView = calendar.view === 'day'
 
-  const weekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
+  const showWeekends = config.showWeekends
+  const isWeekendDay = (d: Date): boolean => d.getDay() === 0 || d.getDay() === 6
+  const allWeekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
+  // Weekday labels run Mon..Sun; dropping the last two hides Sat/Sun.
+  const weekdays = showWeekends ? allWeekdays : allWeekdays.slice(0, 5)
   const monthLabel = format(calendar.month, 'LLLL yyyy', { locale: dateLocale(language) })
   const dayLabel = format(calendar.focusedDay, 'EEEE, d LLLL yyyy', { locale: dateLocale(language) })
   const focusedIso = toIsoDate(calendar.focusedDay)
@@ -141,13 +145,15 @@ export function CalendarView(): JSX.Element {
           )
         })()
       ) : (
-        <div className="calendar-grid" role="grid">
+        <div className={`calendar-grid ${showWeekends ? '' : 'no-weekends'}`} role="grid">
         {weekdays.map((day) => (
           <div key={day} className="calendar-weekday">
             {day}
           </div>
         ))}
-        {calendar.days.map((day) => {
+        {calendar.days
+          .filter((day) => showWeekends || !isWeekendDay(day))
+          .map((day) => {
           const iso = toIsoDate(day)
           const worklogs = calendar.worklogsByDate.get(iso) ?? []
           const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
