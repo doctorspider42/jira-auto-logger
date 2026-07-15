@@ -175,6 +175,11 @@
     "pickFolder": "Add a repository folder…",
     "changeFolder": "Change",
     "detachFolder": "Detach",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "archivedBadge": "Archived",
+    "archiveHint": "Archiving keeps this project's color and name on past entries but hides it from the \"worked on\" picker, so no new time can be logged to it.",
+    "archivedHint": "Archived: still colors past entries, but you can no longer log time to it. Restore it to log again.",
     "invalidHint": "Every project needs a name and at least one Jira project (connection + key); every repository needs an author e-mail or \"Include everyone's commits\"."
   },
   "funnyLoading": [

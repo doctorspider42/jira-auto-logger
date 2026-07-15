@@ -101,6 +101,12 @@ export interface ProjectConfig {
   instruction: string
   /** Hex color used to tint this project's entries in the calendar. */
   color: string
+  /**
+   * Archived projects keep their color/name so past calendar entries stay
+   * tinted and labelled, but are hidden from the "worked on" picker so no new
+   * time can be logged against them.
+   */
+  archived: boolean
 }
 
 /** Default colors assigned to new projects, cycled by project count. */

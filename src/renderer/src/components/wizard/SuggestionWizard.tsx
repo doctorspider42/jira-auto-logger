@@ -59,6 +59,12 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     [config.projects]
   )
 
+  // Archived projects keep colouring past entries but can't take new time.
+  const selectableProjects = useMemo(
+    () => config.projects.filter((p) => !p.archived),
+    [config.projects]
+  )
+
   const request = { dates, selections }
 
   const toggleProject = (project: ProjectConfig): void =>
@@ -75,7 +81,10 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
 
   const useRecent = (): void =>
     setSelections(
-      config.lastUsed.selections.filter((s) => projectById.has(s.projectId))
+      config.lastUsed.selections.filter((s) => {
+        const project = projectById.get(s.projectId)
+        return project && !project.archived
+      })
     )
 
   const showPreview = async (): Promise<void> => {
@@ -400,11 +409,11 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
                 ⟲ {t('wizard.useRecent')}
               </button>
             </div>
-            {config.projects.length === 0 ? (
+            {selectableProjects.length === 0 ? (
               <span className="hint">{t('wizard.noProjects')}</span>
             ) : (
               <div className="chip-list">
-                {config.projects.map((project) => (
+                {selectableProjects.map((project) => (
                   <button
                     key={project.id}
                     className={`chip ${selections.some((s) => s.projectId === project.id) ? 'selected' : ''}`}

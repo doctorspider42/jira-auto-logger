@@ -71,7 +71,8 @@ export function ProjectsView(): JSX.Element {
         ],
         gitFolders: [],
         instruction: '',
-        color: PROJECT_COLOR_PALETTE[projects.length % PROJECT_COLOR_PALETTE.length]
+        color: PROJECT_COLOR_PALETTE[projects.length % PROJECT_COLOR_PALETTE.length],
+        archived: false
       }
     ])
 
@@ -99,13 +100,18 @@ export function ProjectsView(): JSX.Element {
   const removeFolder = (project: ProjectConfig, index: number): void =>
     patchProject(project.id, { gitFolders: project.gitFolders.filter((_, i) => i !== index) })
 
-  /** Name and at least one complete target are required; a repo needs an author. */
+  /**
+   * Name and at least one complete target are required; a repo needs an author.
+   * Archived projects can't be logged to, so an incomplete one never blocks a
+   * save - you can archive a project and move on without fixing its config.
+   */
   const invalidProjects = projects.filter(
     (p) =>
-      !p.name.trim() ||
-      p.targets.length === 0 ||
-      p.targets.some((target) => !target.connectionId || !target.jiraProjectKey.trim()) ||
-      p.gitFolders.some((f) => !f.includeAllAuthors && !f.author.trim())
+      !p.archived &&
+      (!p.name.trim() ||
+        p.targets.length === 0 ||
+        p.targets.some((target) => !target.connectionId || !target.jiraProjectKey.trim()) ||
+        p.gitFolders.some((f) => !f.includeAllAuthors && !f.author.trim()))
   )
 
   const saveBlocked = invalidProjects.length > 0
@@ -143,7 +149,13 @@ export function ProjectsView(): JSX.Element {
       {projects.map((project) => {
         const invalid = invalidProjects.includes(project)
         return (
-          <div key={project.id} className={`card projects-card ${invalid ? 'invalid' : ''}`}>
+          <div
+            key={project.id}
+            className={`card projects-card ${invalid ? 'invalid' : ''} ${project.archived ? 'archived' : ''}`}
+          >
+            {project.archived && (
+              <span className="projects-archived-badge">{t('projects.archivedBadge')}</span>
+            )}
             <div className="field-row">
               <div className="field projects-color-field">
                 <label>{t('projects.color')}</label>
@@ -289,7 +301,16 @@ export function ProjectsView(): JSX.Element {
             </div>
 
             <div className="settings-test-row">
+              <span className="hint">
+                {project.archived ? t('projects.archivedHint') : t('projects.archiveHint')}
+              </span>
               <span style={{ flex: 1 }} />
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => patchProject(project.id, { archived: !project.archived })}
+              >
+                {project.archived ? t('projects.unarchive') : t('projects.archive')}
+              </button>
               <button
                 className="btn btn-ghost btn-sm btn-danger"
                 onClick={() => setProjects((all) => all.filter((p) => p.id !== project.id))}
