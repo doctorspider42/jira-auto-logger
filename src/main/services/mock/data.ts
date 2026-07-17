@@ -52,7 +52,8 @@ export function mockConfig(): AppConfig {
           }
         ],
         instruction: 'Prefer logging to stories over the epic.',
-        color: '#6d9eff'
+        color: '#6d9eff',
+        archived: false
       },
       {
         id: 'mock-project-int',
@@ -60,7 +61,8 @@ export function mockConfig(): AppConfig {
         targets: [{ id: 'mock-target-int', connectionId: CONN_MAIN, jiraProjectKey: 'INT' }],
         gitFolders: [],
         instruction: '',
-        color: '#ffc857'
+        color: '#ffc857',
+        archived: false
       },
       {
         // Demo of both multi-target and multi-repo: client work is logged in
@@ -86,7 +88,8 @@ export function mockConfig(): AppConfig {
           }
         ],
         instruction: 'Descriptions must be client-friendly, no internal jargon.',
-        color: '#4fd28a'
+        color: '#4fd28a',
+        archived: false
       }
     ],
     customFields: [
@@ -127,6 +130,7 @@ export function mockConfig(): AppConfig {
     themeId: 'dark',
     workingHoursPerDay: 8,
     workdayStart: '09:00',
+    showWeekends: true,
     issuePool: { lookbackDays: 60, maxIssues: 100 },
     updates: { mode: 'ask' },
     lastUsed: { selections: [] }

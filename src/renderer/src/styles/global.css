@@ -45,6 +45,13 @@ select:focus {
   border-color: var(--color-accent);
 }
 
+/* A required field flagged after a blocked save attempt. */
+.input-error,
+.input-error:focus {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+}
+
 textarea {
   resize: vertical;
   min-height: 72px;
@@ -86,6 +93,20 @@ textarea {
   filter: brightness(1.1);
 }
 
+/* A primary action that is blocked by validation: still clickable (to reveal
+   the reason) but clearly not ready, so the disabled-looking state that used to
+   confuse users is replaced by an obvious "something's wrong" red. */
+.btn-primary.blocked {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+
+.btn-primary.blocked:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(1.1);
+}
+
 .btn-ghost {
   border-color: transparent;
   background: transparent;
@@ -97,6 +118,19 @@ textarea {
 
 .btn-danger {
   color: var(--color-danger);
+}
+
+/* Solid destructive button for confirmed, irreversible actions. */
+.btn-danger-solid {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(1.1);
 }
 
 .btn-sm {
@@ -326,6 +360,11 @@ textarea {
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
+}
+
+/* Wide variant for dense content such as the tabular suggestions layout. */
+.modal-wide {
+  width: 95vw;
 }
 
 .modal-header {

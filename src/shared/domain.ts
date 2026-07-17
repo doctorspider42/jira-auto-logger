@@ -101,6 +101,12 @@ export interface ProjectConfig {
   instruction: string
   /** Hex color used to tint this project's entries in the calendar. */
   color: string
+  /**
+   * Archived projects keep their color/name so past calendar entries stay
+   * tinted and labelled, but are hidden from the "worked on" picker so no new
+   * time can be logged against them.
+   */
+  archived: boolean
 }
 
 /** Default colors assigned to new projects, cycled by project count. */
@@ -160,6 +166,8 @@ export interface AppConfig {
   workingHoursPerDay: number
   /** "HH:MM" start time of the first worklog of a day. */
   workdayStart: string
+  /** Show Saturday/Sunday columns in the month calendar. */
+  showWeekends: boolean
   /** Tuning of the existing-issue pool offered to the LLM. */
   issuePool: IssuePoolConfig
   /** Automatic-update preference. */

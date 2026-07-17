@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
 import type { AppError, GitFolder, JiraProject, ProjectConfig, ProjectTarget } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
 import './projects.css'
 
@@ -20,6 +21,7 @@ export function ProjectsView(): JSX.Element {
   const [projects, setProjects] = useState<ProjectConfig[]>(() => structuredClone(config.projects))
   const [jiraProjectsByConnection, setJiraProjectsByConnection] = useState<Record<string, JiraProject[]>>({})
   const [savedFlash, setSavedFlash] = useState(false)
+  const [showBlockReason, setShowBlockReason] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
 
   const dirty = useMemo(
@@ -70,7 +72,8 @@ export function ProjectsView(): JSX.Element {
         ],
         gitFolders: [],
         instruction: '',
-        color: PROJECT_COLOR_PALETTE[projects.length % PROJECT_COLOR_PALETTE.length]
+        color: PROJECT_COLOR_PALETTE[projects.length % PROJECT_COLOR_PALETTE.length],
+        archived: false
       }
     ])
 
@@ -98,16 +101,28 @@ export function ProjectsView(): JSX.Element {
   const removeFolder = (project: ProjectConfig, index: number): void =>
     patchProject(project.id, { gitFolders: project.gitFolders.filter((_, i) => i !== index) })
 
-  /** Name and at least one complete target are required; a repo needs an author. */
+  /**
+   * Name and at least one complete target are required; a repo needs an author.
+   * Archived projects can't be logged to, so an incomplete one never blocks a
+   * save - you can archive a project and move on without fixing its config.
+   */
   const invalidProjects = projects.filter(
     (p) =>
-      !p.name.trim() ||
-      p.targets.length === 0 ||
-      p.targets.some((target) => !target.connectionId || !target.jiraProjectKey.trim()) ||
-      p.gitFolders.some((f) => !f.includeAllAuthors && !f.author.trim())
+      !p.archived &&
+      (!p.name.trim() ||
+        p.targets.length === 0 ||
+        p.targets.some((target) => !target.connectionId || !target.jiraProjectKey.trim()) ||
+        p.gitFolders.some((f) => !f.includeAllAuthors && !f.author.trim()))
   )
 
+  const saveBlocked = invalidProjects.length > 0
+
   const save = async (): Promise<void> => {
+    // Kept clickable while blocked so the reason is reachable (see settings).
+    if (saveBlocked) {
+      setShowBlockReason(true)
+      return
+    }
     setError(null)
     const result = await saveConfig({ ...config, projects })
     if (!result.ok) {
@@ -118,8 +133,53 @@ export function ProjectsView(): JSX.Element {
     setTimeout(() => setSavedFlash(false), 2500)
   }
 
+  /** Reverts every unsaved edit back to the persisted projects. */
+  const discard = (): void => {
+    setProjects(structuredClone(config.projects))
+    setError(null)
+    setShowBlockReason(false)
+  }
+
+  // ---------- Delete / archive (immediate, no Save needed) ----------
+  const [confirmDelete, setConfirmDelete] = useState<ProjectConfig | null>(null)
+
+  /**
+   * Persists a single project change against the SAVED config, not the draft,
+   * so deleting/archiving one project never silently commits other pending
+   * edits. The matching draft edit is applied separately for the live view.
+   */
+  const persistProjects = async (next: ProjectConfig[]): Promise<void> => {
+    setError(null)
+    const result = await saveConfig({ ...config, projects: next })
+    if (!result.ok) setError(result.error)
+  }
+
+  const deleteProject = async (project: ProjectConfig): Promise<void> => {
+    setConfirmDelete(null)
+    setProjects((all) => all.filter((p) => p.id !== project.id))
+    // Only touch storage if it was actually saved (a never-saved draft project
+    // just disappears from the draft).
+    if (config.projects.some((p) => p.id === project.id)) {
+      await persistProjects(config.projects.filter((p) => p.id !== project.id))
+    }
+  }
+
+  const archiveFromDialog = async (project: ProjectConfig): Promise<void> => {
+    setConfirmDelete(null)
+    setProjects((all) => all.map((p) => (p.id === project.id ? { ...p, archived: true } : p)))
+    if (config.projects.some((p) => p.id === project.id)) {
+      await persistProjects(
+        config.projects.map((p) => (p.id === project.id ? { ...p, archived: true } : p))
+      )
+    }
+  }
+
+  /** Highlight a required field red once a blocked save has been attempted. */
+  const errorClass = (bad: boolean): string | undefined =>
+    showBlockReason && bad ? 'input-error' : undefined
+
   return (
-    <div className="projects-view">
+    <div className={`projects-view ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
       {error && <ErrorBanner error={error} />}
       <p className="hint">{t('projects.hint')}</p>
 
@@ -128,7 +188,13 @@ export function ProjectsView(): JSX.Element {
       {projects.map((project) => {
         const invalid = invalidProjects.includes(project)
         return (
-          <div key={project.id} className={`card projects-card ${invalid ? 'invalid' : ''}`}>
+          <div
+            key={project.id}
+            className={`card projects-card ${invalid ? 'invalid' : ''} ${project.archived ? 'archived' : ''}`}
+          >
+            {project.archived && (
+              <span className="projects-archived-badge">{t('projects.archivedBadge')}</span>
+            )}
             <div className="field-row">
               <div className="field projects-color-field">
                 <label>{t('projects.color')}</label>
@@ -142,6 +208,7 @@ export function ProjectsView(): JSX.Element {
               <div className="field">
                 <label>{t('settings.projectName')}</label>
                 <input
+                  className={errorClass(!project.archived && !project.name.trim())}
                   value={project.name}
                   placeholder={t('settings.projectNamePlaceholder')}
                   onChange={(e) => patchProject(project.id, { name: e.target.value })}
@@ -159,6 +226,7 @@ export function ProjectsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.projectConnection')}</label>
                       <select
+                        className={errorClass(!project.archived && !target.connectionId)}
                         value={target.connectionId}
                         onChange={(e) => {
                           patchTarget(project, target.id, {
@@ -179,6 +247,7 @@ export function ProjectsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.projectJiraKey')}</label>
                       <input
+                        className={errorClass(!project.archived && !target.jiraProjectKey.trim())}
                         list={`jira-projects-${target.id}`}
                         value={target.jiraProjectKey}
                         placeholder="PROJ"
@@ -218,6 +287,7 @@ export function ProjectsView(): JSX.Element {
 
             <div className="field">
               <label>{t('settings.projectFolder')}</label>
+              <p className="hint projects-targets-hint">{t('projects.foldersHint')}</p>
               {project.gitFolders.map((folder, index) => (
                 <div key={`${folder.path}-${index}`} className="projects-folder">
                   <div className="projects-folder-head">
@@ -236,6 +306,9 @@ export function ProjectsView(): JSX.Element {
                   </div>
                   <div className="settings-folder-author">
                     <input
+                      className={errorClass(
+                        !project.archived && !folder.includeAllAuthors && !folder.author.trim()
+                      )}
                       value={folder.author}
                       placeholder={t('settings.gitAuthorEmail')}
                       aria-label={t('settings.gitAuthorEmail')}
@@ -273,10 +346,19 @@ export function ProjectsView(): JSX.Element {
             </div>
 
             <div className="settings-test-row">
+              <span className="hint">
+                {project.archived ? t('projects.archivedHint') : t('projects.archiveHint')}
+              </span>
               <span style={{ flex: 1 }} />
               <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => patchProject(project.id, { archived: !project.archived })}
+              >
+                {project.archived ? t('projects.unarchive') : t('projects.archive')}
+              </button>
+              <button
                 className="btn btn-ghost btn-sm btn-danger"
-                onClick={() => setProjects((all) => all.filter((p) => p.id !== project.id))}
+                onClick={() => setConfirmDelete(project)}
               >
                 {t('settings.removeProject')}
               </button>
@@ -295,15 +377,58 @@ export function ProjectsView(): JSX.Element {
 
       <div className="settings-save-bar">
         {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
+        {saveBlocked && showBlockReason && (
+          <span className="settings-save-blocked">{t('projects.invalidHint')}</span>
+        )}
+        {dirty && (
+          <button className="btn btn-ghost" onClick={discard}>
+            {t('settings.discardChanges')}
+          </button>
+        )}
         <button
-          className="btn btn-primary"
+          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
           onClick={save}
-          disabled={!dirty || invalidProjects.length > 0}
-          title={invalidProjects.length > 0 ? t('projects.invalidHint') : undefined}
+          disabled={!dirty && !saveBlocked}
+          title={saveBlocked ? t('projects.invalidHint') : undefined}
         >
           {t('app.save')}
         </button>
       </div>
+
+      {confirmDelete && (
+        <Modal
+          title={t('projects.deleteTitle')}
+          onClose={() => setConfirmDelete(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>
+                {t('app.cancel')}
+              </button>
+              <span style={{ flex: 1 }} />
+              <button className="btn" onClick={() => archiveFromDialog(confirmDelete)}>
+                {t('projects.archiveInstead')}
+              </button>
+              <button
+                className="btn btn-danger-solid"
+                onClick={() => deleteProject(confirmDelete)}
+              >
+                {t('projects.deletePermanently')}
+              </button>
+            </>
+          }
+        >
+          <p>
+            <strong>
+              {t('projects.deleteQuestion', {
+                name: confirmDelete.name.trim() || t('projects.unnamed')
+              })}
+            </strong>
+          </p>
+          <p className="hint">{t('projects.deleteConsequence')}</p>
+          <p className="hint">{t('projects.deleteArchiveAlt')}</p>
+          <p className="projects-delete-safe">✓ {t('projects.deleteTempoSafe')}</p>
+        </Modal>
+      )}
     </div>
   )
 }

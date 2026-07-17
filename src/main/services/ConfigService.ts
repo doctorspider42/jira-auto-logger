@@ -53,6 +53,7 @@ export function defaultConfig(): AppConfig {
     themeId: 'dark',
     workingHoursPerDay: 8,
     workdayStart: '09:00',
+    showWeekends: true,
     issuePool: { lookbackDays: 60, maxIssues: 100 },
     updates: { mode: 'ask' },
     lastUsed: { selections: [] }
@@ -159,7 +160,8 @@ export class ConfigService {
           ...project,
           targets,
           gitFolders: folders,
-          color: project.color ?? PROJECT_COLOR_PALETTE[index % PROJECT_COLOR_PALETTE.length]
+          color: project.color ?? PROJECT_COLOR_PALETTE[index % PROJECT_COLOR_PALETTE.length],
+          archived: project.archived ?? false
         }
       })
 

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, isSameMonth, isToday } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
@@ -18,8 +18,55 @@ export function CalendarView(): JSX.Element {
   const language = config.language
   const [wizardDates, setWizardDates] = useState<string[] | null>(null)
   const [editing, setEditing] = useState<CalendarEntry | null>(null)
+  const [taskFilter, setTaskFilter] = useState('')
   const openWizard = useCallback((dates: string[]) => setWizardDates(dates), [])
   const calendar = useCalendar(openWizard)
+
+  // ---------- Task filter ----------
+  // Autocomplete is sourced from the tasks that actually have entries in the
+  // loaded range - filtering by a task with no entries would highlight nothing.
+  const loadedEntries = useMemo(
+    () => [...calendar.worklogsByDate.values()].flat(),
+    [calendar.worklogsByDate]
+  )
+
+  const taskOptions = useMemo(() => {
+    const byKey = new Map<string, { key: string; summary: string; seconds: number }>()
+    for (const entry of loadedEntries) {
+      const current = byKey.get(entry.issueKey) ?? {
+        key: entry.issueKey,
+        summary: entry.issueSummary,
+        seconds: 0
+      }
+      current.seconds += entry.timeSpentSeconds
+      if (!current.summary && entry.issueSummary) current.summary = entry.issueSummary
+      byKey.set(entry.issueKey, current)
+    }
+    return [...byKey.values()].sort((a, b) => a.key.localeCompare(b.key))
+  }, [loadedEntries])
+
+  const filterKey = taskFilter.trim().toUpperCase()
+  const filterActive = filterKey.length > 0
+  const matchEntry = useCallback(
+    (entry: CalendarEntry): boolean => entry.issueKey.toUpperCase().includes(filterKey),
+    [filterKey]
+  )
+  // The total is scoped to what's on screen: the focused day in the day view,
+  // the whole month in the month view.
+  const dayViewActive = calendar.view === 'day'
+  const scopedEntries = useMemo(() => {
+    if (dayViewActive) {
+      const iso = toIsoDate(calendar.focusedDay)
+      return loadedEntries.filter((e) => e.startDate === iso)
+    }
+    const monthPrefix = format(calendar.month, 'yyyy-MM')
+    return loadedEntries.filter((e) => e.startDate.startsWith(monthPrefix))
+  }, [loadedEntries, dayViewActive, calendar.focusedDay, calendar.month])
+  const filteredSeconds = filterActive
+    ? scopedEntries.filter(matchEntry).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
+    : 0
+  /** Predicate handed to the day/month renderers; undefined = no active filter. */
+  const entryMatcher = filterActive ? matchEntry : undefined
 
   const toggleConnection = (id: string): void => {
     const active = config.activeConnectionIds.includes(id)
@@ -31,7 +78,11 @@ export function CalendarView(): JSX.Element {
   const multipleActive = config.activeConnectionIds.length > 1
   const isDayView = calendar.view === 'day'
 
-  const weekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
+  const showWeekends = config.showWeekends
+  const isWeekendDay = (d: Date): boolean => d.getDay() === 0 || d.getDay() === 6
+  const allWeekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
+  // Weekday labels run Mon..Sun; dropping the last two hides Sat/Sun.
+  const weekdays = showWeekends ? allWeekdays : allWeekdays.slice(0, 5)
   const monthLabel = format(calendar.month, 'LLLL yyyy', { locale: dateLocale(language) })
   const dayLabel = format(calendar.focusedDay, 'EEEE, d LLLL yyyy', { locale: dateLocale(language) })
   const focusedIso = toIsoDate(calendar.focusedDay)
@@ -115,6 +166,41 @@ export function CalendarView(): JSX.Element {
         </div>
       </div>
 
+      {taskOptions.length > 0 && (
+        <div className="calendar-filter">
+          <span className="calendar-filter-icon" aria-hidden>
+            🔍
+          </span>
+          <input
+            className="calendar-filter-input"
+            list="calendar-task-filter"
+            value={taskFilter}
+            placeholder={t('calendar.filterPlaceholder')}
+            spellCheck={false}
+            onChange={(e) => setTaskFilter(e.target.value.split('—')[0].trim())}
+          />
+          <datalist id="calendar-task-filter">
+            {taskOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {`${option.key} — ${option.summary}`}
+              </option>
+            ))}
+          </datalist>
+          {filterActive && (
+            <>
+              <span className="calendar-filter-total">
+                {t(dayViewActive ? 'calendar.filterTotalDay' : 'calendar.filterTotalMonth', {
+                  hours: formatHours(filteredSeconds)
+                })}
+              </span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setTaskFilter('')}>
+                {t('calendar.clearFilter')}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
       {calendar.error && <ErrorBanner error={calendar.error} onRetry={calendar.reload} />}
       {!isDayView && calendar.selected.size <= 1 && (
         <p className="hint calendar-hint">{t('calendar.selectHint')}</p>
@@ -136,18 +222,21 @@ export function CalendarView(): JSX.Element {
                 entries={dayEntries}
                 multipleActive={multipleActive}
                 onEditEntry={setEditing}
+                matchEntry={entryMatcher}
               />
             </>
           )
         })()
       ) : (
-        <div className="calendar-grid" role="grid">
+        <div className={`calendar-grid ${showWeekends ? '' : 'no-weekends'}`} role="grid">
         {weekdays.map((day) => (
           <div key={day} className="calendar-weekday">
             {day}
           </div>
         ))}
-        {calendar.days.map((day) => {
+        {calendar.days
+          .filter((day) => showWeekends || !isWeekendDay(day))
+          .map((day) => {
           const iso = toIsoDate(day)
           const worklogs = calendar.worklogsByDate.get(iso) ?? []
           const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
@@ -191,6 +280,7 @@ export function CalendarView(): JSX.Element {
                 multipleActive={multipleActive}
                 onEditEntry={setEditing}
                 onShowMore={() => calendar.openDay(day)}
+                matchEntry={entryMatcher}
               />
             </div>
           )

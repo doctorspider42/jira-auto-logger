@@ -6,12 +6,14 @@ interface ModalProps {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  /** Widen the dialog to make room for dense content (e.g. the table layout). */
+  wide?: boolean
 }
 
 /** Stack of open modals so Escape only closes the topmost one. */
 const modalStack: symbol[] = []
 
-export function Modal({ title, onClose, children, footer }: ModalProps): JSX.Element {
+export function Modal({ title, onClose, children, footer, wide }: ModalProps): JSX.Element {
   const modalId = useRef(Symbol('modal'))
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function Modal({ title, onClose, children, footer }: ModalProps): JSX.Ele
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={`modal ${wide ? 'modal-wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-header">
           <h2>{title}</h2>
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="close">

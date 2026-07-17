@@ -17,6 +17,10 @@
     "selectedDays": "Zaznaczone dni: {{count}}",
     "generateSuggestions": "Zaproponuj wpisy",
     "clearSelection": "Wyczyść zaznaczenie",
+    "filterPlaceholder": "Filtruj po zadaniu…",
+    "filterTotalMonth": "{{hours}} h w tym miesiącu",
+    "filterTotalDay": "{{hours}} h w tym dniu",
+    "clearFilter": "Wyczyść filtr",
     "noWorklogs": "Brak wpisów",
     "moreEntries": "+{{count}} więcej",
     "totalForDay": "Suma: {{hours}} h",
@@ -68,7 +72,11 @@
     "submitting": "Loguję czas…",
     "submitted": "Zalogowano {{count}} wpisów.",
     "missingIssue": "Uzupełnij zadanie we wszystkich wpisach.",
-    "allDays": "Wszystkie dni"
+    "allDays": "Wszystkie dni",
+    "layout": "Układ",
+    "layoutCards": "Karty",
+    "layoutTable": "Tabela",
+    "layoutTableHint": "Kompaktowy widok tabeli — gęściej, edycja wielu wpisów naraz."
   },
   "settings": {
     "title": "Ustawienia",
@@ -109,11 +117,34 @@
     "jiraEmail": "E-mail konta",
     "jiraApiToken": "Token API Jira",
     "getToken": "Wygeneruj token ↗",
+    "jiraTokenHelp": {
+      "title": "Skąd wziąć token API Jiry",
+      "address": "id.atlassian.com › API tokens",
+      "pageTitle": "API tokens",
+      "button": "Create API token",
+      "steps": [
+        "Kliknij „Wygeneruj token ↗” — otworzy się strona tokenów API Atlassian.",
+        "Kliknij „Create API token” i nadaj mu nazwę, np. „Jira Auto Logger”.",
+        "Skopiuj token (pokazywany tylko raz) i wklej go w to pole."
+      ]
+    },
     "testConnection": "Testuj połączenie",
     "connectionOk": "Jira: połączono jako {{name}}",
     "tempoOk": "Tempo: token działa",
     "tempoSkipped": "Tempo: brak tokenu — test pominięty",
     "tempoApiToken": "Token API Tempo",
+    "tempoTokenHelp": {
+      "title": "Skąd wziąć token API Tempo",
+      "address": "twoja-org.atlassian.net › Tempo › API integration",
+      "pageTitle": "API integration",
+      "button": "New Token",
+      "steps": [
+        "Kliknij „Wygeneruj token ↗” — otworzy się strona API integration Tempo w Twojej Jirze.",
+        "Kliknij „New Token”, nazwij go i wybierz datę wygaśnięcia.",
+        "Skopiuj token i wklej go w to pole (jest inny niż token Jiry)."
+      ],
+      "scope": "Minimalny zakres (scope): tylko przeglądanie i zarządzanie worklogami (odczyt + zapis). Zatwierdzenia, plany, konta ani uprawnienia administracyjne nie są potrzebne."
+    },
     "removeFolder": "Usuń",
     "gitAuthorEmail": "E-mail autora commitów",
     "includeAllAuthors": "Zawrzyj commity wszystkich",
@@ -148,6 +179,8 @@
     "themeFallout": "Terminal Fallout",
     "workingHours": "Godziny robocze dziennie",
     "workdayStart": "Początek dnia pracy",
+    "showWeekends": "Pokazuj weekendy w kalendarzu",
+    "discardChanges": "Odrzuć zmiany",
     "saved": "Zapisano ustawienia.",
     "configLocation": "Ustawienia zapisują się w: {{path}}",
     "logLocation": "Logi diagnostyczne: {{path}}",
@@ -169,9 +202,23 @@
     "jiraTargetsHint": "Jeśli logujesz ten sam czas w kilku Jirach (np. u klienta i w firmie), dodaj kilka pozycji — dla każdej Jiry wygenerują się niezależne wpisy z jej zadaniami.",
     "addTarget": "Dodaj Jirę",
     "removeTarget": "Usuń",
+    "foldersHint": "Podłącz lokalne repozytoria git, do których commitujesz w tym projekcie. Aplikacja czyta Twoje ostatnie opisy commitów (nigdy sam kod) i wysyła je do modelu jako kontekst, dzięki czemu wygenerowane opisy wpisów pasują do tego, co faktycznie robiłeś(-aś). Opcjonalne — zostaw puste, aby opisać pracę wyłącznie na podstawie notatek.",
     "pickFolder": "Dodaj folder repozytorium…",
     "changeFolder": "Zmień",
     "detachFolder": "Odepnij",
+    "archive": "Archiwizuj",
+    "unarchive": "Przywróć",
+    "archivedBadge": "Zarchiwizowany",
+    "archiveHint": "Archiwizacja zachowuje kolor i nazwę projektu na dawnych wpisach, ale ukrywa go z listy „nad czym pracowałeś/aś”, więc nie zalogujesz już do niego czasu.",
+    "archivedHint": "Zarchiwizowany: nadal koloruje dawne wpisy, ale nie zalogujesz już do niego czasu. Przywróć, aby znów logować.",
+    "unnamed": "ten projekt",
+    "deleteTitle": "Usunąć projekt?",
+    "deleteQuestion": "Trwale usunąć „{{name}}”? Tej operacji nie da się cofnąć.",
+    "deleteConsequence": "Konfiguracja projektu (projekty Jira, repozytoria, kolor i instrukcje) zostanie od razu usunięta z Jira Auto Logger — nie trzeba klikać Zapisz. Dawne wpisy w kalendarzu stracą kolor i nazwę tego projektu.",
+    "deleteArchiveAlt": "Wolisz go zachować? Archiwizacja pozostawia kolor i nazwę na dawnych wpisach i można ją cofnąć w każdej chwili — nie zalogujesz tylko nowego czasu.",
+    "deleteTempoSafe": "Nic nie zostanie usunięte z Tempo ani z Jiry. Twoje zalogowane wpisy pozostają bez zmian — usuwana jest tylko konfiguracja projektu w tej aplikacji.",
+    "deletePermanently": "Usuń trwale",
+    "archiveInstead": "Zarchiwizuj zamiast tego",
     "invalidHint": "Każdy projekt musi mieć nazwę i co najmniej jeden projekt z Jiry (połączenie + klucz), a każde repozytorium — e-mail autora albo „Zawrzyj commity wszystkich”."
   },
   "funnyLoading": [

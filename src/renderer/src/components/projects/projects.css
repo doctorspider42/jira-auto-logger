@@ -7,12 +7,54 @@
   padding-bottom: 40px;
 }
 
+.projects-card {
+  position: relative;
+}
+
 .projects-card.invalid {
   border-color: var(--color-warning);
 }
 
+/* After a blocked save, escalate invalid cards from warning to error. */
+.projects-view.save-attempted .projects-card.invalid {
+  border-color: var(--color-danger);
+}
+
+/* Archived project: dimmed and clearly marked; still editable so it can be
+   restored, but excluded from the "worked on" picker. */
+.projects-card.archived {
+  opacity: 0.62;
+  border-style: dashed;
+}
+
+.projects-archived-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+}
+
 .projects-color-field {
   flex: 0 0 64px;
+}
+
+/* Reassurance line in the delete-confirmation dialog. */
+.projects-delete-safe {
+  margin: 14px 0 0;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
 }
 
 .projects-color-field input[type='color'] {

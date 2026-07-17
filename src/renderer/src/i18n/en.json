@@ -17,6 +17,10 @@
     "selectedDays": "Selected days: {{count}}",
     "generateSuggestions": "Suggest entries",
     "clearSelection": "Clear selection",
+    "filterPlaceholder": "Filter by task…",
+    "filterTotalMonth": "{{hours}} h this month",
+    "filterTotalDay": "{{hours}} h this day",
+    "clearFilter": "Clear filter",
     "noWorklogs": "No entries",
     "moreEntries": "+{{count}} more",
     "totalForDay": "Total: {{hours}} h",
@@ -68,7 +72,11 @@
     "submitting": "Logging time…",
     "submitted": "Logged {{count}} entries.",
     "missingIssue": "Fill in the issue for every entry.",
-    "allDays": "All days"
+    "allDays": "All days",
+    "layout": "Layout",
+    "layoutCards": "Cards",
+    "layoutTable": "Table",
+    "layoutTableHint": "Compact table view — denser, edit many entries at once."
   },
   "settings": {
     "title": "Settings",
@@ -109,11 +117,34 @@
     "jiraEmail": "Account e-mail",
     "jiraApiToken": "Jira API token",
     "getToken": "Generate token ↗",
+    "jiraTokenHelp": {
+      "title": "Where to get the Jira API token",
+      "address": "id.atlassian.com › API tokens",
+      "pageTitle": "API tokens",
+      "button": "Create API token",
+      "steps": [
+        "Click \"Generate token ↗\" — it opens the Atlassian API tokens page.",
+        "Click \"Create API token\" and give it a name, e.g. \"Jira Auto Logger\".",
+        "Copy the token (it is shown only once) and paste it into this field."
+      ]
+    },
     "testConnection": "Test connection",
     "connectionOk": "Jira: connected as {{name}}",
     "tempoOk": "Tempo: token works",
     "tempoSkipped": "Tempo: no token — test skipped",
     "tempoApiToken": "Tempo API token",
+    "tempoTokenHelp": {
+      "title": "Where to get the Tempo API token",
+      "address": "your-org.atlassian.net › Tempo › API integration",
+      "pageTitle": "API integration",
+      "button": "New Token",
+      "steps": [
+        "Click \"Generate token ↗\" — it opens Tempo's API integration page in your Jira.",
+        "Click \"New Token\", name it and choose an expiry.",
+        "Copy the token and paste it into this field (it is separate from the Jira token)."
+      ],
+      "scope": "Minimum scope: allow only viewing and managing worklogs (read + write). Approvals, plans, accounts and admin scopes are not needed."
+    },
     "removeFolder": "Remove",
     "gitAuthorEmail": "Commit author e-mail",
     "includeAllAuthors": "Include everyone's commits",
@@ -148,6 +179,8 @@
     "themeFallout": "Fallout terminal",
     "workingHours": "Working hours per day",
     "workdayStart": "Workday start",
+    "showWeekends": "Show weekends in the calendar",
+    "discardChanges": "Discard changes",
     "saved": "Settings saved.",
     "configLocation": "Settings are stored in: {{path}}",
     "logLocation": "Diagnostic logs: {{path}}",
@@ -169,9 +202,23 @@
     "jiraTargetsHint": "If you log the same time in several Jiras (e.g. the client's and your company's), add several rows — independent entries are generated for each Jira with its own issues.",
     "addTarget": "Add Jira",
     "removeTarget": "Remove",
+    "foldersHint": "Attach the local git repositories you commit to for this project. The app reads your recent commit messages (never the code) and sends them to the LLM as context, so the generated worklog descriptions match what you actually did. Optional — leave empty to describe the work from your notes only.",
     "pickFolder": "Add a repository folder…",
     "changeFolder": "Change",
     "detachFolder": "Detach",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "archivedBadge": "Archived",
+    "archiveHint": "Archiving keeps this project's color and name on past entries but hides it from the \"worked on\" picker, so no new time can be logged to it.",
+    "archivedHint": "Archived: still colors past entries, but you can no longer log time to it. Restore it to log again.",
+    "unnamed": "this project",
+    "deleteTitle": "Delete project?",
+    "deleteQuestion": "Permanently delete “{{name}}”? This can't be undone.",
+    "deleteConsequence": "The project's configuration (Jira projects, repositories, color and instructions) is removed from Jira Auto Logger right away — no need to press Save. Past calendar entries of this project lose their color and name.",
+    "deleteArchiveAlt": "Prefer to keep it? Archiving keeps the project colouring and labelling past entries and can be restored anytime — you just can't log new time to it.",
+    "deleteTempoSafe": "Nothing is deleted from Tempo or Jira. Your logged worklogs stay exactly as they are — only this app's project setup is removed.",
+    "deletePermanently": "Delete permanently",
+    "archiveInstead": "Archive instead",
     "invalidHint": "Every project needs a name and at least one Jira project (connection + key); every repository needs an author e-mail or \"Include everyone's commits\"."
   },
   "funnyLoading": [

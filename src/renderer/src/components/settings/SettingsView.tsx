@@ -9,10 +9,12 @@ import type {
   TempoWorkAttribute
 } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
 import { useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
 import { openExternal } from '@/utils/external'
 import { ModelSelect } from './ModelSelect'
+import { TokenHelp } from './TokenHelp'
 import './settings.css'
 
 /** Applies a partial update to a nested config section immutably. */
@@ -33,6 +35,14 @@ const TEMPO_TOKEN_HELP_URL = 'https://help.tempo.io/timesheets/latest/rest-api-a
 
 /** Icons available for the "show in calendar" marker of a custom field. */
 const CALENDAR_ICONS = ['⭐', '🔥', '🏠', '💰', '🌙', '🚨', '📞', '✈️', '🎓', '🐛', '🖌️']
+
+/** Sections listed in the side navigation, in document order. */
+const SETTINGS_SECTIONS = [
+  { id: 'connections', labelKey: 'settings.sectionConnections' },
+  { id: 'llm', labelKey: 'settings.sectionLlm' },
+  { id: 'appearance', labelKey: 'settings.sectionAppearance' },
+  { id: 'updates', labelKey: 'settings.sectionUpdates' }
+] as const
 
 /** Deep link to the API Integration page of the user's own Tempo instance. */
 function tempoTokenUrl(jiraBaseUrl: string): string {
@@ -57,14 +67,46 @@ export function SettingsView(): JSX.Element {
   const [tests, setTests] = useState<Record<string, ConnectionTest>>({})
   const [testingId, setTestingId] = useState<string | null>(null)
   const [savedFlash, setSavedFlash] = useState(false)
+  const [showBlockReason, setShowBlockReason] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
+
+  const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id)
 
   useEffect(() => {
     void window.api.config.getFilePath().then(setConfigPath)
     void window.api.config.getLogFilePath().then(setLogPath)
   }, [])
+
+  // Highlight the section currently scrolled into view in the side nav. The
+  // scroll container is `.app-main`; the bottom margin biases toward the
+  // section near the top of the viewport rather than whatever is centred.
+  useEffect(() => {
+    const root = document.querySelector('.app-main')
+    if (!root) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const onScreen = entries.filter((e) => e.isIntersecting)
+        if (onScreen.length === 0) return
+        const topmost = onScreen.reduce((a, b) =>
+          a.boundingClientRect.top <= b.boundingClientRect.top ? a : b
+        )
+        setActiveSection(topmost.target.id.replace('settings-section-', ''))
+      },
+      { root, rootMargin: '0px 0px -65% 0px', threshold: 0 }
+    )
+    for (const section of SETTINGS_SECTIONS) {
+      const el = document.getElementById(`settings-section-${section.id}`)
+      if (el) observer.observe(el)
+    }
+    return () => observer.disconnect()
+  }, [])
+
+  const goToSection = (id: string): void =>
+    document
+      .getElementById(`settings-section-${id}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
 
@@ -231,6 +273,12 @@ export function SettingsView(): JSX.Element {
   }
 
   const save = async (): Promise<void> => {
+    // The button stays clickable even when blocked so the reason is reachable;
+    // clicking while blocked just surfaces why instead of silently doing nothing.
+    if (saveBlocked) {
+      setShowBlockReason(true)
+      return
+    }
     setError(null)
     const result = await saveConfig(draft)
     if (!result.ok) {
@@ -241,11 +289,31 @@ export function SettingsView(): JSX.Element {
     setTimeout(() => setSavedFlash(false), 2500)
   }
 
+  /** Reverts every unsaved edit back to the persisted config. */
+  const discard = (): void => {
+    setDraft(structuredClone(saved))
+    setError(null)
+    setShowBlockReason(false)
+  }
+
   return (
-    <div className="settings">
+    <div className="settings-layout">
+      <nav className="settings-nav" aria-label={t('settings.title')}>
+        {SETTINGS_SECTIONS.map((section) => (
+          <button
+            key={section.id}
+            className={`settings-nav-item ${activeSection === section.id ? 'active' : ''}`}
+            onClick={() => goToSection(section.id)}
+          >
+            {t(section.labelKey)}
+          </button>
+        ))}
+      </nav>
+
+      <div className={`settings ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
       {error && <ErrorBanner error={error} />}
 
-      <section className="card">
+      <section id="settings-section-connections" className="card settings-section">
         <h3>{t('settings.sectionConnections')}</h3>
         <p className="hint">{t('settings.connectionsHint')}</p>
         {draft.connections.map((connection) => {
@@ -296,7 +364,12 @@ export function SettingsView(): JSX.Element {
                 </div>
                 <div className="field">
                   <div className="wizard-label-row">
-                    <label>{t('settings.jiraApiToken')}</label>
+                    <label>
+                      {t('settings.jiraApiToken')}
+                      <HelpTip label={t('settings.jiraTokenHelp.title')}>
+                        <TokenHelp kind="jira" />
+                      </HelpTip>
+                    </label>
                     <button className="btn btn-ghost btn-sm" onClick={() => openExternal(JIRA_TOKEN_URL)}>
                       {t('settings.getToken')}
                     </button>
@@ -314,7 +387,12 @@ export function SettingsView(): JSX.Element {
                 </div>
                 <div className="field">
                   <div className="wizard-label-row">
-                    <label>{t('settings.tempoApiToken')}</label>
+                    <label>
+                      {t('settings.tempoApiToken')}
+                      <HelpTip label={t('settings.tempoTokenHelp.title')}>
+                        <TokenHelp kind="tempo" />
+                      </HelpTip>
+                    </label>
                     <button
                       className="btn btn-ghost btn-sm"
                       onClick={() => openExternal(tempoTokenUrl(connection.jira.baseUrl))}
@@ -365,7 +443,7 @@ export function SettingsView(): JSX.Element {
 
               <div className="custom-fields-group">
                 <h4>{t('settings.sectionCustomFields')}</h4>
-                {fields.length === 0 && <p className="hint">{t('settings.customFieldsHint')}</p>}
+                <p className="hint">{t('settings.customFieldsHint')}</p>
                 {fields.map((field) => (
                 <div
                   key={field.id}
@@ -375,6 +453,7 @@ export function SettingsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.fieldKey')}</label>
                       <input
+                        className={showBlockReason && !field.key.trim() ? 'input-error' : undefined}
                         value={field.key}
                         placeholder="_Attribute_"
                         spellCheck={false}
@@ -384,6 +463,7 @@ export function SettingsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.fieldLabel')}</label>
                       <input
+                        className={showBlockReason && !field.label.trim() ? 'input-error' : undefined}
                         value={field.label}
                         onChange={(e) => patchField(field.id, { label: e.target.value })}
                       />
@@ -536,7 +616,7 @@ export function SettingsView(): JSX.Element {
         </button>
       </section>
 
-      <section className="card">
+      <section id="settings-section-llm" className="card settings-section">
         <h3>{t('settings.sectionLlm')}</h3>
         <div className="field">
           <label>{t('settings.llmBackend')}</label>
@@ -684,7 +764,7 @@ export function SettingsView(): JSX.Element {
         </div>
       </section>
 
-      <section className="card">
+      <section id="settings-section-appearance" className="card settings-section">
         <h3>{t('settings.sectionAppearance')}</h3>
         <div className="field-row">
           <div className="field">
@@ -727,9 +807,19 @@ export function SettingsView(): JSX.Element {
             />
           </div>
         </div>
+        <div className="field">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={draft.showWeekends}
+              onChange={(e) => patch({ showWeekends: e.target.checked })}
+            />
+            {t('settings.showWeekends')}
+          </label>
+        </div>
       </section>
 
-      <section className="card">
+      <section id="settings-section-updates" className="card settings-section">
         <h3>{t('settings.sectionUpdates')}</h3>
         <div className="field-row">
           <div className="field">
@@ -764,10 +854,18 @@ export function SettingsView(): JSX.Element {
 
       <div className="settings-save-bar">
         {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
+        {saveBlocked && showBlockReason && (
+          <span className="settings-save-blocked">{saveBlockedReason}</span>
+        )}
+        {dirty && (
+          <button className="btn btn-ghost" onClick={discard}>
+            {t('settings.discardChanges')}
+          </button>
+        )}
         <button
-          className="btn btn-primary"
+          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
           onClick={save}
-          disabled={!dirty || saveBlocked}
+          disabled={!dirty && !saveBlocked}
           title={saveBlockedReason}
         >
           {t('app.save')}
@@ -777,6 +875,7 @@ export function SettingsView(): JSX.Element {
       <div className="settings-paths">
         {configPath && <p className="hint">{t('settings.configLocation', { path: configPath })}</p>}
         {logPath && <p className="hint">{t('settings.logLocation', { path: logPath })}</p>}
+      </div>
       </div>
     </div>
   )

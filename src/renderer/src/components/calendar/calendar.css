@@ -44,6 +44,45 @@
   margin: 0;
 }
 
+/* ---------- Task filter ---------- */
+
+.calendar-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calendar-filter-icon {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.calendar-filter-input {
+  width: 260px;
+  max-width: 100%;
+  padding: 5px 10px;
+}
+
+.calendar-filter-total {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* Emphasise the entries of the filtered task; fade the rest into the back. */
+.calendar-entry.dimmed,
+.day-entry.dimmed {
+  opacity: 0.26;
+}
+
+.calendar-entry.matched {
+  box-shadow: 0 0 0 1px var(--entry-color, var(--color-accent));
+}
+
+.day-entry.matched {
+  box-shadow: 0 0 0 2px var(--entry-color, var(--color-accent));
+}
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -56,6 +95,11 @@
   grid-template-rows: auto;
   grid-auto-rows: minmax(52px, 1fr);
   overflow-y: auto;
+}
+
+/* Weekends hidden: five weekday columns instead of seven. */
+.calendar-grid.no-weekends {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .calendar-weekday {
@@ -147,7 +191,7 @@
 
 .calendar-entry {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   gap: 4px;
   font-size: 11px;
   background: color-mix(in srgb, var(--entry-color, var(--color-accent)) 16%, transparent);
@@ -163,6 +207,8 @@
 }
 
 .calendar-entry-key {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 600;
@@ -183,10 +229,16 @@
 
 .calendar-entry-hours {
   flex-shrink: 0;
+  /* Fixed, right-aligned width so the hour numbers - and therefore the field
+     icons that sit just to their left - line up in a column across rows,
+     regardless of whether the value is "1h" or "1.5h". */
+  min-width: 28px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .calendar-entry-icons {
-  margin-right: 3px;
+  flex-shrink: 0;
   font-size: 10px;
 }
 
@@ -294,6 +346,11 @@
 .day-entry-hours {
   flex-shrink: 0;
   color: var(--color-text-muted);
+}
+
+/* In the day view the icons sit inline before the number (no flex gap). */
+.day-entry-hours .calendar-entry-icons {
+  margin-right: 3px;
 }
 
 .day-entry-summary {

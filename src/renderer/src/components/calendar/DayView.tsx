@@ -81,9 +81,17 @@ interface DayViewProps {
   entries: CalendarEntry[]
   multipleActive: boolean
   onEditEntry: (entry: CalendarEntry) => void
+  /** When set, entries it rejects are dimmed and matches are emphasised. */
+  matchEntry?: (entry: CalendarEntry) => boolean
 }
 
-export function DayView({ day, entries, multipleActive, onEditEntry }: DayViewProps): JSX.Element {
+export function DayView({
+  day,
+  entries,
+  multipleActive,
+  onEditEntry,
+  matchEntry
+}: DayViewProps): JSX.Element {
   const { t } = useTranslation()
   const positioned = useMemo(() => layoutEntries(entries), [entries])
 
@@ -131,7 +139,7 @@ export function DayView({ day, entries, multipleActive, onEditEntry }: DayViewPr
             return (
               <div
                 key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
-                className="day-entry"
+                className={`day-entry ${matchEntry ? (matchEntry(worklog) ? 'matched' : 'dimmed') : ''}`}
                 role="button"
                 style={{
                   top,
