@@ -18,7 +18,8 @@
     "generateSuggestions": "Zaproponuj wpisy",
     "clearSelection": "Wyczyść zaznaczenie",
     "filterPlaceholder": "Filtruj po zadaniu…",
-    "filterTotal": "{{hours}} h w widoku",
+    "filterTotalMonth": "{{hours}} h w tym miesiącu",
+    "filterTotalDay": "{{hours}} h w tym dniu",
     "clearFilter": "Wyczyść filtr",
     "noWorklogs": "Brak wpisów",
     "moreEntries": "+{{count}} więcej",
@@ -75,8 +76,7 @@
     "layout": "Układ",
     "layoutCards": "Karty",
     "layoutTable": "Tabela",
-    "layoutTableHint": "Kompaktowy widok tabeli — gęściej, edycja wielu wpisów naraz.",
-    "experimental": "eksperymentalne"
+    "layoutTableHint": "Kompaktowy widok tabeli — gęściej, edycja wielu wpisów naraz."
   },
   "settings": {
     "title": "Ustawienia",
@@ -142,7 +142,8 @@
         "Kliknij „Wygeneruj token ↗” — otworzy się strona API integration Tempo w Twojej Jirze.",
         "Kliknij „New Token”, nazwij go i wybierz datę wygaśnięcia.",
         "Skopiuj token i wklej go w to pole (jest inny niż token Jiry)."
-      ]
+      ],
+      "scope": "Minimalny zakres (scope): tylko przeglądanie i zarządzanie worklogami (odczyt + zapis). Zatwierdzenia, plany, konta ani uprawnienia administracyjne nie są potrzebne."
     },
     "removeFolder": "Usuń",
     "gitAuthorEmail": "E-mail autora commitów",

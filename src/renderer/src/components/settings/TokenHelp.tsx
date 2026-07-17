@@ -88,6 +88,7 @@ export function TokenHelp({ kind }: TokenHelpProps): JSX.Element {
           <li key={i}>{step}</li>
         ))}
       </ol>
+      {kind === 'tempo' && <p className="token-help-scope">🔒 {t(`${base}.scope`)}</p>}
     </span>
   )
 }

@@ -310,7 +310,7 @@ export function SettingsView(): JSX.Element {
         ))}
       </nav>
 
-      <div className="settings">
+      <div className={`settings ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
       {error && <ErrorBanner error={error} />}
 
       <section id="settings-section-connections" className="card settings-section">
@@ -453,6 +453,7 @@ export function SettingsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.fieldKey')}</label>
                       <input
+                        className={showBlockReason && !field.key.trim() ? 'input-error' : undefined}
                         value={field.key}
                         placeholder="_Attribute_"
                         spellCheck={false}
@@ -462,6 +463,7 @@ export function SettingsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.fieldLabel')}</label>
                       <input
+                        className={showBlockReason && !field.label.trim() ? 'input-error' : undefined}
                         value={field.label}
                         onChange={(e) => patchField(field.id, { label: e.target.value })}
                       />

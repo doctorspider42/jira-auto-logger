@@ -45,6 +45,13 @@ select:focus {
   border-color: var(--color-accent);
 }
 
+/* A required field flagged after a blocked save attempt. */
+.input-error,
+.input-error:focus {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+}
+
 textarea {
   resize: vertical;
   min-height: 72px;
@@ -340,6 +347,11 @@ textarea {
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
+}
+
+/* Wide variant for dense content such as the tabular suggestions layout. */
+.modal-wide {
+  width: 95vw;
 }
 
 .modal-header {

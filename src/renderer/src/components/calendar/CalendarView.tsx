@@ -51,8 +51,19 @@ export function CalendarView(): JSX.Element {
     (entry: CalendarEntry): boolean => entry.issueKey.toUpperCase().includes(filterKey),
     [filterKey]
   )
+  // The total is scoped to what's on screen: the focused day in the day view,
+  // the whole month in the month view.
+  const dayViewActive = calendar.view === 'day'
+  const scopedEntries = useMemo(() => {
+    if (dayViewActive) {
+      const iso = toIsoDate(calendar.focusedDay)
+      return loadedEntries.filter((e) => e.startDate === iso)
+    }
+    const monthPrefix = format(calendar.month, 'yyyy-MM')
+    return loadedEntries.filter((e) => e.startDate.startsWith(monthPrefix))
+  }, [loadedEntries, dayViewActive, calendar.focusedDay, calendar.month])
   const filteredSeconds = filterActive
-    ? loadedEntries.filter(matchEntry).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
+    ? scopedEntries.filter(matchEntry).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
     : 0
   /** Predicate handed to the day/month renderers; undefined = no active filter. */
   const entryMatcher = filterActive ? matchEntry : undefined
@@ -178,7 +189,7 @@ export function CalendarView(): JSX.Element {
           {filterActive && (
             <>
               <span className="calendar-filter-total">
-                {t('calendar.filterTotal', {
+                {t(dayViewActive ? 'calendar.filterTotalDay' : 'calendar.filterTotalMonth', {
                   hours: formatHours(filteredSeconds)
                 })}
               </span>

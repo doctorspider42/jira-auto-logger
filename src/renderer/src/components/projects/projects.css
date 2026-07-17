@@ -15,6 +15,11 @@
   border-color: var(--color-warning);
 }
 
+/* After a blocked save, escalate invalid cards from warning to error. */
+.projects-view.save-attempted .projects-card.invalid {
+  border-color: var(--color-danger);
+}
+
 /* Archived project: dimmed and clearly marked; still editable so it can be
    restored, but excluded from the "worked on" picker. */
 .projects-card.archived {

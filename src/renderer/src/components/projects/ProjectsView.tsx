@@ -139,8 +139,12 @@ export function ProjectsView(): JSX.Element {
     setShowBlockReason(false)
   }
 
+  /** Highlight a required field red once a blocked save has been attempted. */
+  const errorClass = (bad: boolean): string | undefined =>
+    showBlockReason && bad ? 'input-error' : undefined
+
   return (
-    <div className="projects-view">
+    <div className={`projects-view ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
       {error && <ErrorBanner error={error} />}
       <p className="hint">{t('projects.hint')}</p>
 
@@ -169,6 +173,7 @@ export function ProjectsView(): JSX.Element {
               <div className="field">
                 <label>{t('settings.projectName')}</label>
                 <input
+                  className={errorClass(!project.archived && !project.name.trim())}
                   value={project.name}
                   placeholder={t('settings.projectNamePlaceholder')}
                   onChange={(e) => patchProject(project.id, { name: e.target.value })}
@@ -186,6 +191,7 @@ export function ProjectsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.projectConnection')}</label>
                       <select
+                        className={errorClass(!project.archived && !target.connectionId)}
                         value={target.connectionId}
                         onChange={(e) => {
                           patchTarget(project, target.id, {
@@ -206,6 +212,7 @@ export function ProjectsView(): JSX.Element {
                     <div className="field">
                       <label>{t('settings.projectJiraKey')}</label>
                       <input
+                        className={errorClass(!project.archived && !target.jiraProjectKey.trim())}
                         list={`jira-projects-${target.id}`}
                         value={target.jiraProjectKey}
                         placeholder="PROJ"
@@ -264,6 +271,9 @@ export function ProjectsView(): JSX.Element {
                   </div>
                   <div className="settings-folder-author">
                     <input
+                      className={errorClass(
+                        !project.archived && !folder.includeAllAuthors && !folder.author.trim()
+                      )}
                       value={folder.author}
                       placeholder={t('settings.gitAuthorEmail')}
                       aria-label={t('settings.gitAuthorEmail')}

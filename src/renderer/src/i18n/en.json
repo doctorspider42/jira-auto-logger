@@ -18,7 +18,8 @@
     "generateSuggestions": "Suggest entries",
     "clearSelection": "Clear selection",
     "filterPlaceholder": "Filter by task…",
-    "filterTotal": "{{hours}} h logged in view",
+    "filterTotalMonth": "{{hours}} h this month",
+    "filterTotalDay": "{{hours}} h this day",
     "clearFilter": "Clear filter",
     "noWorklogs": "No entries",
     "moreEntries": "+{{count}} more",
@@ -75,8 +76,7 @@
     "layout": "Layout",
     "layoutCards": "Cards",
     "layoutTable": "Table",
-    "layoutTableHint": "Compact table view — denser, edit many entries at once.",
-    "experimental": "experimental"
+    "layoutTableHint": "Compact table view — denser, edit many entries at once."
   },
   "settings": {
     "title": "Settings",
@@ -142,7 +142,8 @@
         "Click \"Generate token ↗\" — it opens Tempo's API integration page in your Jira.",
         "Click \"New Token\", name it and choose an expiry.",
         "Copy the token and paste it into this field (it is separate from the Jira token)."
-      ]
+      ],
+      "scope": "Minimum scope: allow only viewing and managing worklogs (read + write). Approvals, plans, accounts and admin scopes are not needed."
     },
     "removeFolder": "Remove",
     "gitAuthorEmail": "Commit author e-mail",
