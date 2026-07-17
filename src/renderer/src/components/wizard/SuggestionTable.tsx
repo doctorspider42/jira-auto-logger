@@ -1,6 +1,61 @@
+import { useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import type { CustomFieldConfig, WorklogSuggestion } from '@shared/domain'
 import { IssueAutocomplete } from './IssueAutocomplete'
+
+interface DescriptionCellProps {
+  value: string
+  placeholder: string
+  onChange(value: string): void
+}
+
+/**
+ * Compact description input for the table that expands into a floating textarea
+ * on focus, so long descriptions are comfortable to edit without giving every
+ * row a tall cell. The popover is portalled to the body to escape the table's
+ * horizontal scroll container.
+ */
+function DescriptionCell({ value, placeholder, onChange }: DescriptionCellProps): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null)
+
+  const open = (): void => {
+    const rect = inputRef.current?.getBoundingClientRect()
+    if (rect) setBox({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 380) })
+  }
+
+  return (
+    <div className="table-desc">
+      <input
+        ref={inputRef}
+        className="table-desc-input"
+        value={value}
+        placeholder={placeholder}
+        onFocus={open}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {box &&
+        createPortal(
+          <>
+            <div className="table-desc-backdrop" onMouseDown={() => setBox(null)} />
+            <textarea
+              className="table-desc-pop"
+              autoFocus
+              value={value}
+              placeholder={placeholder}
+              style={{ top: box.top, left: box.left, width: box.width }}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setBox(null)
+              }}
+            />
+          </>,
+          document.body
+        )}
+    </div>
+  )
+}
 
 interface SuggestionTableProps {
   suggestions: WorklogSuggestion[]
@@ -87,10 +142,10 @@ export function SuggestionTable({
                 />
               </td>
               <td className="col-desc">
-                <input
+                <DescriptionCell
                   value={suggestion.description}
                   placeholder={t('wizard.description')}
-                  onChange={(e) => onChange({ ...suggestion, description: e.target.value })}
+                  onChange={(description) => onChange({ ...suggestion, description })}
                 />
               </td>
               {customFields.map((field) => {

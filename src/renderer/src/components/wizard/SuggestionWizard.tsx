@@ -415,6 +415,7 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
       title={`${t('wizard.title')} — ${step === 'input' ? t('wizard.step1') : t('wizard.step2')}`}
       onClose={onClose}
       footer={step === 'input' ? inputFooter : suggestionsFooter}
+      wide={step === 'suggestions' && layout === 'table'}
     >
       {error && <ErrorBanner error={error} />}
       {busy && step === 'input' && <FunnyLoader />}
@@ -469,7 +470,6 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
                 title={t('wizard.layoutTableHint')}
               >
                 {t('wizard.layoutTable')}
-                <span className="wizard-exp-badge">{t('wizard.experimental')}</span>
               </button>
             </div>
           </div>

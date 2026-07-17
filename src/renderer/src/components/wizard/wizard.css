@@ -120,19 +120,7 @@
   flex-shrink: 0;
 }
 
-.wizard-exp-badge {
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 999px;
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: color-mix(in srgb, var(--color-warning) 22%, transparent);
-  color: var(--color-warning);
-}
-
-/* ---------- Experimental tabular layout ---------- */
+/* ---------- Tabular layout ---------- */
 
 .suggestion-table-wrap {
   overflow-x: auto;
@@ -198,6 +186,29 @@
 /* Flag a row that still needs an issue, mirroring the card layout. */
 .suggestion-table tr.invalid td {
   background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+}
+
+/* Description cell: compact input that expands into a floating textarea. */
+.table-desc {
+  position: relative;
+}
+
+.table-desc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+}
+
+.table-desc-pop {
+  position: fixed;
+  z-index: 201;
+  min-height: 120px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-accent);
+  background: var(--color-bg-raised);
+  box-shadow: var(--shadow-popup);
+  resize: vertical;
 }
 
 .suggestion-row {
