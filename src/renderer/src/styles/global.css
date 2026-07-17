@@ -120,6 +120,19 @@ textarea {
   color: var(--color-danger);
 }
 
+/* Solid destructive button for confirmed, irreversible actions. */
+.btn-danger-solid {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(1.1);
+}
+
 .btn-sm {
   padding: 4px 10px;
   font-size: 13px;

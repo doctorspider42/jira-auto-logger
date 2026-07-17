@@ -211,6 +211,14 @@
     "archivedBadge": "Archived",
     "archiveHint": "Archiving keeps this project's color and name on past entries but hides it from the \"worked on\" picker, so no new time can be logged to it.",
     "archivedHint": "Archived: still colors past entries, but you can no longer log time to it. Restore it to log again.",
+    "unnamed": "this project",
+    "deleteTitle": "Delete project?",
+    "deleteQuestion": "Permanently delete “{{name}}”? This can't be undone.",
+    "deleteConsequence": "The project's configuration (Jira projects, repositories, color and instructions) is removed from Jira Auto Logger right away — no need to press Save. Past calendar entries of this project lose their color and name.",
+    "deleteArchiveAlt": "Prefer to keep it? Archiving keeps the project colouring and labelling past entries and can be restored anytime — you just can't log new time to it.",
+    "deleteTempoSafe": "Nothing is deleted from Tempo or Jira. Your logged worklogs stay exactly as they are — only this app's project setup is removed.",
+    "deletePermanently": "Delete permanently",
+    "archiveInstead": "Archive instead",
     "invalidHint": "Every project needs a name and at least one Jira project (connection + key); every repository needs an author e-mail or \"Include everyone's commits\"."
   },
   "funnyLoading": [

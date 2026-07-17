@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
 import type { AppError, GitFolder, JiraProject, ProjectConfig, ProjectTarget } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
 import './projects.css'
 
@@ -137,6 +138,40 @@ export function ProjectsView(): JSX.Element {
     setProjects(structuredClone(config.projects))
     setError(null)
     setShowBlockReason(false)
+  }
+
+  // ---------- Delete / archive (immediate, no Save needed) ----------
+  const [confirmDelete, setConfirmDelete] = useState<ProjectConfig | null>(null)
+
+  /**
+   * Persists a single project change against the SAVED config, not the draft,
+   * so deleting/archiving one project never silently commits other pending
+   * edits. The matching draft edit is applied separately for the live view.
+   */
+  const persistProjects = async (next: ProjectConfig[]): Promise<void> => {
+    setError(null)
+    const result = await saveConfig({ ...config, projects: next })
+    if (!result.ok) setError(result.error)
+  }
+
+  const deleteProject = async (project: ProjectConfig): Promise<void> => {
+    setConfirmDelete(null)
+    setProjects((all) => all.filter((p) => p.id !== project.id))
+    // Only touch storage if it was actually saved (a never-saved draft project
+    // just disappears from the draft).
+    if (config.projects.some((p) => p.id === project.id)) {
+      await persistProjects(config.projects.filter((p) => p.id !== project.id))
+    }
+  }
+
+  const archiveFromDialog = async (project: ProjectConfig): Promise<void> => {
+    setConfirmDelete(null)
+    setProjects((all) => all.map((p) => (p.id === project.id ? { ...p, archived: true } : p)))
+    if (config.projects.some((p) => p.id === project.id)) {
+      await persistProjects(
+        config.projects.map((p) => (p.id === project.id ? { ...p, archived: true } : p))
+      )
+    }
   }
 
   /** Highlight a required field red once a blocked save has been attempted. */
@@ -323,7 +358,7 @@ export function ProjectsView(): JSX.Element {
               </button>
               <button
                 className="btn btn-ghost btn-sm btn-danger"
-                onClick={() => setProjects((all) => all.filter((p) => p.id !== project.id))}
+                onClick={() => setConfirmDelete(project)}
               >
                 {t('settings.removeProject')}
               </button>
@@ -359,6 +394,41 @@ export function ProjectsView(): JSX.Element {
           {t('app.save')}
         </button>
       </div>
+
+      {confirmDelete && (
+        <Modal
+          title={t('projects.deleteTitle')}
+          onClose={() => setConfirmDelete(null)}
+          footer={
+            <>
+              <button className="btn btn-ghost" onClick={() => setConfirmDelete(null)}>
+                {t('app.cancel')}
+              </button>
+              <span style={{ flex: 1 }} />
+              <button className="btn" onClick={() => archiveFromDialog(confirmDelete)}>
+                {t('projects.archiveInstead')}
+              </button>
+              <button
+                className="btn btn-danger-solid"
+                onClick={() => deleteProject(confirmDelete)}
+              >
+                {t('projects.deletePermanently')}
+              </button>
+            </>
+          }
+        >
+          <p>
+            <strong>
+              {t('projects.deleteQuestion', {
+                name: confirmDelete.name.trim() || t('projects.unnamed')
+              })}
+            </strong>
+          </p>
+          <p className="hint">{t('projects.deleteConsequence')}</p>
+          <p className="hint">{t('projects.deleteArchiveAlt')}</p>
+          <p className="projects-delete-safe">✓ {t('projects.deleteTempoSafe')}</p>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -211,6 +211,14 @@
     "archivedBadge": "Zarchiwizowany",
     "archiveHint": "Archiwizacja zachowuje kolor i nazwę projektu na dawnych wpisach, ale ukrywa go z listy „nad czym pracowałeś/aś”, więc nie zalogujesz już do niego czasu.",
     "archivedHint": "Zarchiwizowany: nadal koloruje dawne wpisy, ale nie zalogujesz już do niego czasu. Przywróć, aby znów logować.",
+    "unnamed": "ten projekt",
+    "deleteTitle": "Usunąć projekt?",
+    "deleteQuestion": "Trwale usunąć „{{name}}”? Tej operacji nie da się cofnąć.",
+    "deleteConsequence": "Konfiguracja projektu (projekty Jira, repozytoria, kolor i instrukcje) zostanie od razu usunięta z Jira Auto Logger — nie trzeba klikać Zapisz. Dawne wpisy w kalendarzu stracą kolor i nazwę tego projektu.",
+    "deleteArchiveAlt": "Wolisz go zachować? Archiwizacja pozostawia kolor i nazwę na dawnych wpisach i można ją cofnąć w każdej chwili — nie zalogujesz tylko nowego czasu.",
+    "deleteTempoSafe": "Nic nie zostanie usunięte z Tempo ani z Jiry. Twoje zalogowane wpisy pozostają bez zmian — usuwana jest tylko konfiguracja projektu w tej aplikacji.",
+    "deletePermanently": "Usuń trwale",
+    "archiveInstead": "Zarchiwizuj zamiast tego",
     "invalidHint": "Każdy projekt musi mieć nazwę i co najmniej jeden projekt z Jiry (połączenie + klucz), a każde repozytorium — e-mail autora albo „Zawrzyj commity wszystkich”."
   },
   "funnyLoading": [
