@@ -23,7 +23,7 @@ A cross-platform desktop app (Electron — Windows/macOS/Linux) that suggests Ji
 - **LLM backends**: Claude CLI, GitHub Copilot CLI or the OpenAI API, with model selection, a thinking on/off switch and a fully editable main prompt. Expired Claude CLI sessions are detected and the login flow can be launched from the app.
 - **Custom worklog fields** (Tempo work attributes) — boolean or text, imported from the API or added manually, optionally auto-filled by the LLM, optionally marked in the calendar with an icon.
 - **Debug tools** — preview of the exact prompt (with a token estimate) before sending, and a diagnostic log file (paths shown at the bottom of settings, [screenshot](screenshots/settings.png)).
-- **Two languages** (Polish/English) and **themes**: dark, light, Windows 95, Fallout terminal.
+- **Two languages** (Polish/English) and **themes**: dark, light, Windows 95, Fallout terminal, Fallout New Vegas.
 - Tokens are encrypted with the OS keychain (`safeStorage`: DPAPI/Keychain/libsecret); the rest of the config is a plain JSON in the userData directory.
 
 ## Getting started
