@@ -111,6 +111,32 @@ export const THEMES: Theme[] = [
       '--font-family': "'Cascadia Code', Consolas, 'Courier New', monospace",
       '--shadow-popup': '0 0 28px rgba(61, 255, 125, 0.25)'
     }
+  },
+  {
+  id: 'falloutNV',
+  nameKey: 'settings.themeFalloutNV',
+  variables: {
+    ...shared,
+    // Fallout: New Vegas amber Pip-Boy CRT.
+    '--color-bg': '#120a03',
+    '--color-bg-raised': '#1a1005',
+    '--color-bg-hover': '#261708',
+    '--color-border': '#8b5518',
+    '--color-text': '#ffb347',
+    '--color-text-muted': '#c98933',
+    '--color-accent': '#ffbf5a',
+    '--color-accent-contrast': '#120a03',
+    '--color-accent-soft': 'rgba(255, 191, 90, 0.14)',
+    '--color-danger': '#ff6240',
+    '--color-success': '#ffbf5a',
+    '--color-warning': '#ffd56a',
+    '--color-selection': 'rgba(255, 191, 90, 0.24)',
+    '--radius-sm': '2px',
+    '--radius-md': '3px',
+    '--radius-lg': '4px',
+    '--font-family': "'Cascadia Code', Consolas, 'Courier New', monospace",
+    '--shadow-popup': '0 0 28px rgba(255, 191, 90, 0.28)'
+  }
   }
 ]
 
