@@ -28,12 +28,14 @@ function parseStartSeconds(value: string | undefined): number | null {
   return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3] ?? 0)
 }
 
+type PlacedEntry = Omit<PositionedEntry, 'col' | 'cols'>
+
 /**
- * Turn a day's worklogs into positioned blocks: entries carrying a Tempo
- * start time keep it, the rest stack back-to-back after them (mirroring how
- * this app lays out new entries). Overlapping blocks are split into columns.
+ * Give each entry a vertical position: entries carrying a Tempo start time
+ * keep it, the rest stack back-to-back after them (mirroring how this app
+ * lays out new entries).
  */
-function layoutEntries(entries: CalendarEntry[]): PositionedEntry[] {
+function placeEntries(entries: CalendarEntry[]): PlacedEntry[] {
   const timed: Array<{ entry: CalendarEntry; start: number }> = []
   const untimed: CalendarEntry[] = []
   for (const entry of entries) {
@@ -43,7 +45,7 @@ function layoutEntries(entries: CalendarEntry[]): PositionedEntry[] {
   }
   timed.sort((a, b) => a.start - b.start)
 
-  const positioned: Array<Omit<PositionedEntry, 'col' | 'cols'>> = timed.map((t) => ({
+  const positioned: PlacedEntry[] = timed.map((t) => ({
     entry: t.entry,
     start: t.start,
     end: t.start + t.entry.timeSpentSeconds
@@ -53,8 +55,11 @@ function layoutEntries(entries: CalendarEntry[]): PositionedEntry[] {
     positioned.push({ entry, start: cursor, end: cursor + entry.timeSpentSeconds })
     cursor += entry.timeSpentSeconds
   }
+  return positioned
+}
 
-  // Pack overlapping blocks into columns, one cluster of overlaps at a time.
+/** Pack overlapping blocks into side-by-side columns, one cluster at a time. */
+function packOverlaps(positioned: PlacedEntry[]): PositionedEntry[] {
   positioned.sort((a, b) => a.start - b.start || a.end - b.end)
   const result: PositionedEntry[] = []
   let cluster: PositionedEntry[] = []
@@ -76,6 +81,33 @@ function layoutEntries(entries: CalendarEntry[]): PositionedEntry[] {
   return result
 }
 
+/**
+ * Turn a day's worklogs into positioned blocks. With several Jiras active each
+ * connection gets its own fixed column (they log the same day independently, so
+ * mixing them across columns by mere time-overlap is confusing); within a single
+ * connection overlapping blocks are still split into columns.
+ */
+function layoutEntries(entries: CalendarEntry[], splitByConnection: boolean): PositionedEntry[] {
+  if (!splitByConnection) return packOverlaps(placeEntries(entries))
+
+  // One column per connection, ordered stably so left/right stay put day to day.
+  const byConnection = new Map<string, CalendarEntry[]>()
+  for (const entry of entries) {
+    const list = byConnection.get(entry.connectionId) ?? []
+    list.push(entry)
+    byConnection.set(entry.connectionId, list)
+  }
+  const connectionIds = [...byConnection.keys()].sort()
+  const cols = connectionIds.length
+  const result: PositionedEntry[] = []
+  connectionIds.forEach((connectionId, col) => {
+    for (const placed of placeEntries(byConnection.get(connectionId) ?? [])) {
+      result.push({ ...placed, col, cols })
+    }
+  })
+  return result
+}
+
 interface DayViewProps {
   day: Date
   entries: CalendarEntry[]
@@ -93,7 +125,10 @@ export function DayView({
   matchEntry
 }: DayViewProps): JSX.Element {
   const { t } = useTranslation()
-  const positioned = useMemo(() => layoutEntries(entries), [entries])
+  const positioned = useMemo(
+    () => layoutEntries(entries, multipleActive),
+    [entries, multipleActive]
+  )
 
   const { startHour, endHour } = useMemo(() => {
     const from = positioned.reduce((min, p) => Math.min(min, p.start), MIN_HOUR * 3600)
