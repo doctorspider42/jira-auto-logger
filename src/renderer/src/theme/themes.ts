@@ -137,6 +137,33 @@ export const THEMES: Theme[] = [
     '--font-family': "'Cascadia Code', Consolas, 'Courier New', monospace",
     '--shadow-popup': '0 0 28px rgba(255, 191, 90, 0.28)'
   }
+  },
+  {
+    id: 'helloKitty',
+    nameKey: 'settings.themeHelloKitty',
+    variables: {
+      ...shared,
+      // Soft pink Sanrio look: pale pink desk, white cards, hot-pink accents.
+      '--color-bg': '#ffe4ef',
+      '--color-bg-raised': '#ffffff',
+      '--color-bg-hover': '#ffd6e8',
+      '--color-border': '#ffb6d5',
+      '--color-text': '#4a2c3a',
+      '--color-text-muted': '#9c6b82',
+      '--color-accent': '#ff4d94',
+      '--color-accent-contrast': '#ffffff',
+      '--color-accent-soft': 'rgba(255, 77, 148, 0.14)',
+      '--color-danger': '#e63950',
+      '--color-success': '#3fbf7f',
+      '--color-warning': '#f5a623',
+      '--color-selection': 'rgba(255, 77, 148, 0.22)',
+      '--radius-sm': '10px',
+      '--radius-md': '16px',
+      '--radius-lg': '22px',
+      '--font-family':
+        "'Comic Sans MS', 'Segoe UI Rounded', 'Segoe UI Variable', 'Segoe UI', sans-serif",
+      '--shadow-popup': '0 12px 40px rgba(255, 77, 148, 0.32)'
+    }
   }
 ]
 

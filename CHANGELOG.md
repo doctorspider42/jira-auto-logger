@@ -10,6 +10,11 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.14 — 2026-07-23
+
+- Added a **Hello Kitty** theme — a soft pink Sanrio look with rounded corners,
+  pick it under Settings → Appearance → Theme.
+
 ## 0.1.13 — 2026-07-23
 
 - Added a **"What's new"** view: when an update is available you can preview the
