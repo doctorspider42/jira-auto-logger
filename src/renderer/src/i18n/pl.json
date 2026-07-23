@@ -192,6 +192,7 @@
     "updateModeOff": "Wyłączone",
     "currentVersion": "Zainstalowana wersja",
     "checkForUpdates": "Sprawdź teraz",
+    "versionHistory": "Co nowego / historia",
     "updateManualOnly": "Na tej platformie (niepodpisany build) aktualizacja jest ręczna — pokażemy link do pobrania nowej wersji."
   },
   "projects": {
@@ -277,6 +278,18 @@
     "statusChecking": "Sprawdzanie…",
     "statusUpToDate": "Masz najnowszą wersję.",
     "statusError": "Nie udało się sprawdzić aktualizacji.",
-    "checkNow": "Sprawdź aktualizacje"
+    "checkNow": "Sprawdź aktualizacje",
+    "whatsNew": "Co nowego"
+  },
+  "versionHistory": {
+    "title": "Co nowego",
+    "loading": "Wczytywanie informacji o wydaniach…",
+    "error": "Nie udało się wczytać informacji o wydaniach.",
+    "empty": "Nie opublikowano jeszcze żadnych wydań.",
+    "noNotes": "Brak opisu dla tego wydania.",
+    "installed": "Zainstalowana",
+    "new": "Nowa",
+    "prerelease": "Wersja wstępna",
+    "viewOnGithub": "Zobacz na GitHubie"
   }
 }

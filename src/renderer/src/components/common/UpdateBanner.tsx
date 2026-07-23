@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore, UPDATE_NOTIFYING_STATUSES } from '@/store/appStore'
 import { openExternal } from '@/utils/external'
+import { VersionHistoryModal } from './VersionHistoryModal'
 
 /**
  * Top-of-app notification about a new release. On auto-updatable platforms it
@@ -13,6 +15,7 @@ export function UpdateBanner(): JSX.Element | null {
   const update = useAppStore((s) => s.update)
   const dismissed = useAppStore((s) => s.updateBannerDismissed)
   const dismiss = useAppStore((s) => s.dismissUpdateBanner)
+  const [showHistory, setShowHistory] = useState(false)
 
   if (!update || dismissed || !UPDATE_NOTIFYING_STATUSES.has(update.status)) return null
   const { status, availableVersion, progressPercent, releaseUrl, canAutoUpdate, errorMessage } =
@@ -25,8 +28,16 @@ export function UpdateBanner(): JSX.Element | null {
     </button>
   )
 
+  // "What's new" opens the release notes; shown once a version is known.
+  const whatsNewButton = (status === 'available' || status === 'downloaded') && (
+    <button className="btn btn-sm btn-ghost" onClick={() => setShowHistory(true)}>
+      {t('updates.whatsNew')}
+    </button>
+  )
+
   return (
     <div className="banner banner-update" role="status">
+      {showHistory && <VersionHistoryModal onClose={() => setShowHistory(false)} />}
       {status === 'available' && (
         <>
           <span style={{ flex: 1 }}>{t('updates.available', { version: availableVersion })}</span>
@@ -42,6 +53,7 @@ export function UpdateBanner(): JSX.Element | null {
               {t('updates.openReleasePage')}
             </button>
           )}
+          {whatsNewButton}
           {dismissButton}
         </>
       )}
@@ -60,6 +72,7 @@ export function UpdateBanner(): JSX.Element | null {
           <button className="btn btn-sm" onClick={() => void window.api.updates.quitAndInstall()}>
             {t('updates.restart')}
           </button>
+          {whatsNewButton}
           {dismissButton}
         </>
       )}

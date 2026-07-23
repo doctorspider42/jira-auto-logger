@@ -1,6 +1,6 @@
 import { app, BrowserWindow, net } from 'electron'
 import { autoUpdater } from 'electron-updater'
-import type { UpdateMode, UpdateState, UpdateStatus } from '@shared/domain'
+import type { ReleaseNote, UpdateMode, UpdateState, UpdateStatus } from '@shared/domain'
 import { UPDATES_STATE_EVENT } from '@shared/ipc'
 import { logger } from './logger'
 import { isMockMode } from './mock'
@@ -8,6 +8,19 @@ import { isMockMode } from './mock'
 const REPO_OWNER = 'doctorspider42'
 const REPO_NAME = 'jira-auto-logger'
 const RELEASES_URL = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest`
+/** How long a fetched release history stays fresh, to avoid hammering the API. */
+const HISTORY_CACHE_MS = 5 * 60 * 1000
+
+/** Shape of the GitHub releases API entries we consume. */
+interface GithubRelease {
+  tag_name?: string
+  name?: string
+  body?: string
+  html_url?: string
+  published_at?: string
+  prerelease?: boolean
+  draft?: boolean
+}
 
 /** Compares two dotted version strings; true when `a` is strictly newer than `b`. */
 function isNewer(a: string, b: string): boolean {
@@ -45,6 +58,9 @@ export class UpdateService {
     canAutoUpdate: this.canAutoUpdate,
     errorMessage: ''
   }
+
+  /** Short-lived cache of the fetched release history (see HISTORY_CACHE_MS). */
+  private historyCache: { at: number; releases: ReleaseNote[] } | null = null
 
   constructor(private readonly getMode: () => UpdateMode) {
     if (this.canAutoUpdate) this.wireAutoUpdater()
@@ -141,11 +157,39 @@ export class UpdateService {
     autoUpdater.on('error', (err) => this.setState({ status: 'error', errorMessage: errorText(err) }))
   }
 
+  /**
+   * Published releases newest-first, for the "what's new" / version-history
+   * view. Works on every platform (it is a read-only GitHub API call, unlike
+   * the electron-updater self-update path). Cached briefly so reopening the
+   * view does not re-hit the API. Drafts are excluded.
+   */
+  async getReleaseHistory(): Promise<ReleaseNote[]> {
+    const now = Date.now()
+    if (this.historyCache && now - this.historyCache.at < HISTORY_CACHE_MS) {
+      return this.historyCache.releases
+    }
+    const raw = await this.githubGet<GithubRelease[]>('releases?per_page=30')
+    const releases = (Array.isArray(raw) ? raw : [])
+      .filter((r) => !r.draft)
+      .map(
+        (r): ReleaseNote => ({
+          version: (r.tag_name ?? '').replace(/^v/, ''),
+          name: r.name || r.tag_name || '',
+          notes: (r.body ?? '').trim(),
+          url: r.html_url || RELEASES_URL,
+          publishedAt: r.published_at ?? '',
+          prerelease: r.prerelease ?? false
+        })
+      )
+    this.historyCache = { at: now, releases }
+    return releases
+  }
+
   /** macOS fallback: version-only check against the public releases API. */
   private async checkViaGithub(): Promise<void> {
     this.setState({ status: 'checking', errorMessage: '' })
-    const release = await this.fetchLatestRelease()
-    const latest = release.tag_name.replace(/^v/, '')
+    const release = await this.githubGet<GithubRelease>('releases/latest')
+    const latest = (release.tag_name ?? '').replace(/^v/, '')
     if (latest && isNewer(latest, app.getVersion())) {
       this.setState({
         status: 'available',
@@ -157,11 +201,12 @@ export class UpdateService {
     }
   }
 
-  private fetchLatestRelease(): Promise<{ tag_name: string; html_url: string }> {
+  /** GETs a public GitHub API path and parses the JSON response. */
+  private githubGet<T>(path: string): Promise<T> {
     return new Promise((resolve, reject) => {
       const request = net.request({
         method: 'GET',
-        url: `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest`
+        url: `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/${path}`
       })
       request.setHeader('Accept', 'application/vnd.github+json')
       // GitHub rejects requests without a User-Agent.
@@ -176,8 +221,7 @@ export class UpdateService {
             return
           }
           try {
-            const json = JSON.parse(body) as { tag_name?: string; html_url?: string }
-            resolve({ tag_name: json.tag_name ?? '', html_url: json.html_url ?? '' })
+            resolve(JSON.parse(body) as T)
           } catch (e) {
             reject(e)
           }

@@ -12,7 +12,7 @@ manual tag step - just merge to `main`.
 
 The `Release` workflow (`.github/workflows/release.yml`) runs a `version` job
 that computes the next version, then a 3-OS `build` matrix that packages and
-publishes a GitHub release (auto-generated notes):
+publishes a GitHub release (notes from `CHANGELOG.md`, see below):
 - Windows: NSIS installer `dist/*.exe` + `latest.yml` + `*.blockmap`
 - macOS: `dist/*.dmg` + `latest-mac.yml`
 - Linux: `dist/*.AppImage` + `latest-linux.yml`
@@ -22,6 +22,36 @@ The `latest*.yml` / blockmap files are what the in-app auto-updater
 
 Repo: `doctorspider42/jira-auto-logger`. Inspect runs with
 `gh run list --repo doctorspider42/jira-auto-logger` / `gh run view <id>`.
+
+## Release notes (`CHANGELOG.md`) — do this for every user-facing change
+
+The app has an in-app **"What's new" / version history** view (Settings →
+Updates, and the update banner) that fetches the GitHub releases and shows
+their descriptions. Those descriptions come from `CHANGELOG.md`, so the notes
+must be **user-facing**, not a commit dump.
+
+Because **every push to `main` publishes a release**, the CHANGELOG entry has to
+land *in the same push* as the change. Whenever a change is something a user
+would notice (a feature, a visible fix, a behaviour change), add a section to
+the top of `CHANGELOG.md` before merging:
+
+1. Determine the version this push will publish. It is the latest published
+   release patch-bumped (`gh release list --limit 1` → e.g. `v0.1.12` →
+   `0.1.13`), unless `package.json`'s version is higher (a deliberate
+   minor/major jump), in which case use that. This is exactly what
+   `next-version.js` computes.
+2. Add `## <version> — <YYYY-MM-DD>` at the top of `CHANGELOG.md` with short
+   bullet points written for users (what changed and why it matters), not
+   commit messages. Group related commits into one bullet.
+3. If you are batching several merges before they land, keep appending bullets
+   under the same upcoming-version heading; rename it if the computed version
+   shifts (e.g. someone else released in between).
+
+The `create-release` job runs `.github/scripts/release-notes.js <version>`,
+which extracts the matching `## <version>` section and uses it as the release
+body. **Purely internal pushes** (refactors, CI, docs) need no entry — with no
+matching section the workflow falls back to GitHub's auto-generated commit
+notes, which is fine for releases users don't need to read about.
 
 ## Versioning
 

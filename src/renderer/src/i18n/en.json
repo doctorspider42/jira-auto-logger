@@ -192,6 +192,7 @@
     "updateModeOff": "Off",
     "currentVersion": "Installed version",
     "checkForUpdates": "Check now",
+    "versionHistory": "What's new / history",
     "updateManualOnly": "On this platform (unsigned build) updates are manual — we'll show a link to download the new version."
   },
   "projects": {
@@ -277,6 +278,18 @@
     "statusChecking": "Checking…",
     "statusUpToDate": "You're on the latest version.",
     "statusError": "Couldn't check for updates.",
-    "checkNow": "Check for updates"
+    "checkNow": "Check for updates",
+    "whatsNew": "What's new"
+  },
+  "versionHistory": {
+    "title": "What's new",
+    "loading": "Loading release notes…",
+    "error": "Couldn't load release notes.",
+    "empty": "No releases published yet.",
+    "noNotes": "No notes for this release.",
+    "installed": "Installed",
+    "new": "New",
+    "prerelease": "Pre-release",
+    "viewOnGithub": "View on GitHub"
   }
 }

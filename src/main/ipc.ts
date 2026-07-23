@@ -157,6 +157,9 @@ export function registerIpcHandlers(): UpdateService {
   ipcMain.handle(IPC_CHANNELS.updatesCheck, () =>
     toResult(IPC_CHANNELS.updatesCheck, () => updates.check())
   )
+  ipcMain.handle(IPC_CHANNELS.updatesGetReleaseHistory, () =>
+    toResult(IPC_CHANNELS.updatesGetReleaseHistory, () => updates.getReleaseHistory())
+  )
   ipcMain.handle(IPC_CHANNELS.updatesDownload, () =>
     toResult(IPC_CHANNELS.updatesDownload, () => updates.download())
   )
