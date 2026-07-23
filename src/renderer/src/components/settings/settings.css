@@ -46,7 +46,8 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-bottom: 40px;
+  /* Clears the fixed save bar so the last content is not hidden behind it. */
+  padding-bottom: 88px;
 }
 
 /* Breathing room when a section is scrolled to from the side nav. */
@@ -295,15 +296,33 @@
   font-size: 12.5px;
 }
 
+/* Docked to the bottom edge of the window, outside the scroll flow, so the
+   save button no longer floats over the content while scrolling. */
 .settings-save-bar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: 0;
+  z-index: 20;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  padding: 12px 0;
-  background: linear-gradient(transparent, var(--color-bg) 40%);
+  padding: 12px 20px;
+  background: var(--color-bg-raised);
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 1100px) {
+  .settings-save-bar {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 820px) {
+  .settings-save-bar {
+    padding: 10px 8px;
+  }
 }
 
 /* Reason shown next to a blocked save button once the user tries to save. */
