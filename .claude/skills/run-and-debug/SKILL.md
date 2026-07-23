@@ -33,6 +33,37 @@ Two rules that keep mock mode healthy:
 
 Data is seeded (mulberry32), so screenshots and manual tests are reproducible.
 
+## Forcing a theme at launch
+
+`JAL_THEME=<id>` overrides the saved theme when the app boots, so you can test a
+theme without clicking through Settings. It is read once in `ConfigService.get()`
+and applied to whatever config was loaded (mock or real); an unknown id falls
+back to the default theme in `applyTheme`, so typos degrade gracefully.
+
+Valid ids come from `THEMES` in `src/renderer/src/theme/themes.ts`: `dark`,
+`light`, `win95`, `fallout`, `falloutNV`, `helloKitty`, `y2k`.
+
+Prefer mock mode — it never persists, so a forced theme can't leak into your
+real `config.json` even if you hit Save in Settings. `cross-env` (already a dev
+dependency) makes it cross-platform:
+
+```bash
+npx cross-env JAL_THEME=y2k npm run dev:mock     # any OS
+```
+
+Native shells work too:
+
+```bash
+JAL_THEME=y2k npm run dev:mock                    # bash / zsh
+```
+```powershell
+$env:JAL_THEME='y2k'; npm run dev:mock            # PowerShell (clear later: Remove-Item Env:JAL_THEME)
+```
+
+It composes with the screenshot driver as well
+(`npx cross-env JAL_THEME=y2k npm run screenshots`) if you want theme-specific
+captures.
+
 ## Screenshot automation
 
 `npm run screenshots` drives the UI from the main process

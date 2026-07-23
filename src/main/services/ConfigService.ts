@@ -73,7 +73,16 @@ export class ConfigService {
 
   get(): AppConfig {
     if (this.cached) return this.cached
-    this.cached = isMockMode() ? mockConfig() : this.load()
+    const config = isMockMode() ? mockConfig() : this.load()
+    // Dev/test affordance: `JAL_THEME=<id>` forces a theme at launch without
+    // touching config, e.g. `JAL_THEME=y2k npm run dev:mock`. Unknown ids fall
+    // back to the default in `applyTheme`, so no validation is needed (and the
+    // theme registry lives in the renderer, off-limits to the main process).
+    // Prefer mock mode for this: mock never persists, so saving settings can't
+    // write the forced theme into the real config.
+    const themeOverride = process.env.JAL_THEME?.trim()
+    if (themeOverride) config.themeId = themeOverride
+    this.cached = config
     return this.cached
   }
 

@@ -1,0 +1,221 @@
+/*
+ * Y2K ✧ Ultra — the maximalist over-the-top skin for the `y2k` theme.
+ *
+ * Everything here is scoped under `[data-theme="y2k"]` (the attribute
+ * `applyTheme` stamps on <html>), so switching to any other theme drops all
+ * of it instantly and nothing leaks. The base variables live in themes.ts;
+ * this file layers the chrome bevels, aqua gloss and holographic animation
+ * that plain CSS variables can't express. Peak 2002 energy, on purpose.
+ */
+
+/* ---------- Frutiger-Aero holographic desktop ---------- */
+
+[data-theme='y2k'] body {
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgba(255, 255, 255, 0.85), transparent 55%),
+    radial-gradient(90% 70% at 85% 10%, rgba(255, 47, 214, 0.35), transparent 60%),
+    radial-gradient(100% 90% at 50% 110%, rgba(0, 224, 255, 0.5), transparent 60%),
+    linear-gradient(125deg, #b7f0ff 0%, #cfe0ff 25%, #f0d0ff 50%, #cfe0ff 75%, #b7f0ff 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 300% 300%;
+  animation: y2k-holo 18s ease-in-out infinite;
+}
+
+@keyframes y2k-holo {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0, 0% 50%;
+  }
+  50% {
+    background-position: 0 0, 0 0, 0 0, 100% 50%;
+  }
+}
+
+/* ---------- Brushed-chrome window chrome ---------- */
+
+[data-theme='y2k'] .app-header {
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #dfe9f7 18%,
+      #aebfd8 50%,
+      #c9d6ea 82%,
+      #ffffff 100%
+    );
+  border-bottom: 2px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 40, 120, 0.35), inset 0 1px 0 #ffffff;
+}
+
+/* Chrome, beveled, faintly shimmering title text. */
+[data-theme='y2k'] .app-header h1 {
+  background: linear-gradient(180deg, #ffffff 0%, #9fd6ff 42%, #2f6bff 55%, #b7e3ff 70%, #ffffff 100%);
+  background-size: 100% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 800;
+  filter: drop-shadow(0 1px 0 #ffffff) drop-shadow(0 2px 3px rgba(0, 40, 120, 0.5));
+  animation: y2k-sheen 4s ease-in-out infinite;
+}
+
+@keyframes y2k-sheen {
+  0%,
+  100% {
+    background-position: 0 0%;
+  }
+  50% {
+    background-position: 0 100%;
+  }
+}
+
+/* ---------- Aqua candy buttons ---------- */
+
+[data-theme='y2k'] .btn {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.15) 48%, rgba(0, 0, 0, 0.06) 52%, rgba(255, 255, 255, 0.25) 100%),
+    linear-gradient(180deg, #eaf6ff 0%, #bfe4ff 50%, #9ed3ff 100%);
+  color: #0b2a66;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgba(0, 60, 140, 0.35), inset 0 1px 0 #ffffff,
+    inset 0 -2px 4px rgba(0, 60, 140, 0.25);
+  overflow: hidden;
+}
+
+/* Glossy top-half highlight sweep. */
+[data-theme='y2k'] .btn::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px 50% 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+[data-theme='y2k'] .btn:hover:not(:disabled) {
+  filter: brightness(1.08) saturate(1.15);
+  box-shadow: 0 4px 14px rgba(0, 120, 255, 0.55), inset 0 1px 0 #ffffff;
+}
+
+[data-theme='y2k'] .btn:active:not(:disabled) {
+  box-shadow: inset 0 2px 6px rgba(0, 60, 140, 0.45);
+  filter: brightness(0.96);
+}
+
+/* Primary = hot holographic candy. */
+[data-theme='y2k'] .btn-primary {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.08) 52%, rgba(255, 255, 255, 0.2) 100%),
+    linear-gradient(90deg, #ff2fd6, #ff7a1a, #ffe600, #2fff9e, #33c6ff, #ff2fd6);
+  background-size: 100% 100%, 300% 100%;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  animation: y2k-holo-btn 6s linear infinite;
+}
+
+@keyframes y2k-holo-btn {
+  from {
+    background-position: 0 0, 0% 50%;
+  }
+  to {
+    background-position: 0 0, 300% 50%;
+  }
+}
+
+/* ---------- Frosted-glass cards, modals & popups ---------- */
+
+[data-theme='y2k'] .card,
+[data-theme='y2k'] .modal {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(224, 244, 255, 0.82));
+  border: 2px solid #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 60, 160, 0.3), 0 0 0 1px rgba(0, 180, 255, 0.4),
+    inset 0 1px 0 #ffffff;
+  backdrop-filter: blur(2px);
+}
+
+/* Holographic sheen strip across the top edge of each card. */
+[data-theme='y2k'] .card::before,
+[data-theme='y2k'] .modal::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 40%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+[data-theme='y2k'] .modal-header {
+  background: linear-gradient(180deg, #eaf6ff, #bfe4ff);
+  border-bottom: 2px solid #ffffff;
+}
+
+/* ---------- Bubbly nav tabs ---------- */
+
+[data-theme='y2k'] .nav-tab.active {
+  background: linear-gradient(180deg, #ff8fe8, #ff2fd6);
+  color: #ffffff;
+  border-radius: 999px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 10px rgba(255, 47, 214, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Glossy inputs & chips ---------- */
+
+[data-theme='y2k'] input,
+[data-theme='y2k'] textarea,
+[data-theme='y2k'] select {
+  background: linear-gradient(180deg, #ffffff, #eaf6ff);
+  border: 2px solid #7fc4ef;
+  box-shadow: inset 0 2px 4px rgba(0, 60, 140, 0.15), 0 1px 0 #ffffff;
+}
+
+[data-theme='y2k'] input:focus,
+[data-theme='y2k'] textarea:focus,
+[data-theme='y2k'] select:focus {
+  border-color: #ff2fd6;
+  box-shadow: 0 0 0 3px rgba(255, 47, 214, 0.3), inset 0 2px 4px rgba(0, 60, 140, 0.15);
+}
+
+[data-theme='y2k'] .chip {
+  background: linear-gradient(180deg, #ffffff, #dff3ff);
+  border: 1.5px solid #7fc4ef;
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(0, 60, 140, 0.25);
+}
+
+[data-theme='y2k'] .chip.selected {
+  background: linear-gradient(180deg, #ff8fe8, #ff2fd6);
+  color: #ffffff;
+  border-color: #ffffff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Chunky chrome scrollbars for the full effect ---------- */
+
+[data-theme='y2k'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+[data-theme='y2k'] ::-webkit-scrollbar-track {
+  background: linear-gradient(90deg, #cfe0ff, #eaf6ff);
+}
+
+[data-theme='y2k'] ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid #eaf6ff;
+  background: linear-gradient(180deg, #9fd6ff, #2f6bff);
+}
+
+/* Respect users who'd rather not watch the gradients breathe. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='y2k'] body,
+  [data-theme='y2k'] .app-header h1,
+  [data-theme='y2k'] .btn-primary {
+    animation: none;
+  }
+}
