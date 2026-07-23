@@ -59,6 +59,7 @@ const api: IpcApi = {
   updates: {
     getState: () => ipcRenderer.invoke(IPC_CHANNELS.updatesGetState),
     check: () => ipcRenderer.invoke(IPC_CHANNELS.updatesCheck),
+    getReleaseHistory: () => ipcRenderer.invoke(IPC_CHANNELS.updatesGetReleaseHistory),
     download: () => ipcRenderer.invoke(IPC_CHANNELS.updatesDownload),
     quitAndInstall: () => ipcRenderer.invoke(IPC_CHANNELS.updatesQuitAndInstall),
     onStateChange: (callback: (state: UpdateState) => void) => {

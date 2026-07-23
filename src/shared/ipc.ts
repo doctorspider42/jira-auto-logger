@@ -9,6 +9,7 @@ import type {
   TempoWorkAttribute,
   PromptPreview,
   RegenerateDescriptionRequest,
+  ReleaseNote,
   Result,
   SuggestionRequest,
   UpdateState,
@@ -71,6 +72,8 @@ export interface IpcApi {
     getState(): Promise<UpdateState>
     /** Manually trigger a check regardless of the configured mode. */
     check(): Promise<Result<void>>
+    /** Published releases (newest first) for the "what's new" / history view. */
+    getReleaseHistory(): Promise<Result<ReleaseNote[]>>
     /** Start downloading the available update (auto-updatable platforms only). */
     download(): Promise<Result<void>>
     /** Quit and install a downloaded update. */
@@ -107,6 +110,7 @@ export const IPC_CHANNELS = {
   llmStartClaudeLogin: 'llm:startClaudeLogin',
   updatesGetState: 'updates:getState',
   updatesCheck: 'updates:check',
+  updatesGetReleaseHistory: 'updates:getReleaseHistory',
   updatesDownload: 'updates:download',
   updatesQuitAndInstall: 'updates:quitAndInstall'
 } as const

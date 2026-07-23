@@ -10,6 +10,7 @@ import type {
 } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
+import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
 import { useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
 import { openExternal } from '@/utils/external'
@@ -62,6 +63,7 @@ export function SettingsView(): JSX.Element {
   const saveConfig = useAppStore((s) => s.saveConfig)
   const update = useAppStore((s) => s.update)
   const [checking, setChecking] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   const [draft, setDraft] = useState<AppConfig>(() => structuredClone(saved))
   const [tests, setTests] = useState<Record<string, ConnectionTest>>({})
@@ -845,11 +847,15 @@ export function SettingsView(): JSX.Element {
             {checking && <span className="spinner" />}
             {t('settings.checkForUpdates')}
           </button>
+          <button className="btn btn-ghost" onClick={() => setShowHistory(true)}>
+            {t('settings.versionHistory')}
+          </button>
           {updateStatusText() && <span className="hint">{updateStatusText()}</span>}
         </div>
         {update && !update.canAutoUpdate && (
           <p className="hint">{t('settings.updateManualOnly')}</p>
         )}
+        {showHistory && <VersionHistoryModal onClose={() => setShowHistory(false)} />}
       </section>
 
       <div className="settings-save-bar">

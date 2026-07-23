@@ -224,6 +224,26 @@ export interface UpdateState {
   errorMessage: string
 }
 
+/**
+ * A single published release, as shown in the "What's new" / version-history
+ * view. Sourced from the GitHub releases API so even the newest release (whose
+ * notes the currently-installed build cannot know) is available.
+ */
+export interface ReleaseNote {
+  /** Version without the leading "v" (e.g. "0.1.5"). */
+  version: string
+  /** Release title; usually the same as the tag. */
+  name: string
+  /** Markdown release notes body; '' when the release has none. */
+  notes: string
+  /** GitHub release page URL. */
+  url: string
+  /** ISO publish timestamp; '' when unknown. */
+  publishedAt: string
+  /** True for pre-releases. */
+  prerelease: boolean
+}
+
 /** Remembers the last dialog selection for the "use recent" shortcut. */
 export interface LastUsedSelection {
   selections: ProjectSelection[]

@@ -43,12 +43,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build release notes
+        # Use the curated CHANGELOG section for this version as the release
+        # body; fall back to GitHub's auto-generated notes when there is none.
+        id: notes
+        run: node .github/scripts/release-notes.js ${{ needs.version.outputs.version }}
+        shell: bash
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: v${{ needs.version.outputs.version }}
-          generate_release_notes: true
+          body: ${{ steps.notes.outputs.body }}
+          generate_release_notes: ${{ steps.notes.outputs.has_notes != 'true' }}
 
   build:
     needs: [version, create-release]

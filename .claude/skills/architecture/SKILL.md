@@ -58,6 +58,12 @@ theme in `src/renderer/src/theme/themes.ts`. Never hardcode a color in
 component CSS - use the variables (or `color-mix` on them) so all four themes
 keep working.
 
+**User-facing changes**: if a change is something a user would notice, add a
+`CHANGELOG.md` entry in the same commit - it feeds the in-app "What's new" /
+version history view and the GitHub release notes. Every push to `main`
+releases, so the note ships with the change. See the `release` skill for the
+exact format and how the version number is chosen.
+
 ## LLM pipeline specifics
 
 - The main prompt is **baked into the app** (`MAIN_PROMPT` in `src/main/services/defaultPrompt.ts`), not stored in config - editing it takes effect for everyone on the next release. The user can only append free-form guidance via `llm.additionalInstructions`, which `LlmService` injects at the `{{additionalInstructions}}` placeholder as a highest-priority override.

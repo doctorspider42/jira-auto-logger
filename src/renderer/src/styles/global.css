@@ -420,3 +420,113 @@ textarea {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* ---------- Version history / release notes ---------- */
+
+.version-history-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+}
+
+.release-note {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.release-note:last-child {
+  border-bottom: none;
+}
+
+/* Emphasize the version being offered as an update. */
+.release-note-available {
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin: 8px 0;
+  border-bottom: none;
+}
+
+.release-note-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.release-note-header h3 {
+  margin: 0;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.release-note-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.release-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--color-bg-hover);
+  color: var(--color-text-muted);
+}
+
+.release-tag-current {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.release-tag-new {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* Rendered markdown inside a release note. */
+.markdown {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  margin: 12px 0 4px;
+  font-size: 13px;
+}
+
+.markdown p {
+  margin: 6px 0;
+}
+
+.markdown ul {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+
+.markdown li {
+  margin: 3px 0;
+}
+
+.markdown code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.92em;
+  background: var(--color-bg-hover);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+
+.markdown a {
+  color: var(--color-accent);
+}
