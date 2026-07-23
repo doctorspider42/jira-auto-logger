@@ -62,6 +62,19 @@ export class UpdateService {
   /** Short-lived cache of the fetched release history (see HISTORY_CACHE_MS). */
   private historyCache: { at: number; releases: ReleaseNote[] } | null = null
 
+  /**
+   * Transient failures (network/VPN/DNS not up yet at launch, a GitHub hiccup)
+   * are retried with exponential backoff before the error banner is shown, so
+   * a momentary blip right after launch never surfaces as an error.
+   */
+  private static readonly MAX_RETRIES = 4
+  private static readonly RETRY_BASE_MS = 5000
+  private retryTimer: ReturnType<typeof setTimeout> | null = null
+  private retryCount = 0
+  /** Operation the retry timer re-runs; also collapses the duplicate failure
+   *  signal (rejected promise + 'error' event) into a single retry. */
+  private pendingOp: 'check' | 'download' | null = null
+
   constructor(private readonly getMode: () => UpdateMode) {
     if (this.canAutoUpdate) this.wireAutoUpdater()
   }
@@ -92,7 +105,21 @@ export class UpdateService {
 
   async check(): Promise<void> {
     if (!this.enabled) return
+    // A user- or config-triggered check starts a fresh retry budget.
+    this.resetRetry()
+    return this.runCheck()
+  }
+
+  async download(): Promise<void> {
+    if (!this.enabled || !this.canAutoUpdate) return
+    this.resetRetry()
+    return this.runDownload()
+  }
+
+  /** One check attempt; failures feed the retry loop, not the error banner. */
+  private async runCheck(): Promise<void> {
     this.applyMode()
+    this.pendingOp = 'check'
     try {
       if (this.canAutoUpdate) {
         await autoUpdater.checkForUpdates()
@@ -101,18 +128,62 @@ export class UpdateService {
       }
     } catch (e) {
       // electron-updater also emits an 'error' event; guard the rejection too.
-      this.setState({ status: 'error', errorMessage: errorText(e) })
+      this.onOperationFailed(e)
     }
   }
 
-  async download(): Promise<void> {
-    if (!this.enabled || !this.canAutoUpdate) return
+  /** One download attempt; failures feed the retry loop. */
+  private async runDownload(): Promise<void> {
+    this.pendingOp = 'download'
     this.setState({ status: 'downloading', progressPercent: 0 })
     try {
       await autoUpdater.downloadUpdate()
     } catch (e) {
-      this.setState({ status: 'error', errorMessage: errorText(e) })
+      this.onOperationFailed(e)
     }
+  }
+
+  /**
+   * Handles a failed check/download. Instead of surfacing an error at once, it
+   * retries the operation with exponential backoff, staying in a non-error
+   * status so no banner shows while retrying. The error reaches the UI only
+   * once the retry budget is spent.
+   */
+  private onOperationFailed(e: unknown): void {
+    // The auto-update path reports a failure twice (rejected promise AND an
+    // 'error' event). A retry is already scheduled - ignore the duplicate.
+    if (this.retryTimer) return
+    const op = this.pendingOp
+    if (op && this.retryCount < UpdateService.MAX_RETRIES) {
+      const attempt = ++this.retryCount
+      const delay = UpdateService.RETRY_BASE_MS * 2 ** (attempt - 1)
+      logger.info(
+        'update',
+        `${op} failed, retry ${attempt}/${UpdateService.MAX_RETRIES} in ${delay}ms`,
+        { error: errorText(e) }
+      )
+      // Hold a non-error status (checking / downloading) to keep the banner hidden.
+      if (op === 'download') this.setState({ status: 'downloading' })
+      else this.setState({ status: 'checking', errorMessage: '' })
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null
+        void (op === 'download' ? this.runDownload() : this.runCheck())
+      }, delay)
+      return
+    }
+    // Out of retries (or nothing in flight): surface the failure.
+    this.resetRetry()
+    this.setState({ status: 'error', errorMessage: errorText(e) })
+  }
+
+  /** Clears any pending retry and resets the backoff counter. */
+  private resetRetry(): void {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer)
+      this.retryTimer = null
+    }
+    this.retryCount = 0
+    this.pendingOp = null
   }
 
   quitAndInstall(): void {
@@ -143,18 +214,29 @@ export class UpdateService {
 
     autoUpdater.on('checking-for-update', () => this.setState({ status: 'checking', errorMessage: '' }))
     autoUpdater.on('update-available', (info) => {
+      this.resetRetry()
       this.setState({ status: 'available', availableVersion: info.version, releaseUrl: RELEASES_URL })
-      // In `auto` mode electron-updater downloads on its own; reflect that.
-      if (this.getMode() === 'auto') this.setState({ status: 'downloading', progressPercent: 0 })
+      // In `auto` mode electron-updater downloads on its own; reflect that and
+      // keep the auto-download under the retry umbrella.
+      if (this.getMode() === 'auto') {
+        this.pendingOp = 'download'
+        this.setState({ status: 'downloading', progressPercent: 0 })
+      }
     })
-    autoUpdater.on('update-not-available', () => this.setState({ status: 'not-available' }))
-    autoUpdater.on('download-progress', (progress) =>
+    autoUpdater.on('update-not-available', () => {
+      this.resetRetry()
+      this.setState({ status: 'not-available' })
+    })
+    autoUpdater.on('download-progress', (progress) => {
+      // Real progress means the connection is fine - restart the backoff.
+      this.retryCount = 0
       this.setState({ status: 'downloading', progressPercent: Math.round(progress.percent) })
-    )
-    autoUpdater.on('update-downloaded', (info) =>
+    })
+    autoUpdater.on('update-downloaded', (info) => {
+      this.resetRetry()
       this.setState({ status: 'downloaded', availableVersion: info.version, progressPercent: 100 })
-    )
-    autoUpdater.on('error', (err) => this.setState({ status: 'error', errorMessage: errorText(err) }))
+    })
+    autoUpdater.on('error', (err) => this.onOperationFailed(err))
   }
 
   /**
@@ -190,6 +272,7 @@ export class UpdateService {
     this.setState({ status: 'checking', errorMessage: '' })
     const release = await this.githubGet<GithubRelease>('releases/latest')
     const latest = (release.tag_name ?? '').replace(/^v/, '')
+    this.resetRetry()
     if (latest && isNewer(latest, app.getVersion())) {
       this.setState({
         status: 'available',
