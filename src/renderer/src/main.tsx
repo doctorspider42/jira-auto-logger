@@ -5,6 +5,7 @@ import { initI18n } from './i18n'
 import { useAppStore } from './store/appStore'
 import { applyTheme } from './theme/themes'
 import './styles/global.css'
+import './styles/y2k.css'
 
 async function bootstrap(): Promise<void> {
   const config = await window.api.config.get()

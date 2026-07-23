@@ -164,6 +164,36 @@ export const THEMES: Theme[] = [
         "'Comic Sans MS', 'Segoe UI Rounded', 'Segoe UI Variable', 'Segoe UI', sans-serif",
       '--shadow-popup': '0 12px 40px rgba(255, 77, 148, 0.32)'
     }
+  },
+  {
+    id: 'y2k',
+    nameKey: 'settings.themeY2K',
+    variables: {
+      ...shared,
+      // Peak-2002 Frutiger-Aero / chrome / aqua look. Light frosty-candy
+      // surfaces keep the dark navy text readable everywhere; the glossy
+      // bevels, holographic gradients and chrome are layered on top by the
+      // scoped `[data-theme='y2k']` rules in y2k.css.
+      '--color-bg': '#a7e6ff',
+      '--color-bg-raised': '#f2fbff',
+      '--color-bg-hover': '#dff3ff',
+      '--color-border': '#5fb8e8',
+      '--color-text': '#0b1a52',
+      '--color-text-muted': '#3a5bb0',
+      '--color-accent': '#ff2fd6',
+      '--color-accent-contrast': '#ffffff',
+      '--color-accent-soft': 'rgba(0, 200, 255, 0.22)',
+      '--color-danger': '#ff2965',
+      '--color-success': '#00d47f',
+      '--color-warning': '#ffc400',
+      '--color-selection': 'rgba(0, 224, 255, 0.4)',
+      '--radius-sm': '10px',
+      '--radius-md': '16px',
+      '--radius-lg': '24px',
+      '--font-family': "'Trebuchet MS', 'Verdana', 'Comic Sans MS', 'Segoe UI', sans-serif",
+      '--shadow-popup':
+        '0 0 0 2px #ffffff, 0 16px 44px rgba(0, 40, 120, 0.45), 0 0 34px rgba(0, 200, 255, 0.55)'
+    }
   }
 ]
 
