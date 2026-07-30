@@ -53,13 +53,16 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
     await clickTab(0)
     await sleep(1200)
 
-    // Open the wizard by clicking a mid-month weekday cell. The mouseup must
-    // come a beat later: the calendar attaches its listener in an effect
-    // after the mousedown re-render.
+    // Open the wizard by clicking a weekday cell that has no entries yet.
+    // Suggestions only top a day up to the working-hours budget, so a day the
+    // mock history already filled would legitimately yield nothing and the
+    // capture would show the "no usable suggestions" error instead.
+    // The mouseup must come a beat later: the calendar attaches its listener in
+    // an effect after the mousedown re-render.
     await js(`(() => {
       const cells = [...document.querySelectorAll('.calendar-day:not(.outside):not(.weekend)')]
-      const withEntries = cells.filter((c) => c.querySelector('.calendar-entry'))
-      const cell = withEntries[Math.floor(withEntries.length / 2)] ?? cells[10]
+      const empty = cells.filter((c) => !c.querySelector('.calendar-entry'))
+      const cell = empty[0] ?? cells[10]
       cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
     })()`)
     await sleep(300)

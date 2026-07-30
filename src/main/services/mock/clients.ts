@@ -213,18 +213,22 @@ export class MockLlmProvider implements LlmProvider {
     const input = this.extractInput(prompt)
     if (!input) return '[]'
     const random = mulberry32(input.issues.length * 7 + input.dates.length)
-    const perDay = input.projectCount > 1 ? [4] : [5, 3]
-    const dayTarget = perDay.reduce((sum, h) => sum + h, 0)
+    const workingHours = this.extractWorkingHours(prompt)
 
     const entries = input.dates.flatMap((date) => {
-      // Only fill the day's remaining budget, mirroring the real prompt so the
-      // "already has entries" case does not double-log a full day.
-      const remaining = Math.max(0, dayTarget - (input.hoursAlreadyLogged?.[date] ?? 0))
-      if (remaining <= 0) return []
-      const scale = remaining / dayTarget
-      return perDay
-        .map((hours, slot) => {
-          const scaled = Math.round(hours * scale * 4) / 4
+      // Mirror the real prompt: take what is already logged across ALL projects
+      // off the WHOLE day first, then log this project's share of what is left.
+      // Subtracting it from the share instead made every day that already had a
+      // few hours on it produce nothing at all.
+      const remaining = Math.max(0, workingHours - (input.hoursAlreadyLogged?.[date] ?? 0))
+      const share = input.projectCount > 1 ? remaining / input.projectCount : remaining
+      // Below a quarter of an hour there is nothing worth logging.
+      if (share < 0.25) return []
+      // A big share reads more like a real day when it is split in two.
+      const slots = share >= 4 ? [0.625, 0.375] : [1]
+      return slots
+        .map((fraction, slot) => {
+          const scaled = Math.round(share * fraction * 4) / 4
           if (scaled <= 0) return null
           const issue = input.issues[Math.floor(random() * Math.max(input.issues.length, 1))]
           const customFields = Object.fromEntries(
@@ -246,6 +250,16 @@ export class MockLlmProvider implements LlmProvider {
         .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     })
     return JSON.stringify(entries)
+  }
+
+  /**
+   * The day budget lives in the prompt text (`{{workingHoursPerDay}}`), not in
+   * the input JSON, so it has to be read back out of the rendered prompt. Falls
+   * back to 8 if the wording ever changes, which keeps mock mode working.
+   */
+  private extractWorkingHours(prompt: string): number {
+    const hours = Number(prompt.match(/sums to about ([\d.]+) hours/)?.[1])
+    return Number.isFinite(hours) && hours > 0 ? hours : 8
   }
 
   private extractInput(prompt: string): MockPromptInput | null {
