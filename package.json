@@ -12,6 +12,7 @@
     "dev:mock": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 electron-vite dev",
     "screenshots": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 JAL_SCREENSHOTS=screenshots electron-vite dev",
     "build": "electron-vite build",
+    "icon": "node scripts/ensure-electron.mjs && electron scripts/render-icon.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "start": "node scripts/ensure-electron.mjs && electron-vite preview",
     "dist:win": "electron-vite build && electron-builder --win",
@@ -44,9 +45,13 @@
     "appId": "com.doctorspider42.jira-auto-logger",
     "productName": "Jira Auto Logger",
     "artifactName": "${name}-${version}-${arch}.${ext}",
+    "icon": "build/icon.png",
     "files": [
       "out/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      "build/icon.png"
     ],
     "directories": {
       "output": "dist"

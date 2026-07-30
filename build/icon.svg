@@ -1,0 +1,31 @@
+<!--
+  App icon: a git commit rail on the left turning into logged worklog bars on
+  the right - the whole app in one glyph. Graphite surface with the iteo orange
+  accent, so the icon matches the iteo themes in `src/renderer/src/theme`.
+
+  This SVG is the source of truth; `npm run icon` rasterises it to icon.png,
+  which electron-builder turns into .ico/.icns. Keep the geometry inside a
+  ~48px margin so platform masks never clip the glyph.
+-->
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Jira Auto Logger">
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3a44" />
+      <stop offset="1" stop-color="#141418" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="116" fill="url(#surface)" />
+
+  <!-- commit rail: nodes stay small enough that the rail is still visible
+       between them, otherwise the three dots merge into one blob -->
+  <path d="M140 152 V 360" stroke="#ffffff" stroke-width="22" stroke-linecap="round" />
+  <circle cx="140" cy="152" r="22" fill="#1c1c22" stroke="#ffffff" stroke-width="20" />
+  <circle cx="140" cy="256" r="22" fill="#1c1c22" stroke="#ffffff" stroke-width="20" />
+  <circle cx="140" cy="360" r="22" fill="#1c1c22" stroke="#ffffff" stroke-width="20" />
+
+  <!-- logged hours, widths differing so they read as durations -->
+  <rect x="206" y="128" width="214" height="48" rx="24" fill="#ff6500" />
+  <rect x="206" y="232" width="142" height="48" rx="24" fill="#ff8c3d" />
+  <rect x="206" y="336" width="180" height="48" rx="24" fill="#ffb27a" />
+</svg>

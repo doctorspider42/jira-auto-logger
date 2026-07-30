@@ -11,6 +11,16 @@ import { TelemetryService } from './services/TelemetryService'
 const telemetry = new TelemetryService()
 telemetry.init()
 
+// Window/taskbar icon. Windows and macOS take the icon of a packaged app from
+// the bundle itself, but dev runs and Linux need it passed explicitly. `build/`
+// is electron-builder's buildResources directory and is never packaged into the
+// app, so the packaged copy comes from `extraResources` instead.
+function windowIcon(): string {
+  return app.isPackaged
+    ? join(process.resourcesPath, 'build', 'icon.png')
+    : join(__dirname, '../../build/icon.png')
+}
+
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: 1280,
@@ -20,6 +30,7 @@ function createWindow(): BrowserWindow {
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#111318',
+    icon: windowIcon(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
