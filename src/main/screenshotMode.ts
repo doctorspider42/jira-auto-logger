@@ -48,6 +48,26 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
 
     await clickTab(2)
     await sleep(800)
+    // Keep the generated QA artifact next to the screenshots instead of the
+    // user's real Documents folder.
+    await js(`(async () => {
+      const config = await window.api.config.get()
+      config.reports.outputDirectory = ${JSON.stringify(join(outDir, 'pdf'))}
+      await window.api.config.set(config)
+    })()`)
+    await shot('reports')
+    await js(`document.querySelector('.reports-action .btn-primary')?.click()`)
+    await sleep(4000)
+    await shot('reports-generated')
+    await js(`document.querySelectorAll('.reports-presets .btn')[1]?.click()`)
+    await sleep(500)
+    await shot('reports-detailed')
+    await js(`document.querySelector('.reports-action .btn-primary')?.click()`)
+    await sleep(4000)
+    await shot('reports-detailed-generated')
+
+    await clickTab(3)
+    await sleep(800)
     await shot('settings')
 
     await clickTab(0)

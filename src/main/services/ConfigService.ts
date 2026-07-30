@@ -4,6 +4,10 @@ import { randomUUID } from 'crypto'
 import { dirname, join } from 'path'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
 import type { AppConfig, GitFolder, JiraConfig, JiraConnection, TempoConfig } from '@shared/domain'
+import {
+  DEFAULT_REPORT_FILENAME_TEMPLATE,
+  validateReportFilenameTemplate
+} from '@shared/reportFilename'
 import { isMockMode, mockConfig } from './mock'
 
 interface StoredConfig {
@@ -57,6 +61,22 @@ export function defaultConfig(): AppConfig {
     issuePool: { lookbackDays: 60, maxIssues: 100 },
     updates: { mode: 'ask' },
     telemetry: { enabled: true },
+    reports: {
+      outputDirectory: '',
+      filenameTemplate: DEFAULT_REPORT_FILENAME_TEMPLATE,
+      reminderOffsetDays: 0,
+      defaultGrouping: 'project',
+      defaultLayout: 'summary',
+      defaultGroupings: ['project', 'issue'],
+      defaultColumns: ['date', 'issue', 'description', 'connection'],
+      defaultTimeFormat: 'hours',
+      defaultOrientation: 'portrait',
+      includeSummary: false,
+      accentColor: '#172b4d',
+      title: '',
+      showGeneratedAt: true,
+      showPageNumbers: true
+    },
     lastUsed: { selections: [] }
   }
 }
@@ -123,6 +143,37 @@ export class ConfigService {
       config.issuePool = { ...defaultConfig().issuePool, ...stored.config.issuePool }
       config.updates = { ...defaultConfig().updates, ...stored.config.updates }
       config.telemetry = { ...defaultConfig().telemetry, ...stored.config.telemetry }
+      config.reports = { ...defaultConfig().reports, ...stored.config.reports }
+      if (validateReportFilenameTemplate(config.reports.filenameTemplate)) {
+        config.reports.filenameTemplate = defaultConfig().reports.filenameTemplate
+      }
+      if (!Array.isArray(config.reports.defaultGroupings)) {
+        const legacy = config.reports.defaultGrouping
+        config.reports.defaultGroupings = legacy === 'none' ? [] : [legacy]
+      }
+      if (!Array.isArray(config.reports.defaultColumns)) {
+        config.reports.defaultColumns = [...defaultConfig().reports.defaultColumns]
+      }
+      if (!['summary', 'detailed'].includes(config.reports.defaultLayout)) {
+        config.reports.defaultLayout = defaultConfig().reports.defaultLayout
+      }
+      if (!['hours', 'hours-minutes'].includes(config.reports.defaultTimeFormat)) {
+        config.reports.defaultTimeFormat = defaultConfig().reports.defaultTimeFormat
+      }
+      if (!['portrait', 'landscape'].includes(config.reports.defaultOrientation)) {
+        config.reports.defaultOrientation = defaultConfig().reports.defaultOrientation
+      }
+      if (!/^#[0-9a-f]{6}$/i.test(config.reports.accentColor)) {
+        config.reports.accentColor = defaultConfig().reports.accentColor
+      }
+      if (
+        config.reports.reminderOffsetDays !== null &&
+        (!Number.isInteger(config.reports.reminderOffsetDays) ||
+          config.reports.reminderOffsetDays < -7 ||
+          config.reports.reminderOffsetDays > 7)
+      ) {
+        config.reports.reminderOffsetDays = 0
+      }
       config.connections = stored.config.connections ?? []
       // lastUsed changed shape over time; keep only the current fields.
       config.lastUsed = { selections: stored.config.lastUsed?.selections ?? [] }
@@ -205,6 +256,29 @@ export class ConfigService {
           showInCalendar: f.showInCalendar ?? false,
           calendarIcon: f.calendarIcon ?? ''
         }))
+
+      const reportBaseGroups = new Set(['project', 'issue', 'day', 'connection'])
+      const reportBaseColumns = new Set([
+        'date',
+        'project',
+        'issue',
+        'description',
+        'connection'
+      ])
+      const reportCustomIds = new Set(config.customFields.map((field) => field.id))
+      const validReportKey = (key: string, base: Set<string>): boolean =>
+        base.has(key) ||
+        (key.startsWith('custom:') && reportCustomIds.has(key.slice('custom:'.length)))
+      config.reports.defaultGroupings = [
+        ...new Set(
+          config.reports.defaultGroupings.filter((key) => validReportKey(key, reportBaseGroups))
+        )
+      ].slice(0, 5)
+      config.reports.defaultColumns = [
+        ...new Set(
+          config.reports.defaultColumns.filter((key) => validReportKey(key, reportBaseColumns))
+        )
+      ]
 
       // Active ids must reference existing connections; default to all.
       const known = new Set(config.connections.map((c) => c.id))

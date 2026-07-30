@@ -133,6 +133,22 @@ export function mockConfig(): AppConfig {
     showWeekends: true,
     issuePool: { lookbackDays: 60, maxIssues: 100 },
     updates: { mode: 'ask' },
+    reports: {
+      outputDirectory: '',
+      filenameTemplate: '{MM}.{YYYY}.pdf',
+      reminderOffsetDays: 0,
+      defaultGrouping: 'project',
+      defaultLayout: 'summary',
+      defaultGroupings: ['custom:mock-field-overtime', 'project', 'issue'],
+      defaultColumns: ['date', 'issue', 'description', 'connection'],
+      defaultTimeFormat: 'hours',
+      defaultOrientation: 'portrait',
+      includeSummary: false,
+      accentColor: '#172b4d',
+      title: '',
+      showGeneratedAt: true,
+      showPageNumbers: true
+    },
     // Mock mode never phones home regardless; keep it explicitly off.
     telemetry: { enabled: false },
     lastUsed: { selections: [] }

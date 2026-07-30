@@ -1,6 +1,13 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron'
+import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { AppException, err, ok } from '@shared/domain'
-import type { AppConfig, NewWorklog, RegenerateDescriptionRequest, Result, SuggestionRequest } from '@shared/domain'
+import type {
+  AppConfig,
+  NewWorklog,
+  RegenerateDescriptionRequest,
+  ReportRequest,
+  Result,
+  SuggestionRequest
+} from '@shared/domain'
 import { IPC_CHANNELS } from '@shared/ipc'
 import { ConfigService } from './services/ConfigService'
 import { ConnectionManager } from './services/ConnectionManager'
@@ -8,6 +15,7 @@ import { GitService } from './services/GitService'
 import { logger } from './services/logger'
 import { LlmService } from './services/llm/LlmService'
 import { isMockMode, MockGitService } from './services/mock'
+import { ReportService } from './services/ReportService'
 import { TelemetryService } from './services/TelemetryService'
 import { UpdateService } from './services/UpdateService'
 
@@ -49,6 +57,7 @@ export function registerIpcHandlers(telemetry: TelemetryService): UpdateService 
     ? new MockGitService()
     : new GitService(() => getConfig().projects.flatMap((p) => p.gitFolders))
   const llm = new LlmService(getConfig, git, connections)
+  const reports = new ReportService(getConfig, connections)
   const updates = new UpdateService(() => getConfig().updates.mode)
   telemetry.bindConfig(getConfig)
 
@@ -163,6 +172,16 @@ export function registerIpcHandlers(telemetry: TelemetryService): UpdateService 
   )
   ipcMain.handle(IPC_CHANNELS.llmStartClaudeLogin, () =>
     toResult(IPC_CHANNELS.llmStartClaudeLogin, () => llm.startClaudeLogin())
+  )
+
+  ipcMain.handle(IPC_CHANNELS.reportsGenerate, (_e, request: ReportRequest) =>
+    toResult(IPC_CHANNELS.reportsGenerate, () => reports.generate(request))
+  )
+  ipcMain.handle(IPC_CHANNELS.reportsGetReminder, () => reports.getReminder())
+  ipcMain.handle(IPC_CHANNELS.reportsReveal, (_e, filePath: string) =>
+    toResult(IPC_CHANNELS.reportsReveal, async () => {
+      shell.showItemInFolder(filePath)
+    })
   )
 
   ipcMain.handle(IPC_CHANNELS.updatesGetState, () => updates.getState())

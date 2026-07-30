@@ -174,6 +174,8 @@ export interface AppConfig {
   updates: UpdateConfig
   /** Anonymous usage telemetry preference (opt-out). */
   telemetry: TelemetryConfig
+  /** PDF timesheet generation and end-of-month reminder preferences. */
+  reports: ReportConfig
   lastUsed: LastUsedSelection
 }
 
@@ -204,6 +206,41 @@ export interface UpdateConfig {
  */
 export interface TelemetryConfig {
   enabled: boolean
+}
+
+export type ReportBaseGrouping = 'project' | 'issue' | 'day' | 'connection'
+export type ReportGroupKey = ReportBaseGrouping | `custom:${string}`
+export type ReportLayout = 'summary' | 'detailed'
+export type ReportTimeFormat = 'hours' | 'hours-minutes'
+export type ReportOrientation = 'portrait' | 'landscape'
+export type ReportBaseColumn = 'date' | 'project' | 'issue' | 'description' | 'connection'
+export type ReportColumnKey = ReportBaseColumn | `custom:${string}`
+
+export interface ReportConfig {
+  /**
+   * Absolute destination directory. Empty means the app-managed folder under
+   * the user's Documents directory.
+   */
+  outputDirectory: string
+  /** Filename template, e.g. `{MM}.{YYYY}.pdf`. */
+  filenameTemplate: string
+  /**
+   * Days relative to the end of the reported month (-7..7). Null disables
+   * reminders; positive values fall in the following month.
+   */
+  reminderOffsetDays: number | null
+  /** Kept for migration from the first report implementation. */
+  defaultGrouping: ReportBaseGrouping | 'none'
+  defaultLayout: ReportLayout
+  defaultGroupings: ReportGroupKey[]
+  defaultColumns: ReportColumnKey[]
+  defaultTimeFormat: ReportTimeFormat
+  defaultOrientation: ReportOrientation
+  includeSummary: boolean
+  accentColor: string
+  title: string
+  showGeneratedAt: boolean
+  showPageNumbers: boolean
 }
 
 export type UpdateStatus =
@@ -297,6 +334,45 @@ export interface Worklog {
   startTime?: string
   /** Work-attribute values stored on the worklog. */
   attributes: Array<{ key: string; value: string | boolean }>
+}
+
+// ---------- Reports ----------
+
+export interface ReportRequest {
+  /** Reported calendar month in yyyy-MM format. */
+  month: string
+  /** Empty means every currently active connection. */
+  connectionIds: string[]
+  /** Empty means every project, including entries not mapped in the app. */
+  projectIds: string[]
+  layout: ReportLayout
+  /** Filename template used for this generation. */
+  filenameTemplate: string
+  /** Ordered outer-to-inner hierarchy, including dynamic custom fields. */
+  groupings: ReportGroupKey[]
+  /** Visible detail columns; time is always the final column. */
+  columns: ReportColumnKey[]
+  timeFormat: ReportTimeFormat
+  orientation: ReportOrientation
+  includeSummary: boolean
+  accentColor: string
+  title: string
+  showGeneratedAt: boolean
+  showPageNumbers: boolean
+}
+
+export interface ReportResult {
+  /** Absolute path of the generated PDF. */
+  filePath: string
+  entryCount: number
+  totalSeconds: number
+}
+
+export interface ReportReminder {
+  /** Calendar month that should be reported (yyyy-MM), or null when not due. */
+  month: string | null
+  /** Date on which the reminder became due (yyyy-MM-dd). */
+  dueDate: string | null
 }
 
 export interface NewWorklog {

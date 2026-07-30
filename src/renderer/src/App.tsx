@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { CalendarView } from './components/calendar/CalendarView'
 import { ProjectsView } from './components/projects/ProjectsView'
 import { SettingsView } from './components/settings/SettingsView'
+import { ReportReminderBanner } from './components/reports/ReportReminderBanner'
+import { ReportsView } from './components/reports/ReportsView'
 import { UpdateBanner } from './components/common/UpdateBanner'
 import { UpdateCheckButton } from './components/common/UpdateCheckButton'
 import { useAppStore, UPDATE_NOTIFYING_STATUSES } from './store/appStore'
@@ -17,6 +19,7 @@ export default function App(): JSX.Element {
   const tabs: Array<{ id: AppView; label: string; badge?: boolean }> = [
     { id: 'calendar', label: t('app.calendar') },
     { id: 'projects', label: t('app.projects') },
+    { id: 'reports', label: t('app.reports') },
     { id: 'settings', label: t('app.settings'), badge: updateAvailable }
   ]
 
@@ -40,8 +43,10 @@ export default function App(): JSX.Element {
       </header>
       <main className="app-main">
         <UpdateBanner />
+        <ReportReminderBanner />
         {view === 'calendar' && <CalendarView key="calendar" />}
         {view === 'projects' && <ProjectsView key="projects" />}
+        {view === 'reports' && <ReportsView key="reports" />}
         {view === 'settings' && <SettingsView key="settings" />}
       </main>
     </div>

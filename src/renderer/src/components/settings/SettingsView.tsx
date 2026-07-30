@@ -8,6 +8,10 @@ import type {
   LlmBackendId,
   TempoWorkAttribute
 } from '@shared/domain'
+import {
+  formatReportFilename,
+  validateReportFilenameTemplate
+} from '@shared/reportFilename'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
 import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
@@ -42,6 +46,7 @@ const SETTINGS_SECTIONS = [
   { id: 'connections', labelKey: 'settings.sectionConnections' },
   { id: 'llm', labelKey: 'settings.sectionLlm' },
   { id: 'appearance', labelKey: 'settings.sectionAppearance' },
+  { id: 'reports', labelKey: 'settings.sectionReports' },
   { id: 'updates', labelKey: 'settings.sectionUpdates' },
   { id: 'privacy', labelKey: 'settings.sectionPrivacy' }
 ] as const
@@ -144,6 +149,11 @@ export function SettingsView(): JSX.Element {
       activeConnectionIds: d.activeConnectionIds.filter((a) => a !== id)
     }))
 
+  const pickReportsFolder = async (): Promise<void> => {
+    const path = await window.api.dialog.pickFolder()
+    if (path) patchSection('reports', { outputDirectory: path })
+  }
+
   const testConnection = async (connection: JiraConnection): Promise<void> => {
     setTests((all) => ({ ...all, [connection.id]: {} }))
     setTestingId(connection.id)
@@ -243,8 +253,24 @@ export function SettingsView(): JSX.Element {
     (f) => !draft.connections.some((c) => c.id === f.connectionId)
   )
 
-  const saveBlocked = invalidCustomFields.length > 0
-  const saveBlockedReason = saveBlocked ? t('settings.fieldRequired') : undefined
+  const reportFilenameError = validateReportFilenameTemplate(draft.reports.filenameTemplate)
+  const now = new Date()
+  const reportFilenameMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const reportFilenamePreview = reportFilenameError
+    ? ''
+    : formatReportFilename(
+        draft.reports.filenameTemplate,
+        reportFilenameMonth,
+        draft.reports.defaultLayout
+      )
+  const reportFilenameErrorText = reportFilenameError
+    ? t(`reports.filenameError.${reportFilenameError}`)
+    : ''
+  const saveBlocked = invalidCustomFields.length > 0 || Boolean(reportFilenameError)
+  const saveBlockedReason =
+    invalidCustomFields.length > 0
+      ? t('settings.fieldRequired')
+      : reportFilenameErrorText || undefined
 
   const checkForUpdates = async (): Promise<void> => {
     setChecking(true)
@@ -819,6 +845,101 @@ export function SettingsView(): JSX.Element {
             />
             {t('settings.showWeekends')}
           </label>
+        </div>
+      </section>
+
+      <section id="settings-section-reports" className="card settings-section">
+        <h3>{t('settings.sectionReports')}</h3>
+        <p className="hint">{t('settings.reportsHint')}</p>
+        <div className="field">
+          <label>{t('settings.reportOutputDirectory')}</label>
+          <div className="settings-path-picker">
+            <input
+              value={draft.reports.outputDirectory}
+              placeholder={t('settings.reportOutputDefault')}
+              onChange={(e) => patchSection('reports', { outputDirectory: e.target.value })}
+              spellCheck={false}
+            />
+            <button className="btn" onClick={pickReportsFolder}>
+              {t('settings.chooseFolder')}
+            </button>
+            {draft.reports.outputDirectory && (
+              <button
+                className="btn btn-ghost"
+                onClick={() => patchSection('reports', { outputDirectory: '' })}
+              >
+                {t('settings.useDefaultFolder')}
+              </button>
+            )}
+          </div>
+        </div>
+        <div className={`field settings-report-filename ${reportFilenameError ? 'invalid' : ''}`}>
+          <label>{t('reports.filenameTemplate')}</label>
+          <input
+            value={draft.reports.filenameTemplate}
+            onChange={(e) => patchSection('reports', { filenameTemplate: e.target.value })}
+            placeholder="{MM}.{YYYY}.pdf"
+            spellCheck={false}
+            aria-invalid={reportFilenameError ? 'true' : 'false'}
+          />
+          <div className="settings-report-filename-meta">
+            <span className="hint">
+              {t('reports.filenameTokens')}{' '}
+              <code>{'{MM}'}</code> <code>{'{YYYY}'}</code>{' '}
+              <code>{'{YYYY-MM}'}</code> <code>{'{layout}'}</code>
+            </span>
+            {reportFilenamePreview && (
+              <span>
+                {t('reports.filenamePreview')} <code>{reportFilenamePreview}</code>
+              </span>
+            )}
+          </div>
+          {reportFilenameErrorText && (
+            <span className="settings-report-filename-error">{reportFilenameErrorText}</span>
+          )}
+        </div>
+        <div className="field-row settings-report-options-row">
+          <div className="field">
+            <label>{t('settings.reportReminder')}</label>
+            <select
+              value={
+                draft.reports.reminderOffsetDays === null
+                  ? 'off'
+                  : String(draft.reports.reminderOffsetDays)
+              }
+              onChange={(e) =>
+                patchSection('reports', {
+                  reminderOffsetDays: e.target.value === 'off' ? null : Number(e.target.value)
+                })
+              }
+            >
+              <option value="off">{t('settings.reportReminderOff')}</option>
+              {Array.from({ length: 15 }, (_, index) => index - 7).map((offset) => (
+                <option key={offset} value={offset}>
+                  {offset < 0
+                    ? t('settings.reportReminderBefore', { count: Math.abs(offset) })
+                    : offset > 0
+                      ? t('settings.reportReminderAfter', { count: offset })
+                      : t('settings.reportReminderMonthEnd')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label>{t('settings.reportDefaultLayout')}</label>
+            <select
+              value={draft.reports.defaultLayout}
+              onChange={(e) =>
+                patchSection('reports', {
+                  defaultLayout: e.target.value as AppConfig['reports']['defaultLayout']
+                })
+              }
+            >
+              <option value="summary">{t('reports.layoutSummary')}</option>
+              <option value="detailed">{t('reports.layoutDetailed')}</option>
+            </select>
+            <span className="hint">{t('settings.reportAdvancedDefaultsHint')}</span>
+          </div>
         </div>
       </section>
 

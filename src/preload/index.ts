@@ -3,6 +3,7 @@ import type {
   AppConfig,
   NewWorklog,
   RegenerateDescriptionRequest,
+  ReportRequest,
   SuggestionRequest,
   UpdateState
 } from '@shared/domain'
@@ -55,6 +56,11 @@ const api: IpcApi = {
     regenerateDescription: (request: RegenerateDescriptionRequest) =>
       ipcRenderer.invoke(IPC_CHANNELS.llmRegenerateDescription, request),
     startClaudeLogin: () => ipcRenderer.invoke(IPC_CHANNELS.llmStartClaudeLogin)
+  },
+  reports: {
+    generate: (request: ReportRequest) => ipcRenderer.invoke(IPC_CHANNELS.reportsGenerate, request),
+    getReminder: () => ipcRenderer.invoke(IPC_CHANNELS.reportsGetReminder),
+    reveal: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.reportsReveal, filePath)
   },
   updates: {
     getState: () => ipcRenderer.invoke(IPC_CHANNELS.updatesGetState),

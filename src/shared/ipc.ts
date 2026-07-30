@@ -9,6 +9,9 @@ import type {
   TempoWorkAttribute,
   PromptPreview,
   RegenerateDescriptionRequest,
+  ReportReminder,
+  ReportRequest,
+  ReportResult,
   ReleaseNote,
   Result,
   SuggestionRequest,
@@ -67,6 +70,14 @@ export interface IpcApi {
     /** Attempts to start the Claude CLI login flow in a system terminal. */
     startClaudeLogin(): Promise<Result<void>>
   }
+  reports: {
+    /** Fetches Tempo worklogs, renders the report, and writes the PDF. */
+    generate(request: ReportRequest): Promise<Result<ReportResult>>
+    /** Returns the currently due monthly reminder, if any. */
+    getReminder(): Promise<ReportReminder>
+    /** Reveals a generated PDF in the operating system's file manager. */
+    reveal(filePath: string): Promise<Result<void>>
+  }
   updates: {
     /** Current updater snapshot (safe to poll on mount). */
     getState(): Promise<UpdateState>
@@ -108,6 +119,9 @@ export const IPC_CHANNELS = {
   llmPreviewPrompt: 'llm:previewPrompt',
   llmRegenerateDescription: 'llm:regenerateDescription',
   llmStartClaudeLogin: 'llm:startClaudeLogin',
+  reportsGenerate: 'reports:generate',
+  reportsGetReminder: 'reports:getReminder',
+  reportsReveal: 'reports:reveal',
   updatesGetState: 'updates:getState',
   updatesCheck: 'updates:check',
   updatesGetReleaseHistory: 'updates:getReleaseHistory',
