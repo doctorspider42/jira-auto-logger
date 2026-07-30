@@ -13,6 +13,10 @@ export default function App(): JSX.Element {
   const setView = useAppStore((s) => s.setView)
   const updateStatus = useAppStore((s) => s.update?.status)
   const updateAvailable = !!updateStatus && UPDATE_NOTIFYING_STATUSES.has(updateStatus)
+  // The updater snapshot carries the running version (app.getVersion()) and is
+  // fetched during bootstrap, so this is filled in dev and mock mode too - even
+  // though update *checks* are disabled there.
+  const currentVersion = useAppStore((s) => s.update?.currentVersion)
 
   const tabs: Array<{ id: AppView; label: string; badge?: boolean }> = [
     { id: 'calendar', label: t('app.calendar') },
@@ -23,7 +27,17 @@ export default function App(): JSX.Element {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1>{t('app.title')}</h1>
+        {/* The version sits next to the title but outside the <h1>: themes
+            paint the heading itself (y2k clips a gradient to the text, ps1 adds
+            an ::after glyph row), and a nested span would inherit that. */}
+        <div className="app-title">
+          <h1>{t('app.title')}</h1>
+          {currentVersion && (
+            <span className="app-version" title={t('app.versionTitle')}>
+              v{currentVersion}
+            </span>
+          )}
+        </div>
         <UpdateCheckButton />
         <nav className="nav-tabs">
           {tabs.map((tab) => (

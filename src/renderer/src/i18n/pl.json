@@ -1,6 +1,7 @@
 {
   "app": {
     "title": "Jira Auto Logger",
+    "versionTitle": "Zainstalowana wersja",
     "calendar": "Kalendarz",
     "projects": "Projekty",
     "settings": "Ustawienia",

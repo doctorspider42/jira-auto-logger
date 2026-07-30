@@ -10,6 +10,11 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.23 — 2026-07-30
+
+- The installed version is now shown next to the app name in the header, so you
+  can tell at a glance which build you are running without opening Settings.
+
 ## 0.1.21 — 2026-07-27
 
 - Added a **PS1 ✕ BIOS** theme — the original PlayStation boot screen as a work

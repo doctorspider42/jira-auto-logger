@@ -161,11 +161,27 @@ textarea {
   background: var(--color-bg-raised);
 }
 
+/* Takes over the h1's former `flex: 1` so the title block still pushes the
+   update button and the tabs to the right edge. */
+.app-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .app-header h1 {
   font-size: 16px;
   font-weight: 600;
   margin: 0;
-  flex: 1;
+}
+
+.app-version {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .app-main {
