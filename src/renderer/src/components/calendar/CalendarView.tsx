@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, isSameMonth, isToday } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
@@ -15,12 +15,25 @@ export function CalendarView(): JSX.Element {
   const { t } = useTranslation()
   const config = useAppStore((s) => s.config)
   const saveConfig = useAppStore((s) => s.saveConfig)
+  const autoLoggerDate = useAppStore((s) => s.autoLoggerDate)
+  const consumeAutoLoggerConfirmation = useAppStore((s) => s.consumeAutoLoggerConfirmation)
   const language = config.language
   const [wizardDates, setWizardDates] = useState<string[] | null>(null)
+  const [wizardAutoStart, setWizardAutoStart] = useState(false)
   const [editing, setEditing] = useState<CalendarEntry | null>(null)
   const [taskFilter, setTaskFilter] = useState('')
-  const openWizard = useCallback((dates: string[]) => setWizardDates(dates), [])
+  const openWizard = useCallback((dates: string[]) => {
+    setWizardAutoStart(false)
+    setWizardDates(dates)
+  }, [])
   const calendar = useCalendar(openWizard)
+
+  useEffect(() => {
+    if (!autoLoggerDate) return
+    setWizardAutoStart(true)
+    setWizardDates([autoLoggerDate])
+    consumeAutoLoggerConfirmation()
+  }, [autoLoggerDate, consumeAutoLoggerConfirmation])
 
   // ---------- Task filter ----------
   // Autocomplete is sourced from the tasks that actually have entries in the
@@ -90,6 +103,7 @@ export function CalendarView(): JSX.Element {
 
   const onWizardDone = (): void => {
     setWizardDates(null)
+    setWizardAutoStart(false)
     calendar.clearSelection()
     calendar.reload()
   }
@@ -289,7 +303,16 @@ export function CalendarView(): JSX.Element {
       )}
 
       {wizardDates && (
-        <SuggestionWizard dates={wizardDates} onClose={() => setWizardDates(null)} onDone={onWizardDone} />
+        <SuggestionWizard
+          key={`${wizardDates.join(',')}:${wizardAutoStart ? 'auto' : 'manual'}`}
+          dates={wizardDates}
+          autoStart={wizardAutoStart}
+          onClose={() => {
+            setWizardDates(null)
+            setWizardAutoStart(false)
+          }}
+          onDone={onWizardDone}
+        />
       )}
 
       {editing && (

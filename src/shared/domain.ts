@@ -176,7 +176,22 @@ export interface AppConfig {
   telemetry: TelemetryConfig
   /** PDF timesheet generation and end-of-month reminder preferences. */
   reports: ReportConfig
+  /** Scheduled worklog generation and desktop integration preferences. */
+  autoLogger: AutoLoggerConfig
   lastUsed: LastUsedSelection
+}
+
+export type AutoLoggerMode = 'off' | 'confirm' | 'auto'
+
+export interface AutoLoggerConfig {
+  /** Off, notify and open the review wizard, or generate and submit directly. */
+  mode: AutoLoggerMode
+  /** Local time (HH:MM) at which the weekday automation runs. */
+  runAt: string
+  /** Start the packaged application when the user signs in. */
+  launchAtLogin: boolean
+  /** Closing the main window hides it in the system tray instead of quitting. */
+  minimizeToTray: boolean
 }
 
 export interface IssuePoolConfig {

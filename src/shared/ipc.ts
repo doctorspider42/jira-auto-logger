@@ -95,6 +95,10 @@ export interface IpcApi {
      */
     onStateChange(callback: (state: UpdateState) => void): () => void
   }
+  autoLogger: {
+    /** Fired after the user clicks the scheduled confirmation notification. */
+    onConfirmationRequested(callback: (date: string) => void): () => void
+  }
 }
 
 /** IPC channel names derived from the API shape: `domain:method`. */
@@ -133,3 +137,4 @@ export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 
 /** Push channel: main → renderer updater state snapshots (see IpcApi.updates.onStateChange). */
 export const UPDATES_STATE_EVENT = 'updates:stateChange'
+export const AUTO_LOGGER_CONFIRM_EVENT = 'autoLogger:confirmationRequested'

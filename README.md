@@ -1,6 +1,6 @@
 # Jira Auto Logger
 
-A cross-platform desktop app (Electron — Windows/macOS/Linux) that suggests Jira/Tempo worklog entries based on your git commits and free-form notes, using an LLM of your choice. You always review and edit every suggestion before any time is logged.
+A cross-platform desktop app (Electron — Windows/macOS/Linux) that suggests Jira/Tempo worklog entries based on your git commits and free-form notes, using an LLM of your choice. Entries can be reviewed manually or logged by the optional full-auto scheduler.
 
 ![Calendar](screenshots/calendar.png)
 
@@ -23,6 +23,8 @@ A cross-platform desktop app (Electron — Windows/macOS/Linux) that suggests Ji
 - **LLM backends**: Claude CLI, GitHub Copilot CLI or the OpenAI API, with model selection, a thinking on/off switch and a fully editable main prompt. Expired Claude CLI sessions are detected and the login flow can be launched from the app.
 - **Custom worklog fields** (Tempo work attributes) — boolean or text, imported from the API or added manually, optionally auto-filled by the LLM, optionally marked in the calendar with an icon.
 - **Customizable Tempo-style PDF reports** — build monthly summary or detailed reports on demand, filter connections/projects, create an ordered hierarchy of up to five group levels (including dynamic Tempo custom fields), choose detail columns, time format, A4 orientation, title, accent, footer and a filename template such as `{MM}.{YYYY}.pdf`. Presets reproduce the compact Tempo summary or a polished detailed export.
+- **Weekday auto logger** — run at a configured local time using the most recent project selection. Confirmation mode shows a system notification and opens generated entries for review; full-auto mode generates and submits the remaining day directly. Existing Tempo hours are taken into account, and one scheduled attempt is made per day.
+- **Desktop integration** — optional launch at system login and minimize/close to the system tray, with show and quit actions in the tray menu.
 - **Debug tools** — preview of the exact prompt (with a token estimate) before sending, and a diagnostic log file (paths shown at the bottom of settings, [screenshot](screenshots/settings.png)).
 - **Two languages** (Polish/English) and **themes**: dark, light, Windows 95, Fallout terminal, Fallout New Vegas.
 - Tokens are encrypted with the OS keychain (`safeStorage`: DPAPI/Keychain/libsecret); the rest of the config is a plain JSON in the userData directory.
@@ -43,6 +45,7 @@ npm run dist:win   # Windows installer (also dist:mac, dist:linux)
 - **Jira + Tempo connections** — instance URL (`https://company.atlassian.net`), account e-mail and an [Atlassian API token](https://id.atlassian.com/manage-profile/security/api-tokens) (classic, without scopes), plus a Tempo API token (Tempo → Settings → API Integration, `Worklogs: Manage` scope). Both token pages open directly from the app.
 - **Projects tab** — define your projects: name, Jira project, repository folder, commit author e-mail (or "include everyone's commits"), color, standing LLM instruction.
 - **LLM backend** — provider, model, thinking switch, issue-pool tuning (how many recent issues are offered to the model) and the main prompt (placeholders: `{{input}}`, `{{workingHoursPerDay}}`, `{{language}}`).
+- **Automation** — scheduler mode and time, launch at login, and minimize-to-tray behavior. Run one manual generation first so the scheduler has a recent project selection to reuse.
 - **PDF reports** — output directory, filename template, saved builder defaults and monthly reminder timing from 7 days before through 7 days after month end (or reminders off).
 
 ## Mock mode

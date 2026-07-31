@@ -77,6 +77,12 @@ export function defaultConfig(): AppConfig {
       showGeneratedAt: true,
       showPageNumbers: true
     },
+    autoLogger: {
+      mode: 'off',
+      runAt: '17:00',
+      launchAtLogin: false,
+      minimizeToTray: false
+    },
     lastUsed: { selections: [] }
   }
 }
@@ -144,6 +150,13 @@ export class ConfigService {
       config.updates = { ...defaultConfig().updates, ...stored.config.updates }
       config.telemetry = { ...defaultConfig().telemetry, ...stored.config.telemetry }
       config.reports = { ...defaultConfig().reports, ...stored.config.reports }
+      config.autoLogger = { ...defaultConfig().autoLogger, ...stored.config.autoLogger }
+      if (!['off', 'confirm', 'auto'].includes(config.autoLogger.mode)) {
+        config.autoLogger.mode = 'off'
+      }
+      if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(config.autoLogger.runAt)) {
+        config.autoLogger.runAt = defaultConfig().autoLogger.runAt
+      }
       if (validateReportFilenameTemplate(config.reports.filenameTemplate)) {
         config.reports.filenameTemplate = defaultConfig().reports.filenameTemplate
       }

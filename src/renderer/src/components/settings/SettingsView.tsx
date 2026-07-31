@@ -46,6 +46,7 @@ const SETTINGS_SECTIONS = [
   { id: 'connections', labelKey: 'settings.sectionConnections' },
   { id: 'llm', labelKey: 'settings.sectionLlm' },
   { id: 'appearance', labelKey: 'settings.sectionAppearance' },
+  { id: 'automation', labelKey: 'settings.sectionAutomation' },
   { id: 'reports', labelKey: 'settings.sectionReports' },
   { id: 'updates', labelKey: 'settings.sectionUpdates' },
   { id: 'privacy', labelKey: 'settings.sectionPrivacy' }
@@ -845,6 +846,65 @@ export function SettingsView(): JSX.Element {
             />
             {t('settings.showWeekends')}
           </label>
+        </div>
+      </section>
+
+      <section id="settings-section-automation" className="card settings-section">
+        <h3>{t('settings.sectionAutomation')}</h3>
+        <p className="hint">{t('settings.autoLoggerHint')}</p>
+        <div className="field-row">
+          <div className="field">
+            <label>{t('settings.autoLoggerMode')}</label>
+            <select
+              value={draft.autoLogger.mode}
+              onChange={(e) =>
+                patchSection('autoLogger', {
+                  mode: e.target.value as AppConfig['autoLogger']['mode']
+                })
+              }
+            >
+              <option value="off">{t('settings.autoLoggerOff')}</option>
+              <option value="confirm">{t('settings.autoLoggerConfirm')}</option>
+              <option value="auto">{t('settings.autoLoggerAuto')}</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>{t('settings.autoLoggerRunAt')}</label>
+            <input
+              type="time"
+              value={draft.autoLogger.runAt}
+              disabled={draft.autoLogger.mode === 'off'}
+              onChange={(e) => patchSection('autoLogger', { runAt: e.target.value || '17:00' })}
+            />
+          </div>
+        </div>
+        {draft.autoLogger.mode !== 'off' && (
+          <p className="hint">
+            {draft.lastUsed.selections.length > 0
+              ? t('settings.autoLoggerRecentReady', { count: draft.lastUsed.selections.length })
+              : t('settings.autoLoggerRecentMissing')}
+          </p>
+        )}
+        <div className="field">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={draft.autoLogger.launchAtLogin}
+              onChange={(e) => patchSection('autoLogger', { launchAtLogin: e.target.checked })}
+            />
+            {t('settings.launchAtLogin')}
+          </label>
+        </div>
+        <div className="field">
+          <label className="settings-checkbox">
+            <input
+              type="checkbox"
+              checked={draft.autoLogger.minimizeToTray}
+              onChange={(e) => patchSection('autoLogger', { minimizeToTray: e.target.checked })}
+            />
+            {t('settings.minimizeToTray')}
+          </label>
+          <span className="hint">{t('settings.minimizeToTrayHint')}</span>
         </div>
       </section>
 
