@@ -3,12 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/appStore'
 
 /**
- * Header affordance to check for updates from anywhere in the app (the same
- * check also lives in Settings). A found update surfaces via the UpdateBanner;
- * here we only need to reflect the in-flight state and confirm "up to date"
- * for a check the user just triggered.
+ * Settings affordance for checking updates. A found update surfaces via the
+ * UpdateBanner; here we only reflect the in-flight state and confirm
+ * "up to date" for a check the user just triggered.
  */
-export function UpdateCheckButton(): JSX.Element {
+interface UpdateCheckButtonProps {
+  onCheck?: () => void | Promise<void>
+}
+
+export function UpdateCheckButton({ onCheck }: UpdateCheckButtonProps): JSX.Element {
   const { t } = useTranslation()
   const status = useAppStore((s) => s.update?.status)
   const [requested, setRequested] = useState(false)
@@ -25,7 +28,7 @@ export function UpdateCheckButton(): JSX.Element {
 
   const check = (): void => {
     setRequested(true)
-    void window.api.updates.check()
+    void (onCheck ? onCheck() : window.api.updates.check())
   }
 
   return (

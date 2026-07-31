@@ -14,6 +14,7 @@ import {
 } from '@shared/reportFilename'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
+import { UpdateCheckButton } from '@/components/common/UpdateCheckButton'
 import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
 import { useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
@@ -70,7 +71,6 @@ export function SettingsView(): JSX.Element {
   const saved = useAppStore((s) => s.config)
   const saveConfig = useAppStore((s) => s.saveConfig)
   const update = useAppStore((s) => s.update)
-  const [checking, setChecking] = useState(false)
   const [autoLoggerRunning, setAutoLoggerRunning] = useState(false)
   const [autoLoggerResult, setAutoLoggerResult] = useState('')
   const [showHistory, setShowHistory] = useState(false)
@@ -278,11 +278,9 @@ export function SettingsView(): JSX.Element {
       : reportFilenameErrorText || undefined
 
   const checkForUpdates = async (): Promise<void> => {
-    setChecking(true)
-    // Persist the mode first so the check honours the current selection.
+    // Persist the selected mode first so the check honours it.
     if (dirty) await saveConfig(draft)
     await window.api.updates.check()
-    setChecking(false)
   }
 
   const runAutoLoggerNow = async (): Promise<void> => {
@@ -317,27 +315,6 @@ export function SettingsView(): JSX.Element {
             })
           : t('settings.autoLoggerRunNoChanges')
       )
-    }
-  }
-
-  /** One-line status shown next to the "check now" button. */
-  const updateStatusText = (): string | null => {
-    if (!update) return null
-    switch (update.status) {
-      case 'checking':
-        return t('updates.statusChecking')
-      case 'available':
-        return t('updates.available', { version: update.availableVersion })
-      case 'downloading':
-        return t('updates.downloading', { percent: update.progressPercent })
-      case 'downloaded':
-        return t('updates.ready', { version: update.availableVersion })
-      case 'not-available':
-        return t('updates.statusUpToDate')
-      case 'error':
-        return t('updates.statusError')
-      default:
-        return null
     }
   }
 
@@ -380,6 +357,7 @@ export function SettingsView(): JSX.Element {
       </nav>
 
       <div className={`settings ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
+      <UpdateCheckButton onCheck={checkForUpdates} />
       {error && <ErrorBanner error={error} />}
 
       <section id="settings-section-connections" className="card settings-section">
@@ -1112,14 +1090,9 @@ export function SettingsView(): JSX.Element {
           </div>
         </div>
         <div className="settings-test-row">
-          <button className="btn" onClick={checkForUpdates} disabled={checking}>
-            {checking && <span className="spinner" />}
-            {t('settings.checkForUpdates')}
-          </button>
           <button className="btn btn-ghost" onClick={() => setShowHistory(true)}>
             {t('settings.versionHistory')}
           </button>
-          {updateStatusText() && <span className="hint">{updateStatusText()}</span>}
         </div>
         {update && !update.canAutoUpdate && (
           <p className="hint">{t('settings.updateManualOnly')}</p>
