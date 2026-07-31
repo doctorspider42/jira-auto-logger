@@ -7,7 +7,7 @@ import type {
   SuggestionRequest,
   UpdateState
 } from '@shared/domain'
-import { IPC_CHANNELS, UPDATES_STATE_EVENT } from '@shared/ipc'
+import { AUTO_LOGGER_CONFIRM_EVENT, IPC_CHANNELS, UPDATES_STATE_EVENT } from '@shared/ipc'
 import type { IpcApi } from '@shared/ipc'
 
 const api: IpcApi = {
@@ -72,6 +72,14 @@ const api: IpcApi = {
       const listener = (_e: unknown, state: UpdateState): void => callback(state)
       ipcRenderer.on(UPDATES_STATE_EVENT, listener)
       return () => ipcRenderer.removeListener(UPDATES_STATE_EVENT, listener)
+    }
+  },
+  autoLogger: {
+    runNow: () => ipcRenderer.invoke(IPC_CHANNELS.autoLoggerRunNow),
+    onConfirmationRequested: (callback: (date: string) => void) => {
+      const listener = (_e: unknown, date: string): void => callback(date)
+      ipcRenderer.on(AUTO_LOGGER_CONFIRM_EVENT, listener)
+      return () => ipcRenderer.removeListener(AUTO_LOGGER_CONFIRM_EVENT, listener)
     }
   }
 }

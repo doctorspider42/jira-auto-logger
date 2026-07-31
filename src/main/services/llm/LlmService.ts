@@ -465,7 +465,10 @@ export class LlmService {
       })
       .filter((s) => dates.has(s.date) && s.description !== '')
 
-    if (suggestions.length === 0) {
+    // An empty array is a valid answer when every requested day already has
+    // its full target logged. A non-empty response where every row was
+    // rejected is still malformed and should remain visible as an error.
+    if (suggestions.length === 0 && raw.length > 0) {
       throw new AppException('LLM_BAD_RESPONSE', 'The model returned no usable suggestions', text.slice(0, 2000))
     }
     return suggestions

@@ -151,6 +151,12 @@ export function mockConfig(): AppConfig {
     },
     // Mock mode never phones home regardless; keep it explicitly off.
     telemetry: { enabled: false },
+    autoLogger: {
+      mode: 'off',
+      runAt: '17:00',
+      launchAtLogin: false,
+      minimizeToTray: false
+    },
     lastUsed: { selections: [] }
   }
 }

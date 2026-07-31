@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import type {
@@ -21,6 +21,8 @@ import './wizard.css'
 
 interface SuggestionWizardProps {
   dates: string[]
+  /** Generate immediately from the last-used projects after a scheduler notification click. */
+  autoStart?: boolean
   onClose(): void
   onDone(): void
 }
@@ -37,7 +39,12 @@ const nextId = (): string => `local-${++clientId}`
  * Step 2 shows fully editable suggestions grouped by project and only
  * submits to Tempo after explicit confirmation.
  */
-export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardProps): JSX.Element {
+export function SuggestionWizard({
+  dates,
+  autoStart = false,
+  onClose,
+  onDone
+}: SuggestionWizardProps): JSX.Element {
   const { t } = useTranslation()
   const config = useAppStore((s) => s.config)
   const rememberLastUsed = useAppStore((s) => s.rememberLastUsed)
@@ -46,7 +53,14 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
   /** Step-2 layout: stacked cards (default) or the experimental dense table. */
   const [layout, setLayout] = useState<'cards' | 'table'>('cards')
   /** Selected projects with their per-generation inputs, in selection order. */
-  const [selections, setSelections] = useState<ProjectSelection[]>([])
+  const [selections, setSelections] = useState<ProjectSelection[]>(() =>
+    autoStart
+      ? config.lastUsed.selections.filter((selection) => {
+          const project = config.projects.find((candidate) => candidate.id === selection.projectId)
+          return project && !project.archived
+        })
+      : []
+  )
 
   const [groups, setGroups] = useState<ProjectSuggestions[]>([])
   /** When set, step 2 shows only the entries of this date. */
@@ -132,6 +146,15 @@ export function SuggestionWizard({ dates, onClose, onDone }: SuggestionWizardPro
     setDateFilter(dates.length > 1 ? [...dates].sort()[0] : null)
     setStep('suggestions')
   }
+
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (!autoStart || selections.length === 0 || autoStarted.current) return
+    autoStarted.current = true
+    void generate()
+    // The scheduled wizard must run exactly once with its mount-time selection.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Groups are one per (project, target) pair; the target id identifies them.
   const patchGroup = (

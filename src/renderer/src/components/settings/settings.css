@@ -107,6 +107,16 @@
   font-weight: 500;
 }
 
+.settings-time-24h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-time-24h select {
+  width: 72px;
+}
+
 .settings-folder-list {
   list-style: none;
   margin: 0 0 12px;

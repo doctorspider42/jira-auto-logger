@@ -18,6 +18,7 @@ import { isMockMode, MockGitService } from './services/mock'
 import { ReportService } from './services/ReportService'
 import { TelemetryService } from './services/TelemetryService'
 import { UpdateService } from './services/UpdateService'
+import { AutoLoggerService } from './services/AutoLoggerService'
 
 /**
  * Wraps a service call so every IPC handler returns a serializable Result,
@@ -49,8 +50,17 @@ async function toResult<T>(channel: string, fn: () => Promise<T>): Promise<Resul
  * `index.ts` before the app is ready (Aptabase requires that); here we only
  * bind it to config and fire events.
  */
-export function registerIpcHandlers(telemetry: TelemetryService): UpdateService {
-  const configService = new ConfigService()
+export interface MainServices {
+  updates: UpdateService
+  autoLogger: AutoLoggerService
+}
+
+export function registerIpcHandlers(
+  telemetry: TelemetryService,
+  configService: ConfigService,
+  onConfigChanged: (config: AppConfig) => void,
+  requestAutoLoggerConfirmation: (date: string) => void
+): MainServices {
   const getConfig = (): AppConfig => configService.get()
   const connections = new ConnectionManager(getConfig)
   const git = isMockMode()
@@ -59,6 +69,13 @@ export function registerIpcHandlers(telemetry: TelemetryService): UpdateService 
   const llm = new LlmService(getConfig, git, connections)
   const reports = new ReportService(getConfig, connections)
   const updates = new UpdateService(() => getConfig().updates.mode)
+  const autoLogger = new AutoLoggerService(
+    getConfig,
+    llm,
+    connections,
+    telemetry,
+    requestAutoLoggerConfirmation
+  )
   telemetry.bindConfig(getConfig)
 
   logger.info('app', 'IPC handlers registered', {
@@ -72,6 +89,8 @@ export function registerIpcHandlers(telemetry: TelemetryService): UpdateService 
       configService.set(config)
       // Re-read the update mode (may have just been enabled/changed).
       updates.onConfigChanged()
+      autoLogger.onConfigChanged()
+      onConfigChanged(config)
     })
   )
   ipcMain.handle(IPC_CHANNELS.configGetFilePath, () => configService.filePath)
@@ -202,5 +221,9 @@ export function registerIpcHandlers(telemetry: TelemetryService): UpdateService 
     toResult(IPC_CHANNELS.updatesQuitAndInstall, async () => updates.quitAndInstall())
   )
 
-  return updates
+  ipcMain.handle(IPC_CHANNELS.autoLoggerRunNow, () =>
+    toResult(IPC_CHANNELS.autoLoggerRunNow, () => autoLogger.runNow())
+  )
+
+  return { updates, autoLogger }
 }

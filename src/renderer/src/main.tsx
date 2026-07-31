@@ -17,6 +17,9 @@ async function bootstrap(): Promise<void> {
   // Subscribe before fetching the current snapshot so no transition is missed.
   window.api.updates.onStateChange((state) => useAppStore.getState().setUpdate(state))
   void window.api.updates.getState().then((state) => useAppStore.getState().setUpdate(state))
+  window.api.autoLogger.onConfirmationRequested((date) =>
+    useAppStore.getState().requestAutoLoggerConfirmation(date)
+  )
 
   createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
