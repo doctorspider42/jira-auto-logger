@@ -1,7 +1,14 @@
 import { app, Notification } from 'electron'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
-import type { AppConfig, NewWorklog, ProjectSuggestions, SuggestionRequest } from '@shared/domain'
+import { AppException } from '@shared/domain'
+import type {
+  AppConfig,
+  AutoLoggerRunResult,
+  NewWorklog,
+  ProjectSuggestions,
+  SuggestionRequest
+} from '@shared/domain'
 import type { ConnectionManager } from './ConnectionManager'
 import type { LlmService } from './llm/LlmService'
 import { logger } from './logger'
@@ -46,9 +53,36 @@ export class AutoLoggerService {
   }
 
   onConfigChanged(): void {
-    // Re-check immediately: changing the run time to an already-passed time
-    // should take effect without waiting for the next interval.
-    void this.check()
+    // The interval reads live config. Keeping config changes side-effect free
+    // also makes "Run now" deterministic immediately after saving settings.
+  }
+
+  async runNow(): Promise<AutoLoggerRunResult> {
+    const config = this.getConfig()
+    if (config.autoLogger.mode === 'off') {
+      throw new AppException('CONFIG_INVALID', 'Enable the auto logger before running it')
+    }
+    if (this.running) {
+      throw new AppException('CONFIG_INVALID', 'The auto logger is already running')
+    }
+
+    const date = localDate()
+    this.running = true
+    this.markAttempt(date)
+    try {
+      if (config.autoLogger.mode === 'confirm') {
+        this.requestConfirmation(date)
+        return { kind: 'review', createdCount: 0, totalSeconds: 0 }
+      }
+      const created = await this.runFullAuto(date, config)
+      return {
+        kind: 'completed',
+        createdCount: created.count,
+        totalSeconds: created.seconds
+      }
+    } finally {
+      this.running = false
+    }
   }
 
   private async check(now = new Date()): Promise<void> {
@@ -102,7 +136,10 @@ export class AutoLoggerService {
     logger.info('auto-logger', 'confirmation notification shown', { date })
   }
 
-  private async runFullAuto(date: string, config: AppConfig): Promise<void> {
+  private async runFullAuto(
+    date: string,
+    config: AppConfig
+  ): Promise<{ count: number; seconds: number }> {
     const knownProjects = new Map(config.projects.map((project) => [project.id, project]))
     const selections = config.lastUsed.selections.filter((selection) => {
       const project = knownProjects.get(selection.projectId)
@@ -134,6 +171,7 @@ export class AutoLoggerService {
           : 'The day is already complete — no new entries were added.'
     this.notify(title, body)
     logger.info('auto-logger', 'full-auto run completed', { date, ...created })
+    return created
   }
 
   private async submit(

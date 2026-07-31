@@ -194,6 +194,13 @@ export interface AutoLoggerConfig {
   minimizeToTray: boolean
 }
 
+export interface AutoLoggerRunResult {
+  /** Review opens the suggestion wizard; completed is a full-auto submission. */
+  kind: 'review' | 'completed'
+  createdCount: number
+  totalSeconds: number
+}
+
 export interface IssuePoolConfig {
   /** Only issues updated within this many days are considered. */
   lookbackDays: number

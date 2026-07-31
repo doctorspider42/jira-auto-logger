@@ -18,6 +18,7 @@ import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
 import { useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
 import { openExternal } from '@/utils/external'
+import { formatHours } from '@/utils/format'
 import { ModelSelect } from './ModelSelect'
 import { TokenHelp } from './TokenHelp'
 import './settings.css'
@@ -70,6 +71,8 @@ export function SettingsView(): JSX.Element {
   const saveConfig = useAppStore((s) => s.saveConfig)
   const update = useAppStore((s) => s.update)
   const [checking, setChecking] = useState(false)
+  const [autoLoggerRunning, setAutoLoggerRunning] = useState(false)
+  const [autoLoggerResult, setAutoLoggerResult] = useState('')
   const [showHistory, setShowHistory] = useState(false)
 
   const [draft, setDraft] = useState<AppConfig>(() => structuredClone(saved))
@@ -118,6 +121,7 @@ export function SettingsView(): JSX.Element {
       ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
+  const [autoLoggerHour = '17', autoLoggerMinute = '00'] = draft.autoLogger.runAt.split(':')
 
   const patch = (changes: Partial<AppConfig>): void => setDraft((d) => ({ ...d, ...changes }))
   const patchSection = <K extends keyof AppConfig>(key: K, changes: SectionPatch<K>): void =>
@@ -279,6 +283,41 @@ export function SettingsView(): JSX.Element {
     if (dirty) await saveConfig(draft)
     await window.api.updates.check()
     setChecking(false)
+  }
+
+  const runAutoLoggerNow = async (): Promise<void> => {
+    if (saveBlocked) {
+      setShowBlockReason(true)
+      return
+    }
+    setAutoLoggerRunning(true)
+    setAutoLoggerResult('')
+    setError(null)
+
+    // Persist all visible automation choices before the main process reads them.
+    const savedResult = await saveConfig(draft)
+    if (!savedResult.ok) {
+      setError(savedResult.error)
+      setAutoLoggerRunning(false)
+      return
+    }
+
+    const result = await window.api.autoLogger.runNow()
+    setAutoLoggerRunning(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
+    }
+    if (result.value.kind === 'completed') {
+      setAutoLoggerResult(
+        result.value.createdCount > 0
+          ? t('settings.autoLoggerRunCompleted', {
+              count: result.value.createdCount,
+              hours: formatHours(result.value.totalSeconds)
+            })
+          : t('settings.autoLoggerRunNoChanges')
+      )
+    }
   }
 
   /** One-line status shown next to the "check now" button. */
@@ -870,12 +909,46 @@ export function SettingsView(): JSX.Element {
           </div>
           <div className="field">
             <label>{t('settings.autoLoggerRunAt')}</label>
-            <input
-              type="time"
-              value={draft.autoLogger.runAt}
-              disabled={draft.autoLogger.mode === 'off'}
-              onChange={(e) => patchSection('autoLogger', { runAt: e.target.value || '17:00' })}
-            />
+            <div className="settings-time-24h">
+              <select
+                value={autoLoggerHour}
+                disabled={draft.autoLogger.mode === 'off'}
+                aria-label={t('settings.autoLoggerHour')}
+                onChange={(e) =>
+                  patchSection('autoLogger', {
+                    runAt: `${e.target.value}:${autoLoggerMinute}`
+                  })
+                }
+              >
+                {Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0')).map(
+                  (hour) => (
+                    <option key={hour} value={hour}>
+                      {hour}
+                    </option>
+                  )
+                )}
+              </select>
+              <span aria-hidden>:</span>
+              <select
+                value={autoLoggerMinute}
+                disabled={draft.autoLogger.mode === 'off'}
+                aria-label={t('settings.autoLoggerMinute')}
+                onChange={(e) =>
+                  patchSection('autoLogger', {
+                    runAt: `${autoLoggerHour}:${e.target.value}`
+                  })
+                }
+              >
+                {Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0')).map(
+                  (minute) => (
+                    <option key={minute} value={minute}>
+                      {minute}
+                    </option>
+                  )
+                )}
+              </select>
+              <span className="hint">24h</span>
+            </div>
           </div>
         </div>
         {draft.autoLogger.mode !== 'off' && (
@@ -885,6 +958,20 @@ export function SettingsView(): JSX.Element {
               : t('settings.autoLoggerRecentMissing')}
           </p>
         )}
+        <p className="hint">{t('settings.autoLoggerScheduleHint')}</p>
+        <div className="settings-test-row">
+          <button
+            className="btn"
+            onClick={runAutoLoggerNow}
+            disabled={draft.autoLogger.mode === 'off' || autoLoggerRunning}
+          >
+            {autoLoggerRunning && <span className="spinner" />}
+            {autoLoggerRunning
+              ? t('settings.autoLoggerRunning')
+              : t('settings.autoLoggerRunNow')}
+          </button>
+          {autoLoggerResult && <span className="settings-test-ok">{autoLoggerResult}</span>}
+        </div>
         <div className="field">
           <label className="settings-checkbox">
             <input

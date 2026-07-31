@@ -221,5 +221,9 @@ export function registerIpcHandlers(
     toResult(IPC_CHANNELS.updatesQuitAndInstall, async () => updates.quitAndInstall())
   )
 
+  ipcMain.handle(IPC_CHANNELS.autoLoggerRunNow, () =>
+    toResult(IPC_CHANNELS.autoLoggerRunNow, () => autoLogger.runNow())
+  )
+
   return { updates, autoLogger }
 }

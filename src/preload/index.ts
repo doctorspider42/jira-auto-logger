@@ -75,6 +75,7 @@ const api: IpcApi = {
     }
   },
   autoLogger: {
+    runNow: () => ipcRenderer.invoke(IPC_CHANNELS.autoLoggerRunNow),
     onConfirmationRequested: (callback: (date: string) => void) => {
       const listener = (_e: unknown, date: string): void => callback(date)
       ipcRenderer.on(AUTO_LOGGER_CONFIRM_EVENT, listener)
