@@ -5,7 +5,6 @@ import { SettingsView } from './components/settings/SettingsView'
 import { ReportReminderBanner } from './components/reports/ReportReminderBanner'
 import { ReportsView } from './components/reports/ReportsView'
 import { UpdateBanner } from './components/common/UpdateBanner'
-import { UpdateCheckButton } from './components/common/UpdateCheckButton'
 import { useAppStore, UPDATE_NOTIFYING_STATUSES } from './store/appStore'
 import type { AppView } from './store/appStore'
 
@@ -41,7 +40,6 @@ export default function App(): JSX.Element {
             </span>
           )}
         </div>
-        <UpdateCheckButton />
         <nav className="nav-tabs">
           {tabs.map((tab) => (
             <button
