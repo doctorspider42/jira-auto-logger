@@ -25,8 +25,8 @@ import type { ConnectionManager } from './ConnectionManager'
 interface ReportEntry extends Worklog {
   connection: JiraConnection
   projectId: string
-  projectName: string
-  projectKey: string
+  jiraProjectName: string
+  jiraProjectKey: string
 }
 
 interface GroupNode {
@@ -131,21 +131,25 @@ export class ReportService {
 
     const batches = await Promise.all(
       selected.map(async (connection) => {
-        const worklogs = await this.connections
-          .tempo(connection.id)
-          .getWorklogs(
-            await this.connections.accountId(connection.id),
-            range.fromDate,
-            range.toDate
-          )
+        const accountId = await this.connections.accountId(connection.id)
+        const [worklogs, jiraProjects] = await Promise.all([
+          this.connections
+            .tempo(connection.id)
+            .getWorklogs(accountId, range.fromDate, range.toDate),
+          this.connections.jira(connection.id).getProjects()
+        ])
+        const jiraProjectNames = new Map(
+          jiraProjects.map((project) => [project.key, project.name])
+        )
         return worklogs.map((worklog): ReportEntry => {
           const match = this.projectMatch(config, connection.id, worklog.issueKey)
+          const jiraProjectKey = worklog.issueKey.split('-')[0]
           return {
             ...worklog,
             connection,
             projectId: match?.project.id ?? '',
-            projectName: match?.project.name ?? '',
-            projectKey: match?.target.jiraProjectKey ?? worklog.issueKey.split('-')[0]
+            jiraProjectName: jiraProjectNames.get(jiraProjectKey) ?? '',
+            jiraProjectKey
           }
         })
       })
@@ -325,11 +329,9 @@ export class ReportService {
     language: AppConfig['language']
   ): string {
     if (key === 'project') {
-      return entry.projectName
-        ? `${entry.projectName} (${entry.projectKey})`
-        : language === 'pl'
-          ? `Nieprzypisany projekt (${entry.projectKey})`
-          : `Unmapped project (${entry.projectKey})`
+      return entry.jiraProjectName
+        ? `${entry.jiraProjectName} (${entry.jiraProjectKey})`
+        : entry.jiraProjectKey
     }
     if (key === 'issue') return `${entry.issueKey} - ${entry.issueSummary}`
     if (key === 'day') return entry.startDate
@@ -417,7 +419,11 @@ export class ReportService {
     polish: boolean
   ): string {
     if (key === 'date') return entry.startDate
-    if (key === 'project') return entry.projectName ? `${entry.projectName} (${entry.projectKey})` : entry.projectKey
+    if (key === 'project') {
+      return entry.jiraProjectName
+        ? `${entry.jiraProjectName} (${entry.jiraProjectKey})`
+        : entry.jiraProjectKey
+    }
     if (key === 'issue') return `${entry.issueKey} - ${entry.issueSummary}`
     if (key === 'description') return entry.description || '-'
     if (key === 'connection') return entry.connection.name || entry.connection.jira.baseUrl
