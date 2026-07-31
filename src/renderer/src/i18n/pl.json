@@ -197,7 +197,7 @@
     "autoLoggerRunAt": "Uruchom o",
     "autoLoggerHour": "Godzina (format 24h)",
     "autoLoggerMinute": "Minuta",
-    "autoLoggerScheduleHint": "Po włączeniu scheduler czeka do wybranej godziny w najbliższym dniu roboczym. Aby sprawdzić konfigurację bez czekania, użyj przycisku poniżej.",
+    "autoLoggerScheduleHint": "Po włączeniu scheduler czeka do wybranej godziny w najbliższym dniu roboczym. Tryb potwierdzany otworzy wtedy kreator także wtedy, gdy system wyciszy powiadomienie. Ręczny test nie zużywa zaplanowanego uruchomienia.",
     "autoLoggerRunNow": "Uruchom teraz",
     "autoLoggerRunning": "Uruchamianie autologgera…",
     "autoLoggerRunCompleted": "Zalogowano {{count}} wpisów ({{hours}} h).",

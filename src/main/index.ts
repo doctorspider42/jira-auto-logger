@@ -16,6 +16,10 @@ import { AUTO_LOGGER_CONFIRM_EVENT } from '@shared/ipc'
 const telemetry = new TelemetryService()
 telemetry.init()
 
+// A stable AppUserModelID lets packaged Windows builds associate native toast
+// notifications with the Start Menu shortcut created by electron-builder.
+if (process.platform === 'win32') app.setAppUserModelId('com.doctorspider42.jira-auto-logger')
+
 // Window/taskbar icon. Windows and macOS take the icon of a packaged app from
 // the bundle itself, but dev runs and Linux need it passed explicitly. `build/`
 // is electron-builder's buildResources directory and is never packaged into the

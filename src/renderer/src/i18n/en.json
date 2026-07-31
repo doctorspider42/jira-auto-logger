@@ -197,7 +197,7 @@
     "autoLoggerRunAt": "Run at",
     "autoLoggerHour": "Hour (24-hour format)",
     "autoLoggerMinute": "Minute",
-    "autoLoggerScheduleHint": "Once enabled, the scheduler waits until the selected time on the next weekday. Use the button below to verify the setup without waiting.",
+    "autoLoggerScheduleHint": "Once enabled, the scheduler waits until the selected time on the next weekday. Confirmation mode opens the wizard even if the OS suppresses the notification. A manual test does not consume the scheduled run.",
     "autoLoggerRunNow": "Run now",
     "autoLoggerRunning": "Running auto logger…",
     "autoLoggerRunCompleted": "Logged {{count}} entries ({{hours}} h).",

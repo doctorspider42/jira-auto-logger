@@ -15,7 +15,8 @@ import { logger } from './logger'
 import type { TelemetryService } from './TelemetryService'
 
 interface AutoLoggerState {
-  lastAttemptDate: string
+  /** Date + configured time + mode of the last scheduled (never manual) attempt. */
+  lastScheduledAttemptKey: string
 }
 
 const localDate = (date = new Date()): string => {
@@ -29,7 +30,7 @@ const localDate = (date = new Date()): string => {
 export class AutoLoggerService {
   private timer: NodeJS.Timeout | null = null
   private running = false
-  private state: AutoLoggerState = { lastAttemptDate: '' }
+  private state: AutoLoggerState = { lastScheduledAttemptKey: '' }
 
   constructor(
     private readonly getConfig: () => AppConfig,
@@ -55,6 +56,8 @@ export class AutoLoggerService {
   onConfigChanged(): void {
     // The interval reads live config. Keeping config changes side-effect free
     // also makes "Run now" deterministic immediately after saving settings.
+    const { mode, runAt } = this.getConfig().autoLogger
+    logger.info('auto-logger', 'configuration changed', { mode, runAt })
   }
 
   async runNow(): Promise<AutoLoggerRunResult> {
@@ -68,7 +71,7 @@ export class AutoLoggerService {
 
     const date = localDate()
     this.running = true
-    this.markAttempt(date)
+    logger.info('auto-logger', 'manual run started', { date, mode: config.autoLogger.mode })
     try {
       if (config.autoLogger.mode === 'confirm') {
         this.requestConfirmation(date)
@@ -93,10 +96,18 @@ export class AutoLoggerService {
 
     const date = localDate(now)
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    if (currentTime < config.autoLogger.runAt || this.state.lastAttemptDate === date) return
+    const attemptKey = `${date}@${config.autoLogger.runAt}@${config.autoLogger.mode}`
+    if (currentTime < config.autoLogger.runAt || this.state.lastScheduledAttemptKey === attemptKey) {
+      return
+    }
 
     this.running = true
-    this.markAttempt(date)
+    this.markScheduledAttempt(attemptKey)
+    logger.info('auto-logger', 'scheduled run started', {
+      date,
+      runAt: config.autoLogger.runAt,
+      mode: config.autoLogger.mode
+    })
     try {
       if (config.autoLogger.mode === 'confirm') {
         this.showConfirmation(date, config.language)
@@ -124,16 +135,16 @@ export class AutoLoggerService {
     const title = language === 'pl' ? 'Czas uzupełnić dzień' : 'Time to complete your day'
     const body =
       language === 'pl'
-        ? 'Kliknij powiadomienie, aby przejrzeć i zatwierdzić wpisy z autologgera.'
-        : 'Click the notification to review and approve auto-logger entries.'
-    if (!Notification.isSupported()) {
-      this.requestConfirmation(date)
-      return
+        ? 'Autologger otwiera propozycje do przejrzenia i zatwierdzenia.'
+        : 'The auto logger is opening suggestions for review and approval.'
+    if (Notification.isSupported()) {
+      new Notification({ title, body, silent: false }).show()
     }
-    const notification = new Notification({ title, body, silent: false })
-    notification.on('click', () => this.requestConfirmation(date))
-    notification.show()
-    logger.info('auto-logger', 'confirmation notification shown', { date })
+    // Do not rely on an OS toast: Windows can suppress notifications even
+    // though Electron reports them as supported. Opening the review wizard is
+    // the reliable confirmation surface and mirrors the manual action.
+    this.requestConfirmation(date)
+    logger.info('auto-logger', 'confirmation notification and review requested', { date })
   }
 
   private async runFullAuto(
@@ -220,18 +231,18 @@ export class AutoLoggerService {
     try {
       if (existsSync(this.statePath)) {
         const value = JSON.parse(readFileSync(this.statePath, 'utf8')) as Partial<AutoLoggerState>
-        return { lastAttemptDate: value.lastAttemptDate ?? '' }
+        return { lastScheduledAttemptKey: value.lastScheduledAttemptKey ?? '' }
       }
     } catch (error) {
       logger.info('auto-logger', 'could not read scheduler state', {
         message: error instanceof Error ? error.message : String(error)
       })
     }
-    return { lastAttemptDate: '' }
+    return { lastScheduledAttemptKey: '' }
   }
 
-  private markAttempt(date: string): void {
-    this.state = { lastAttemptDate: date }
+  private markScheduledAttempt(attemptKey: string): void {
+    this.state = { lastScheduledAttemptKey: attemptKey }
     try {
       writeFileSync(this.statePath, JSON.stringify(this.state), 'utf8')
     } catch (error) {
