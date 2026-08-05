@@ -1,0 +1,699 @@
+/*
+ * maa-sn-ek — the protest skin for the `maaSnEk` theme.
+ *
+ * Reference is a picket line: a concrete wall, black paint rolled over it,
+ * cardboard placards taped up crooked and one slogan shouted over everything
+ * else. Nothing is straight, nothing is rounded and nothing is quiet.
+ *
+ * The surfaces stay neutral grey and red is treated as paint - it appears on
+ * the slogan, the active tab and the primary action, and nowhere else. Red
+ * surfaces plus a red accent plus diagonal stripes everywhere turned this into
+ * a cold-war propaganda poster; a street is grey, and the red is what somebody
+ * brought with them.
+ *
+ * Everything is scoped under `[data-theme="maaSnEk"]` (the attribute
+ * `applyTheme` stamps on <html>), so switching away drops all of it and nothing
+ * leaks. Base variables live in themes.ts; this file adds what variables can't
+ * express.
+ *
+ * The slogans are hardcoded Polish and deliberately not run through i18n:
+ * they are the artwork of this theme (the same way the PS1 theme draws the face
+ * buttons), not UI copy - a chant doesn't get a translation, and the whole
+ * theme is a Polish pun on "logowanie"/"nękanie".
+ */
+
+[data-theme='maaSnEk'] {
+  /*
+   * The poster face, reserved for the two slogans: the banner and the plank.
+   * Those are the protest's printed voice and they want the heaviest condensed
+   * type there is - it is everything AROUND them that shouldn't be Impact too,
+   * or the whole app reads as one printed poster.
+   */
+  --font-display: Impact, Haettenschweiler, 'Arial Narrow Bold', 'Arial Black', sans-serif;
+
+  /*
+   * Hand lettering, for what this theme paints onto the app itself - the title
+   * daubed on the header, the tabs, the headings, the stamps. Every candidate
+   * ships with the OS (Segoe Print is Vista+, Comic Sans is everywhere, Marker
+   * Felt and Chalkboard are macOS), so nothing is downloaded or licensed.
+   *
+   * Weight 700 at every use site: these are small sizes, and the regular cut of
+   * a handwriting face gets thin and hard to read under 14px.
+   *
+   * The stack ends in the poster face on purpose: on a machine with no
+   * handwriting font installed, everything here stays exactly as it was rather
+   * than dropping to an arbitrary serif.
+   */
+  --font-paint: 'Segoe Print', 'Comic Sans MS', 'Marker Felt', 'Chalkboard SE', 'Bradley Hand',
+    var(--font-display);
+  --maa-red: #e0322b;
+  --maa-hazard: #ffd400;
+  --maa-board: #c19a68;
+
+  /*
+   * Textures, as SVG turbulence rather than flat colour - a smooth rectangle of
+   * grey is not concrete and a smooth rectangle of tan is not cardboard.
+   *
+   * `stitchTiles='stitch'` is what makes each one tile without a visible seam.
+   * Concrete gets two passes: a coarse one for the damp blotches a wall gets,
+   * and a fine one for the aggregate grain. Cardboard uses an anisotropic
+   * frequency (high across, low down) so the noise stretches into paper fibres
+   * running one way, which is what kraft board actually looks like up close.
+   */
+  --maa-concrete: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='blotch' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.028' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Cfilter id='grain' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23blotch)' opacity='0.22'/%3E%3Crect width='240' height='240' filter='url(%23grain)' opacity='0.16'/%3E%3C/svg%3E");
+  /* Grain only, no blotches: over a whole wall the coarse pass reads as damp
+     concrete, but over a form-sized panel it just reads as dirt. */
+  --maa-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='fine' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23fine)' opacity='0.12'/%3E%3C/svg%3E");
+  --maa-fibre: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='fibre' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.035' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23fibre)' opacity='0.3'/%3E%3C/svg%3E");
+  --maa-weave: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='weave' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.62' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23weave)' opacity='0.17'/%3E%3C/svg%3E");
+}
+
+/* ---------- The wall ---------- */
+
+[data-theme='maaSnEk'] body {
+  background-color: #16161a;
+  background-image:
+    var(--maa-concrete),
+    /* One spray tag, off to the side. One. */ radial-gradient(26% 20% at 84% 74%, rgba(224, 50, 43, 0.16), transparent 100%),
+    /* Roller streaks: black paint dragged across the concrete in one direction.
+       Low contrast and irregularly spaced on purpose - at full strength it read
+       as a printed stripe pattern rather than as a texture. */
+      repeating-linear-gradient(
+        114deg,
+        rgba(0, 0, 0, 0.22) 0 9px,
+        transparent 9px 26px,
+        rgba(0, 0, 0, 0.14) 26px 33px,
+        transparent 33px 64px
+      ),
+    linear-gradient(180deg, #212126 0%, #16161a 58%, #0e0e11 100%);
+  background-size: 240px 240px, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+/* The wall and the panels are textured; the day tiles deliberately are not.
+   Thirty-five mottled rectangles side by side stopped reading as concrete and
+   started competing with the entries printed on them. */
+
+/* Reserve the strip the picket line below occupies, so it never covers the UI. */
+[data-theme='maaSnEk'] .app-shell {
+  padding-bottom: 28px;
+}
+
+/* Nothing here is hung up straight - the placard is tilted and the cards sit
+   crooked - and a rotated box reaches a hair past its own layout box. Sideways
+   that is never worth a scrollbar (which in this theme is 14px of stolen
+   height), so clip it. */
+[data-theme='maaSnEk'] .app-main {
+  overflow-x: hidden;
+}
+
+/*
+ * Picket line across the bottom of the screen: a painted plank with the chant
+ * on it. Sits above the modal layer on purpose (the banner is across the whole
+ * building, not just the room) with pointer-events off so nothing below it
+ * becomes unclickable.
+ */
+[data-theme='maaSnEk'] body::before {
+  content: '✊ ZMUSZANIE PRACOWNIKÓW DO LOGOWANIA JIRY TO WYSTĘPEK PRZECIWKO KONSTYTUCJI ✊';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9998;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  /* Long chant, one line, never wrapped: the size is what keeps it inside a
+     narrow window (it clips from both ends before it would ever wrap). */
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: #f2efe8;
+  /* Second pass of the brush, slightly off - hand-painted, not printed. */
+  text-shadow: 1px 1px 0 rgba(224, 50, 43, 0.9);
+  background: #0b0b0d;
+  border-top: 2px solid var(--maa-red);
+  box-shadow: 0 -8px 26px rgba(0, 0, 0, 0.85);
+}
+
+/* ---------- THE slogan ---------- */
+
+/*
+ * The banner: a bedsheet strung up across the top of the window, with the
+ * slogan painted on it. Sticky rather than static - the point of a slogan is
+ * that you can't scroll away from it - and `.app-main` is a column flexbox, so
+ * this pseudo-element lands as the first item in it.
+ *
+ * The cloth is a mask, not a border-box: an SVG silhouette with a slack top
+ * edge and a bottom that sags between the two corners, stretched to whatever
+ * size the element ends up (`mask-size: 100% 100%`). Everything else that makes
+ * it fabric rather than a tan rectangle is a background layer - eyelets at the
+ * corners, a woven grain, creases running down it, and the shading of a sheet
+ * hanging from two points. `filter: drop-shadow` rather than `box-shadow`
+ * because the shadow has to follow the masked silhouette, not the box.
+ *
+ * It bleeds into `.app-main`'s own padding (negative margins) and stays
+ * deliberately short: the month grid below shrinks to whatever is left, and a
+ * taller banner pushed the calendar past the point where day tiles could still
+ * show their entries.
+ */
+[data-theme='maaSnEk'] .app-main::before {
+  content: 'LOGOWANIE TO NĘKANIE!';
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  margin: -14px -12px 8px;
+  /* Asymmetric: the bottom of the box is where the cloth sags away, so the
+     lettering has to sit above it. */
+  padding: 7px 16px 15px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(18px, 3.2vw, 34px);
+  line-height: 1.05;
+  letter-spacing: 3px;
+  /* Red paint on an old sheet, brushed on by hand - never quite even, and dark
+     enough not to glare off the cloth. */
+  color: #b81f18;
+  background-color: #ddd6c2;
+  background-image:
+    /* Eyelets the rope goes through, one in each top corner. */
+    radial-gradient(
+      circle at 17px 12px,
+      #14110d 0 2.4px,
+      #7d7566 2.4px 4.6px,
+      transparent 4.8px
+    ),
+    radial-gradient(
+      circle at calc(100% - 17px) 12px,
+      #14110d 0 2.4px,
+      #7d7566 2.4px 4.6px,
+      transparent 4.8px
+    ),
+    var(--maa-weave),
+    /* Creases, from being folded in a bag until this morning. Four of them, at
+       nothing-like-even distances and feathered by the gradient interpolation
+       itself: a `repeating-linear-gradient` with hard stops was mathematically
+       even and read as a printed stripe pattern, not as folded cloth. */
+      linear-gradient(
+        96deg,
+        transparent 0 8%,
+        rgba(0, 0, 0, 0.055) 9.4%,
+        rgba(255, 255, 255, 0.05) 10.6%,
+        transparent 12% 30%,
+        rgba(0, 0, 0, 0.05) 31.5%,
+        rgba(255, 255, 255, 0.045) 32.6%,
+        transparent 34% 55%,
+        rgba(0, 0, 0, 0.06) 56.4%,
+        rgba(255, 255, 255, 0.05) 57.6%,
+        transparent 59% 79%,
+        rgba(0, 0, 0, 0.05) 80.5%,
+        rgba(255, 255, 255, 0.045) 81.6%,
+        transparent 83% 100%
+      ),
+    /* Light catches the cloth where it is pulled tight between the two ropes
+       and loses it towards the slack bottom edge. Shading it dark at BOTH the
+       top and the bottom made the banner read as a rolled-up tube. */
+      radial-gradient(140% 200% at 50% -70%, rgba(255, 255, 255, 0.16), transparent 62%),
+    linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.08) 0%,
+        transparent 34%,
+        rgba(0, 0, 0, 0.1) 74%,
+        rgba(0, 0, 0, 0.3) 100%
+      );
+  background-size: auto, auto, 140px 140px, auto, auto, auto;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 2.4 C 14 0.2 32 1.1 50 1.7 C 68 2.3 86 0.5 100 2 L 100 15.2 C 74 20 26 20 0 16.6 Z' fill='%23fff'/%3E%3C/svg%3E");
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  /* Rough brush edge on the lettering, plus the shadow the paint sits in. */
+  text-shadow: 2px 2px 0 rgba(60, 12, 8, 0.35);
+  filter: drop-shadow(0 4px 3px rgba(0, 0, 0, 0.55));
+  /* Kept under a degree on purpose: the banner is as wide as the window, so
+     every extra degree swings its far edge tens of pixels out of the layout box
+     and over the toolbar underneath. */
+  transform: rotate(-0.5deg);
+  animation: maa-shout 1.6s ease-in-out infinite;
+}
+
+/*
+ * Somebody is holding this and shouting behind it: two beats, the second one
+ * bigger. The movement is a translate that only ever goes up and left - never a
+ * scale, never a changing angle. On an element this wide, growing it a single
+ * percent put ~2px past the right edge of `.app-main`, which popped a 14px
+ * horizontal scrollbar, stole 14px of height from the calendar and re-laid the
+ * whole grid out - twice a second. Moving towards the start edges cannot
+ * overflow a scroll container.
+ */
+@keyframes maa-shout {
+  0%,
+  100% {
+    transform: rotate(-0.5deg) translate(0, 0);
+  }
+  20% {
+    transform: rotate(-0.5deg) translate(-1px, -1px);
+  }
+  40% {
+    transform: rotate(-0.5deg) translate(0, 0);
+  }
+  60% {
+    transform: rotate(-0.5deg) translate(-2px, -2px);
+  }
+  80% {
+    transform: rotate(-0.5deg) translate(0, -1px);
+  }
+}
+
+/* ---------- Painted-over header ---------- */
+
+[data-theme='maaSnEk'] .app-header {
+  position: relative;
+  /* Above the sticky slogan, so the placard slides under the paint. */
+  z-index: 7;
+  background: linear-gradient(180deg, #121215 0%, #000000 100%);
+  border-bottom: none;
+}
+
+/* Wet black paint running off the bottom edge of the header. */
+[data-theme='maaSnEk'] .app-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -25px;
+  height: 26px;
+  pointer-events: none;
+  background-repeat: repeat-x;
+  background-size: 140px 26px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 26'%3E%3Cg fill='%23000'%3E%3Crect width='140' height='9'/%3E%3Crect x='16' y='8' width='5' height='9'/%3E%3Ccircle cx='18.5' cy='17' r='2.5'/%3E%3Crect x='48' y='8' width='4' height='15'/%3E%3Ccircle cx='50' cy='23' r='2'/%3E%3Crect x='84' y='8' width='6' height='6'/%3E%3Ccircle cx='87' cy='14' r='3'/%3E%3Crect x='112' y='8' width='4' height='11'/%3E%3Ccircle cx='114' cy='19' r='2'/%3E%3Crect x='131' y='8' width='3' height='6'/%3E%3Ccircle cx='132.5' cy='14' r='1.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+[data-theme='maaSnEk'] .app-header h1 {
+  font-family: var(--font-paint);
+  font-size: 19px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #f2efe8;
+  /* Misregistered screen print - the red plate landed off the black one. */
+  text-shadow: -2px 0 var(--maa-red);
+  animation: maa-jitter 5s steps(1) infinite;
+}
+
+/* Somebody keeps bumping the sign. */
+@keyframes maa-jitter {
+  0%,
+  88%,
+  100% {
+    transform: translate(0, 0);
+  }
+  90% {
+    transform: translate(1px, -1px);
+  }
+  93% {
+    transform: translate(-1px, 1px);
+  }
+  96% {
+    transform: translate(1px, 1px);
+  }
+}
+
+[data-theme='maaSnEk'] .app-version {
+  letter-spacing: 1px;
+  color: #8d8d86;
+}
+
+/*
+ * Two picket signs after the title. Drawn rather than typed for the same
+ * reason the PS1 theme draws its face buttons: no font ships a placard, and as
+ * geometry the sticks can lean the way real ones do in a crowd.
+ */
+[data-theme='maaSnEk'] .app-header h1::after {
+  content: '';
+  display: inline-block;
+  width: 46px;
+  height: 20px;
+  margin-left: 14px;
+  vertical-align: -4px;
+  background-repeat: no-repeat;
+  background-size: 46px 20px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 20'%3E%3Cpath d='M8 19 L12 7' stroke='%23c9a06a' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M38 19 L34 7' stroke='%23c9a06a' stroke-width='2.2' stroke-linecap='round'/%3E%3Cg transform='rotate(-9 12 7)'%3E%3Crect x='3.5' y='1' width='17' height='11.5' fill='%23d3b184' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M12 3.4 V7.8' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='10' r='1.1' fill='%23000'/%3E%3C/g%3E%3Cg transform='rotate(9 34 7)'%3E%3Crect x='25.5' y='1' width='17' height='11.5' fill='%23d3b184' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M34 3.4 V7.8' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='34' cy='10' r='1.1' fill='%23000'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- Placards ---------- */
+
+/* Grey board, black shadow, no red outline: an outlined-in-red panel repeated
+   down the page was the other half of the propaganda-poster read. The red on a
+   card belongs to its heading, not its frame. */
+[data-theme='maaSnEk'] .card,
+[data-theme='maaSnEk'] .modal {
+  position: relative;
+  background-color: #1e1e23;
+  background-image: var(--maa-grain), linear-gradient(180deg, #26262c 0%, #1b1b20 100%);
+  background-size: 200px 200px, auto;
+  border: 1px solid #45454d;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Nothing gets hung up straight. Alternating so a stack of cards reads as a
+   pile of leaflets rather than a repeated tilt. */
+[data-theme='maaSnEk'] .card {
+  transform: rotate(-0.3deg);
+}
+
+[data-theme='maaSnEk'] .card:nth-of-type(even) {
+  transform: rotate(0.34deg);
+}
+
+/* Strip of packing tape holding the placard to the wall. */
+[data-theme='maaSnEk'] .card::before,
+[data-theme='maaSnEk'] .modal::before {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 22px;
+  width: 68px;
+  height: 22px;
+  pointer-events: none;
+  background-color: rgba(214, 196, 160, 0.4);
+  background-image: var(--maa-fibre);
+  background-size: 160px 160px;
+  border-left: 1px dashed rgba(0, 0, 0, 0.4);
+  border-right: 1px dashed rgba(0, 0, 0, 0.4);
+  transform: rotate(-4deg);
+}
+
+[data-theme='maaSnEk'] .modal-header {
+  background: #0b0b0d;
+  border-bottom: 2px solid var(--maa-red);
+}
+
+[data-theme='maaSnEk'] .modal-header h2 {
+  font-family: var(--font-paint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--maa-red);
+}
+
+[data-theme='maaSnEk'] .modal-footer {
+  border-top: 2px solid var(--maa-red);
+}
+
+/* ---------- Stamped buttons ---------- */
+
+/* Bold condensed print, not the poster face: buttons are the most numerous
+   thing on screen, so they were most of the reason the whole app read as one
+   Impact poster. Still shouting - uppercase and heavy - just not signage. */
+[data-theme='maaSnEk'] .btn {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  border: 2px solid #000;
+  background: #303038;
+  color: #ecebe6;
+  box-shadow: 3px 3px 0 #000;
+}
+
+[data-theme='maaSnEk'] .btn:hover:not(:disabled) {
+  background: #3d3d47;
+}
+
+[data-theme='maaSnEk'] .btn:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+[data-theme='maaSnEk'] .btn-primary {
+  background: linear-gradient(180deg, #ee4038 0%, var(--maa-red) 55%, #a3221d 100%);
+  border-color: #000;
+  color: #150605;
+}
+
+/* The demand always ends in an exclamation mark. Negative margin cancels the
+   flex gap `.btn` puts between its children, so it hugs the label. */
+[data-theme='maaSnEk'] .btn-primary::after {
+  content: '!';
+  margin-left: -5px;
+}
+
+[data-theme='maaSnEk'] .btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='maaSnEk'] .btn-ghost:hover:not(:disabled) {
+  background: #303038;
+}
+
+/*
+ * Hazard yellow, not red: the accent is already red, so colour alone cannot
+ * separate a destructive button from the primary one. It used to be diagonal
+ * hazard stripes, which read as cold-war signage once there were three other
+ * striped surfaces on screen - the outline does the same job quietly.
+ */
+[data-theme='maaSnEk'] .btn-danger-solid {
+  background: #17170c;
+  border-color: var(--maa-hazard);
+  color: var(--maa-hazard);
+  text-shadow: none;
+}
+
+[data-theme='maaSnEk'] .btn-danger-solid:hover:not(:disabled) {
+  background: #262617;
+  filter: none;
+}
+
+/* ---------- Spray-painted tabs ---------- */
+
+[data-theme='maaSnEk'] .nav-tab {
+  font-family: var(--font-paint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #9c9c96;
+}
+
+[data-theme='maaSnEk'] .nav-tab:hover:not(.active) {
+  color: #ecebe6;
+}
+
+[data-theme='maaSnEk'] .nav-tab.active {
+  background: var(--maa-red);
+  color: #150605;
+  box-shadow: 3px 3px 0 #000;
+  transform: rotate(-1deg);
+}
+
+/* ---------- Petition forms ---------- */
+
+[data-theme='maaSnEk'] input,
+[data-theme='maaSnEk'] textarea,
+[data-theme='maaSnEk'] select {
+  background: #0e0e11;
+  border: 2px solid #45454d;
+  color: #ecebe6;
+  caret-color: var(--maa-red);
+}
+
+[data-theme='maaSnEk'] input:focus,
+[data-theme='maaSnEk'] textarea:focus,
+[data-theme='maaSnEk'] select:focus {
+  border-color: var(--maa-red);
+  box-shadow: 0 0 0 3px rgba(224, 50, 43, 0.25);
+}
+
+/* .chip is a pill everywhere else; this theme rounds nothing. */
+[data-theme='maaSnEk'] .chip {
+  border-radius: 0;
+  border: 2px solid #000;
+  background: #303038;
+  box-shadow: 2px 2px 0 #000;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/*
+ * A picked chip is a cardboard tag, not another red block: the calendar toolbar
+ * carries a red active tab and a red primary button already, and three red
+ * things in one row is where this started looking like signage.
+ *
+ * Kraft board is fibres and flutes, not a flat tan fill - the noise layer runs
+ * the fibres one way and the hairline gradient is the corrugation showing
+ * through the liner.
+ */
+[data-theme='maaSnEk'] .chip.selected {
+  background-color: var(--maa-board);
+  background-image:
+    var(--maa-fibre),
+    repeating-linear-gradient(
+      90deg,
+      rgba(60, 36, 12, 0.16) 0 1px,
+      transparent 1px 5px
+    );
+  background-size: 160px 160px, auto;
+  border-color: #000;
+  color: #241a10;
+}
+
+/* ---------- Report builder ---------- */
+
+/*
+ * The report builder brings its own pills and its own accent-coloured "picked"
+ * state. Squared off like every other surface here, and picked reads as a
+ * cardboard tag rather than as more red - two dozen red pills in one column was
+ * exactly the pattern this theme was pulled back from.
+ */
+[data-theme='maaSnEk'] .reports-select-chip,
+[data-theme='maaSnEk'] .report-column-chip {
+  border-radius: 0;
+  border: 2px solid #000;
+  background: #303038;
+  box-shadow: 2px 2px 0 #000;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+[data-theme='maaSnEk'] .reports-select-chip:has(input:checked),
+[data-theme='maaSnEk'] .report-column-chip:has(input:checked) {
+  background-color: var(--maa-board);
+  background-image:
+    var(--maa-fibre),
+    repeating-linear-gradient(
+      90deg,
+      rgba(60, 36, 12, 0.16) 0 1px,
+      transparent 1px 5px
+    );
+  background-size: 160px 160px, auto;
+  border-color: #000;
+  color: #241a10;
+}
+
+/* Stamped, not bubbled. */
+[data-theme='maaSnEk'] .report-section-number {
+  border-radius: 0;
+  font-family: var(--font-paint);
+  font-weight: 700;
+  transform: rotate(-3deg);
+  box-shadow: 2px 2px 0 #000;
+}
+
+[data-theme='maaSnEk'] .report-segmented button {
+  border-radius: 0;
+  border: 2px solid #000;
+  box-shadow: 3px 3px 0 #000;
+}
+
+[data-theme='maaSnEk'] .report-segmented button.active {
+  border-color: #000;
+  background: var(--color-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--maa-red), 3px 3px 0 #000;
+}
+
+/* ---------- Calendar as a wall of leaflets ---------- */
+
+[data-theme='maaSnEk'] .calendar-month-label,
+[data-theme='maaSnEk'] .calendar-weekday {
+  font-family: var(--font-paint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+[data-theme='maaSnEk'] .calendar-weekday {
+  color: var(--maa-red);
+}
+
+[data-theme='maaSnEk'] .calendar-day {
+  border: 2px solid #3c3c43;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Today is stamped, not circled. */
+[data-theme='maaSnEk'] .calendar-day.today .calendar-day-number {
+  border-radius: 0;
+  font-family: var(--font-paint);
+  font-weight: 700;
+  letter-spacing: 0;
+  transform: rotate(-3deg);
+  box-shadow: 2px 2px 0 #000;
+}
+
+/*
+ * The slogan and the picket line cost the month grid about 17px per row, which
+ * is exactly enough to push a day tile under the height where a single entry
+ * still fits - every populated day then showed nothing but "+N more". So this
+ * theme raises the floor on row height: when the window is too short, the grid
+ * scrolls internally (its toolbar stays put) instead of hiding every entry.
+ */
+[data-theme='maaSnEk'] .calendar-grid {
+  /* 80px, not 75 as elsewhere: the tile's 2px protest border eats into the
+     content box the entries are measured against. */
+  grid-auto-rows: minmax(80px, 1fr);
+}
+
+[data-theme='maaSnEk'] .calendar-entry {
+  border-radius: 0;
+  border-left: 3px solid var(--entry-color, var(--maa-red));
+}
+
+/* The picket line owns the bottom strip of the window, and Settings docks its
+   save bar to `bottom: 0` - without this it ends up behind the tape. */
+[data-theme='maaSnEk'] .settings-save-bar {
+  bottom: 28px;
+}
+
+/* ---------- Scrollbars ---------- */
+
+[data-theme='maaSnEk'] ::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+[data-theme='maaSnEk'] ::-webkit-scrollbar-track {
+  background: #0e0e11;
+}
+
+[data-theme='maaSnEk'] ::-webkit-scrollbar-thumb {
+  background: #3c3c43;
+  border: 2px solid #000;
+}
+
+[data-theme='maaSnEk'] ::-webkit-scrollbar-thumb:hover {
+  background: #4d4d56;
+}
+
+[data-theme='maaSnEk'] ::selection {
+  background: var(--maa-red);
+  color: #150605;
+}
+
+/* ---------- Shouted feedback ---------- */
+
+[data-theme='maaSnEk'] .banner-error,
+[data-theme='maaSnEk'] .funny-loader {
+  font-family: var(--font-paint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #0b0b0d;
+  border: 2px solid var(--maa-red);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* Keep the picture still for anyone who'd rather it stayed still - the placard
+   is the one thing here that would otherwise never stop moving. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='maaSnEk'] .app-header h1,
+  [data-theme='maaSnEk'] .app-main::before {
+    animation: none;
+  }
+}

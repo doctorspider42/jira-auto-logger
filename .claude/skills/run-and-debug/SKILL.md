@@ -42,7 +42,14 @@ back to the default theme in `applyTheme`, so typos degrade gracefully.
 
 Valid ids come from `THEMES` in `src/renderer/src/theme/themes.ts`: `dark`,
 `light`, `iteoLight`, `iteoDark`, `win95`, `fallout`, `falloutNV`, `ps1`,
-`helloKitty`, `y2k`.
+`helloKitty`, `y2k`, `maaSnEk`.
+
+`maaSnEk` is flagged `hidden` in that registry, so it is **not** in the Settings
+dropdown. Three ways in, all equivalent - the theme itself is not gated, only its
+listing: `JAL_THEME=maaSnEk` at launch, `"themeId": "maaSnEk"` hand-edited into
+config.json, or typing `maasnek` anywhere on the Settings screen (which adds
+hidden themes to the dropdown for that session only). Once it is the active
+theme the dropdown lists it again, so it can be switched away from normally.
 
 Prefer mock mode — it never persists, so a forced theme can't leak into your
 real `config.json` even if you hit Save in Settings. `cross-env` (already a dev

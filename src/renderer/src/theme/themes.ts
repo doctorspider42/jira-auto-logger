@@ -6,6 +6,15 @@ export interface Theme {
   id: string
   nameKey: string
   variables: Record<string, string>
+  /**
+   * Kept out of the theme dropdown in Settings. The theme itself works
+   * normally - `applyTheme` doesn't care - it just isn't offered, so reaching it
+   * takes either the unlock sequence on the Settings screen, a hand-edited
+   * `themeId` in config.json or `JAL_THEME=<id>` at launch. Once it is the
+   * active theme the dropdown lists it again, otherwise the control would show
+   * a value that isn't among its options.
+   */
+  hidden?: boolean
 }
 
 const shared = {
@@ -286,6 +295,49 @@ export const THEMES: Theme[] = [
       '--font-family': "'Trebuchet MS', 'Verdana', 'Comic Sans MS', 'Segoe UI', sans-serif",
       '--shadow-popup':
         '0 0 0 2px #ffffff, 0 16px 44px rgba(0, 40, 120, 0.45), 0 0 34px rgba(0, 200, 255, 0.55)'
+    }
+  },
+  {
+    id: 'maaSnEk',
+    nameKey: 'settings.themeMaaSnEk',
+    hidden: true,
+    variables: {
+      ...shared,
+      // Protest: a concrete wall, black paint, cardboard placards and red used
+      // as paint. Everything is squared off (nobody rounds the corners of a
+      // hand-cut placard) and the body font is a condensed photocopy-leaflet
+      // sans; the heavy poster typeface, the drips, the tape and the slogans
+      // are layered on by the scoped rules in maa-sn-ek.css.
+      //
+      // The surfaces are deliberately neutral grey, not red: a red canvas plus
+      // a red accent plus diagonal stripes reads as a cold-war propaganda
+      // poster rather than a street. Red only appears where paint would - the
+      // slogan, the active tab, the primary action.
+      //
+      // That leaves no room for a red danger colour anyone could tell apart
+      // from the accent, so danger is pushed towards crimson-pink AND
+      // destructive buttons get a hazard-yellow outline in the scoped CSS,
+      // which is what actually keeps them distinct from primary.
+      '--color-scheme': 'dark',
+      '--color-bg': '#16161a',
+      '--color-bg-raised': '#202025',
+      '--color-bg-hover': '#2b2b31',
+      '--color-border': '#3c3c43',
+      // Off-white poster paper rather than pure white.
+      '--color-text': '#ecebe6',
+      '--color-text-muted': '#9c9c96',
+      '--color-accent': '#e0322b',
+      '--color-accent-contrast': '#100403',
+      '--color-accent-soft': 'rgba(224, 50, 43, 0.18)',
+      '--color-danger': '#ff4d6d',
+      '--color-success': '#3fcf6a',
+      '--color-warning': '#ffd400',
+      '--color-selection': 'rgba(224, 50, 43, 0.34)',
+      '--radius-sm': '0px',
+      '--radius-md': '0px',
+      '--radius-lg': '0px',
+      '--font-family': "'Arial Narrow', Arial, 'Helvetica Neue', 'Segoe UI', sans-serif",
+      '--shadow-popup': '10px 10px 0 rgba(0, 0, 0, 0.8)'
     }
   }
 ]

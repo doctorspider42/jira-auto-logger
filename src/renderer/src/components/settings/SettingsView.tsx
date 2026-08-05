@@ -37,6 +37,9 @@ const BACKEND_MODELS: Record<LlmBackendId, string[]> = {
   'openai-api': ['gpt-5.1', 'gpt-5.1-mini', 'gpt-5', 'gpt-5-mini', 'gpt-4o', 'gpt-4o-mini']
 }
 
+/** Typed on the Settings screen, reveals the themes flagged `hidden`. */
+const THEME_UNLOCK_CODE = 'maasnek'
+
 const JIRA_TOKEN_URL = 'https://id.atlassian.com/manage-profile/security/api-tokens'
 const TEMPO_TOKEN_HELP_URL = 'https://help.tempo.io/timesheets/latest/rest-api-access-tokens'
 
@@ -85,11 +88,31 @@ export function SettingsView(): JSX.Element {
   const [logPath, setLogPath] = useState('')
 
   const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id)
+  const [revealHiddenThemes, setRevealHiddenThemes] = useState(false)
 
   useEffect(() => {
     void window.api.config.getFilePath().then(setConfigPath)
     void window.api.config.getLogFilePath().then(setLogPath)
   }, [])
+
+  // Type the code anywhere on this screen to add the `hidden` themes to the
+  // dropdown for the rest of the session. Deliberately not persisted: whoever
+  // wants one permanently either keeps it selected or edits config.json.
+  useEffect(() => {
+    if (revealHiddenThemes) return
+    let typed = ''
+    const onKeyDown = (e: KeyboardEvent): void => {
+      // This screen is mostly text fields - never collect what is being typed
+      // into one of them, or a note mentioning the code would trip the unlock.
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key.length !== 1) return
+      typed = (typed + e.key.toLowerCase()).slice(-THEME_UNLOCK_CODE.length)
+      if (typed === THEME_UNLOCK_CODE) setRevealHiddenThemes(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [revealHiddenThemes])
 
   // Highlight the section currently scrolled into view in the side nav. The
   // scroll container is `.app-main`; the bottom margin biases toward the
@@ -827,7 +850,9 @@ export function SettingsView(): JSX.Element {
           <div className="field">
             <label>{t('settings.theme')}</label>
             <select value={draft.themeId} onChange={(e) => patch({ themeId: e.target.value })}>
-              {THEMES.map((theme) => (
+              {THEMES.filter(
+                (theme) => !theme.hidden || revealHiddenThemes || theme.id === draft.themeId
+              ).map((theme) => (
                 <option key={theme.id} value={theme.id}>
                   {t(theme.nameKey)}
                 </option>

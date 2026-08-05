@@ -10,6 +10,15 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.26 — 2026-07-31
+
+- Added a hidden **maa-sn-ek** theme, because logging time is harassment: a
+  concrete wall, black paint running off the header, cardboard placards taped up
+  crooked, a hand-lettered banner you can't scroll away from and a painted plank
+  along the bottom of the window. It is deliberately **not** in
+  Settings → Appearance → Theme — if you know how to get to it, it's yours.
+  (Honors "reduce motion" if you'd rather the banner stopped moving.)
+
 ## 0.1.25 — 2026-07-31
 
 - Anonymous usage telemetry now also counts **generated monthly reports** — just
