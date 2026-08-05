@@ -1,0 +1,45 @@
+name: PR checks
+
+# The release workflow already refuses to publish a release whose CHANGELOG
+# heading is numbered for a different version - but it only runs after the PR
+# is merged, so the branch is gone and main is left with a red release. Run the
+# same check while the PR is still open, where renaming a heading is one push.
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Only the newest push to a PR matters; drop checks still running for older ones.
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the check diffs the whole PR against its base commit,
+          # which a shallow clone would not contain.
+          fetch-depth: 0
+
+      - name: Compute the version this PR would publish
+        # Same script the release uses, so the number matches what would really
+        # be tagged - assuming this PR is the next one to merge. If another PR
+        # releases first, this check has to be re-run to see the new number.
+        id: compute
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/next-version.js
+        shell: bash
+
+      - name: Check the CHANGELOG heading matches that version
+        run: >-
+          node .github/scripts/check-changelog.js
+          ${{ steps.compute.outputs.version }}
+          ${{ github.event.pull_request.base.sha }}
+        shell: bash

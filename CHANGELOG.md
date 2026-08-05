@@ -10,7 +10,7 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
-## 0.1.26 — 2026-07-31
+## 0.1.29 — 2026-08-05
 
 - Added a hidden **maa-sn-ek** theme, because logging time is harassment: a
   concrete wall, black paint running off the header, cardboard placards taped up

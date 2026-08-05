@@ -47,13 +47,24 @@ the top of `CHANGELOG.md` before merging:
    under the same upcoming-version heading; rename it if the computed version
    shifts (e.g. someone else released in between).
 
-**A stale heading now fails the release instead of being ignored.**
-`.github/scripts/check-changelog.js` runs before anything is published: if a
-push writes notes under a `## <version>` heading that isn't the version being
-released, the `create-release` job fails and tells you what to rename it to. Two
-kinds of push skip the check - one that adds no heading at all (internal changes
-still fall back to auto-generated notes as intended), and one that only
-renumbers existing headings, told apart by the diff carrying no new body text.
+**A stale heading fails the check instead of being ignored.**
+`.github/scripts/check-changelog.js` compares the heading a change adds against
+the version that would be published, and fails with the name to rename it to.
+It runs in two places:
+
+- **On every PR against `main`** (`.github/workflows/pr.yml`), diffing the whole
+  branch against its base. The version here is a prediction - the latest release
+  patch-bumped, assuming this PR merges next - so if another PR releases first,
+  re-run the check to get the new number.
+- **On push to `main`**, in the `create-release` job, before anything is
+  published. Same script, diffing `HEAD~1..HEAD`.
+
+Two kinds of change skip the check: one that adds no heading at all (internal
+changes still fall back to auto-generated notes as intended), and one that only
+renumbers an *older* heading - no new body text in the diff and the newest
+section left alone. Renumbering the newest section counts as an entry for this
+release and must match, because a fix-up that renumbers a stale entry is exactly
+the change that can go stale a second time.
 
 This exists because the failure used to be silent, and it bit three feature
 releases in a row: the Y2K section was written as `## 0.1.15` but shipped as
@@ -63,6 +74,10 @@ the release went out with a commit dump, unnoticed until it surfaced in the
 in-app "What's new". Those three headings have since been renamed to match their
 tags, so "latest section + 1" is a trustworthy guess again - but derive the
 number from `gh release list`, which is what CI actually uses.
+
+The protest theme (#24) then hit it from the other side: the check caught the
+stale `## 0.1.26` heading, but only after the merge, so `main` sat on a red
+release with the branch already gone. That is why the check now runs on the PR.
 
 The `create-release` job runs `.github/scripts/release-notes.js <version>`,
 which extracts the matching `## <version>` section and uses it as the release
