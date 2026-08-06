@@ -9,12 +9,17 @@ import { logger } from './services/logger'
 import type { AppConfig } from '@shared/domain'
 import { AUTO_LOGGER_CONFIRM_EVENT } from '@shared/ipc'
 
+// Keep the background services and tray icon owned by one process. This must
+// run before any application initialization so a second launch exits cleanly.
+const isPrimaryInstance = app.requestSingleInstanceLock()
+if (!isPrimaryInstance) app.quit()
+
 // Aptabase must be initialized before the app 'ready' event, so do it at module
 // load - well before `whenReady` below. It sends nothing on its own; event
 // reporting is gated on the opt-out setting once config is bound in the IPC
 // layer.
-const telemetry = new TelemetryService()
-telemetry.init()
+const telemetry = isPrimaryInstance ? new TelemetryService() : null
+telemetry?.init()
 
 // A stable AppUserModelID lets packaged Windows builds associate native toast
 // notifications with the Start Menu shortcut created by electron-builder.
@@ -170,40 +175,46 @@ function requestAutoLoggerConfirmation(date: string): void {
   else send()
 }
 
-app.whenReady().then(() => {
-  const config = configService.get()
-  applyDesktopConfig(config)
-  const services = registerIpcHandlers(
-    telemetry,
-    configService,
-    applyDesktopConfig,
-    requestAutoLoggerConfirmation
-  )
-  const openedAtLogin =
-    app.isPackaged &&
-    (process.argv.includes('--hidden') ||
-      (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin))
-  const window = createWindow(Boolean(openedAtLogin && config.autoLogger.minimizeToTray))
-  services.updates.start()
-  services.autoLogger.start()
-  telemetry.start()
-
-  const screenshotDir = process.env.JAL_SCREENSHOTS
-  if (screenshotDir) {
-    window.webContents.once('did-finish-load', () => {
-      void runScreenshotMode(window, screenshotDir)
-    })
-  }
-
-  app.on('activate', () => {
+if (isPrimaryInstance) {
+  app.on('second-instance', () => {
     showMainWindow()
   })
-})
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin' && !configService.get().autoLogger.minimizeToTray) app.quit()
-})
+  app.whenReady().then(() => {
+    const config = configService.get()
+    applyDesktopConfig(config)
+    const services = registerIpcHandlers(
+      telemetry!,
+      configService,
+      applyDesktopConfig,
+      requestAutoLoggerConfirmation
+    )
+    const openedAtLogin =
+      app.isPackaged &&
+      (process.argv.includes('--hidden') ||
+        (process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin))
+    const window = createWindow(Boolean(openedAtLogin && config.autoLogger.minimizeToTray))
+    services.updates.start()
+    services.autoLogger.start()
+    telemetry!.start()
 
-app.on('before-quit', () => {
-  isQuitting = true
-})
+    const screenshotDir = process.env.JAL_SCREENSHOTS
+    if (screenshotDir) {
+      window.webContents.once('did-finish-load', () => {
+        void runScreenshotMode(window, screenshotDir)
+      })
+    }
+
+    app.on('activate', () => {
+      showMainWindow()
+    })
+  })
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin' && !configService.get().autoLogger.minimizeToTray) app.quit()
+  })
+
+  app.on('before-quit', () => {
+    isQuitting = true
+  })
+}
