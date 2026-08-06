@@ -147,8 +147,20 @@ export class LlmService {
   /** Opens a system terminal running the Claude CLI login flow. */
   async startClaudeLogin(): Promise<void> {
     const cli = this.getConfig().llm.claudeCliPath || 'claude'
+    if (/["\r\n]/.test(cli)) {
+      throw new AppException('CONFIG_INVALID', 'Claude CLI path cannot contain quotes or line breaks')
+    }
+
+    // `start` treats its first quoted argument as a window title. Passing
+    // `"Claude login"` as a spawn argument caused Node to quote it a second
+    // time, so cmd tried to open a file named `login\\` on Windows. Give
+    // `start` an explicit empty title and send the complete command as one
+    // argument to the outer cmd process instead.
+    const windowsLoginCommand = `start "" cmd.exe /k "${cli}"`
     const commands: Record<string, { cmd: string; args: string[] }> = {
-      win32: { cmd: 'cmd', args: ['/c', 'start', '"Claude login"', 'cmd', '/k', cli] },
+      // Starting interactive Claude triggers its built-in browser login flow
+      // when the saved session has expired.
+      win32: { cmd: 'cmd.exe', args: ['/d', '/s', '/c', windowsLoginCommand] },
       darwin: { cmd: 'open', args: ['-a', 'Terminal', cli] },
       linux: { cmd: 'x-terminal-emulator', args: ['-e', cli] }
     }
