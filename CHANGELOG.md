@@ -10,6 +10,11 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.32 — 2026-08-06
+
+- Prevented Jira Auto Logger from opening more than once, so a repeated launch
+  now brings the existing window forward instead of adding another tray icon.
+
 ## 0.1.29 — 2026-08-05
 
 - Added a hidden **maa-sn-ek** theme, because logging time is harassment: a
