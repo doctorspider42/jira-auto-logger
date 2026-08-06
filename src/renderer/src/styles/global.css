@@ -298,6 +298,43 @@ textarea {
   color: var(--color-danger);
 }
 
+.banner-error:has(.error-banner-main) {
+  display: block;
+}
+
+.error-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.error-banner-details {
+  margin-top: 10px;
+  color: var(--color-text);
+}
+
+.error-banner-details > span {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.error-banner-details pre {
+  max-height: 180px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-raised));
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .banner-success {
   background: color-mix(in srgb, var(--color-success) 12%, transparent);
   color: var(--color-success);
