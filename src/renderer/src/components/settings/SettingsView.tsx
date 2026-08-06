@@ -86,6 +86,8 @@ export function SettingsView(): JSX.Element {
   const [error, setError] = useState<AppError | null>(null)
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
+  const [clearingLogs, setClearingLogs] = useState(false)
+  const [logsCleared, setLogsCleared] = useState(false)
 
   const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id)
   const [revealHiddenThemes, setRevealHiddenThemes] = useState(false)
@@ -180,6 +182,18 @@ export function SettingsView(): JSX.Element {
   const pickReportsFolder = async (): Promise<void> => {
     const path = await window.api.dialog.pickFolder()
     if (path) patchSection('reports', { outputDirectory: path })
+  }
+
+  const clearLogs = async (): Promise<void> => {
+    setClearingLogs(true)
+    setLogsCleared(false)
+    const result = await window.api.config.clearLogFile()
+    setClearingLogs(false)
+    if (!result.ok) {
+      setError(result.error)
+      return
+    }
+    setLogsCleared(true)
   }
 
   const testConnection = async (connection: JiraConnection): Promise<void> => {
@@ -1162,7 +1176,15 @@ export function SettingsView(): JSX.Element {
 
       <div className="settings-paths">
         {configPath && <p className="hint">{t('settings.configLocation', { path: configPath })}</p>}
-        {logPath && <p className="hint">{t('settings.logLocation', { path: logPath })}</p>}
+        {logPath && (
+          <div className="settings-test-row">
+            <p className="hint">{t('settings.logLocation', { path: logPath })}</p>
+            <button className="btn btn-ghost" onClick={clearLogs} disabled={clearingLogs}>
+              {clearingLogs ? t('settings.clearingLogs') : t('settings.clearLogs')}
+            </button>
+            {logsCleared && <span className="settings-test-ok">✓ {t('settings.logsCleared')}</span>}
+          </div>
+        )}
       </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { appendFileSync, mkdirSync } from 'fs'
+import { appendFileSync, mkdirSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 
 type Level = 'DEBUG' | 'INFO' | 'ERROR'
@@ -28,6 +28,13 @@ class Logger {
 
   error(scope: string, message: string, details?: unknown): void {
     this.write('ERROR', scope, message, details)
+  }
+
+  /** Removes all diagnostic log entries without writing a replacement entry. */
+  clear(): void {
+    mkdirSync(dirname(this.filePath), { recursive: true })
+    this.directoryEnsured = true
+    writeFileSync(this.filePath, '', 'utf8')
   }
 
   private write(level: Level, scope: string, message: string, details?: unknown): void {

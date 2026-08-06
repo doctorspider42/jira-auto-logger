@@ -51,7 +51,10 @@
       "package.json"
     ],
     "extraResources": [
-      "build/icon.png"
+      {
+        "from": "build/icon.png",
+        "to": "build/icon.png"
+      }
     ],
     "directories": {
       "output": "dist"

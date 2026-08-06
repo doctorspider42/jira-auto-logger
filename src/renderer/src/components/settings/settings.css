@@ -75,6 +75,10 @@
   font-size: 11.5px;
 }
 
+.settings-paths .settings-test-row {
+  gap: 8px;
+}
+
 .settings h3 {
   margin: 0 0 14px;
   font-size: 15px;

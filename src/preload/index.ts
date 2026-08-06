@@ -15,7 +15,8 @@ const api: IpcApi = {
     get: () => ipcRenderer.invoke(IPC_CHANNELS.configGet),
     set: (config: AppConfig) => ipcRenderer.invoke(IPC_CHANNELS.configSet, config),
     getFilePath: () => ipcRenderer.invoke(IPC_CHANNELS.configGetFilePath),
-    getLogFilePath: () => ipcRenderer.invoke(IPC_CHANNELS.configGetLogFilePath)
+    getLogFilePath: () => ipcRenderer.invoke(IPC_CHANNELS.configGetLogFilePath),
+    clearLogFile: () => ipcRenderer.invoke(IPC_CHANNELS.configClearLogFile)
   },
   dialog: {
     pickFolder: () => ipcRenderer.invoke(IPC_CHANNELS.dialogPickFolder)

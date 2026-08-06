@@ -95,6 +95,20 @@ export function registerIpcHandlers(
   )
   ipcMain.handle(IPC_CHANNELS.configGetFilePath, () => configService.filePath)
   ipcMain.handle(IPC_CHANNELS.configGetLogFilePath, () => logger.filePath)
+  ipcMain.handle(IPC_CHANNELS.configClearLogFile, () => {
+    try {
+      // Do not route this through `toResult`: its success log would recreate
+      // the entry the user has just explicitly removed.
+      logger.clear()
+      return ok(undefined)
+    } catch (e) {
+      return err({
+        code: 'UNKNOWN',
+        message: 'Could not clear the diagnostic log',
+        details: e instanceof Error ? e.message : String(e)
+      })
+    }
+  })
 
   ipcMain.handle(IPC_CHANNELS.dialogPickFolder, async (event) => {
     const window = BrowserWindow.fromWebContents(event.sender)

@@ -33,6 +33,8 @@ export interface IpcApi {
     getFilePath(): Promise<string>
     /** Absolute path of the main-process debug log (shown in settings). */
     getLogFilePath(): Promise<string>
+    /** Deletes all entries from the diagnostic log file. */
+    clearLogFile(): Promise<Result<void>>
   }
   dialog: {
     pickFolder(): Promise<string | null>
@@ -110,6 +112,7 @@ export const IPC_CHANNELS = {
   configSet: 'config:set',
   configGetFilePath: 'config:getFilePath',
   configGetLogFilePath: 'config:getLogFilePath',
+  configClearLogFile: 'config:clearLogFile',
   dialogPickFolder: 'dialog:pickFolder',
   jiraTestConnection: 'jira:testConnection',
   jiraGetProjects: 'jira:getProjects',
