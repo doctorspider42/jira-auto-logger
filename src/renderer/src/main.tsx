@@ -8,6 +8,7 @@ import './styles/global.css'
 import './styles/y2k.css'
 import './styles/ps1.css'
 import './styles/maa-sn-ek.css'
+import './styles/clair-obscur.css'
 
 async function bootstrap(): Promise<void> {
   const config = await window.api.config.get()

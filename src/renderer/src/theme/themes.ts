@@ -339,6 +339,53 @@ export const THEMES: Theme[] = [
       '--font-family': "'Arial Narrow', Arial, 'Helvetica Neue', 'Segoe UI', sans-serif",
       '--shadow-popup': '10px 10px 0 rgba(0, 0, 0, 0.8)'
     }
+  },
+  {
+    id: 'clairObscur',
+    nameKey: 'settings.themeClairObscur',
+    variables: {
+      ...shared,
+      // Clair Obscur: Expedition 33, sampled off its own menu screens: a black
+      // oil canvas (#070606), ink-blot panels, bone-white serif text, and gold
+      // doing all the accent work - the pale champagne #eccfa3 on headings, the
+      // richer #f6c037 on anything emphasised.
+      //
+      // Gold is the colour of TYPE in this game, never of surfaces; the selected
+      // tab is filled dark plum (#3a2132) instead. That split is enforced in
+      // clair-obscur.css, which is also where the drifting petals live.
+      '--color-scheme': 'dark',
+      '--color-bg': '#070606',
+      '--color-bg-raised': '#121110',
+      '--color-bg-hover': '#1d1a17',
+      // Warm off-white, not grey: every stroke in these menus is bone or
+      // parchment, and a neutral grey border goes blue against this much black.
+      '--color-border': '#4b443c',
+      '--color-text': '#f2efe9',
+      '--color-text-muted': '#a1968a',
+      '--color-accent': '#f6c037',
+      '--color-accent-contrast': '#1a1206',
+      '--color-accent-soft': 'rgba(246, 192, 55, 0.14)',
+      // The crimson of the health bars, lifted just far enough off the sampled
+      // #952b26 to stay legible as small text on near-black.
+      '--color-danger': '#b8382f',
+      // The game has no green anywhere, so success takes the pale champagne and
+      // accent keeps the saturated gold - they are told apart by lightness
+      // rather than by hue, which is how the game separates them too.
+      '--color-success': '#eccfa3',
+      '--color-warning': '#c08a2e',
+      '--color-selection': 'rgba(246, 192, 55, 0.28)',
+      // Nothing in this interface is rounded. Rectangles, elongated hexagons and
+      // rhombuses only - the softness comes from painted edges instead.
+      '--radius-sm': '0px',
+      '--radius-md': '0px',
+      '--radius-lg': '0px',
+      // An old-style serif, which is the single biggest thing that makes these
+      // menus look like themselves. Constantia and Cambria ship with Windows,
+      // Palatino and Garamond cover Office and macOS, so nothing is downloaded.
+      '--font-family':
+        "Constantia, 'Palatino Linotype', 'Book Antiqua', Garamond, Cambria, Georgia, 'Times New Roman', serif",
+      '--shadow-popup': '0 22px 60px rgba(0, 0, 0, 0.85)'
+    }
   }
 ]
 
