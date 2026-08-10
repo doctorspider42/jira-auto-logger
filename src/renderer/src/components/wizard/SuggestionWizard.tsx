@@ -14,6 +14,7 @@ import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { FunnyLoader } from '@/components/common/FunnyLoader'
 import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
+import { useThemeText } from '@/theme/useThemeCopy'
 import { dateLocale, formatHours } from '@/utils/format'
 import { SuggestionRow } from './SuggestionRow'
 import { SuggestionTable } from './SuggestionTable'
@@ -46,6 +47,7 @@ export function SuggestionWizard({
   onDone
 }: SuggestionWizardProps): JSX.Element {
   const { t } = useTranslation()
+  const tt = useThemeText()
   const config = useAppStore((s) => s.config)
   const rememberLastUsed = useAppStore((s) => s.rememberLastUsed)
 
@@ -326,7 +328,7 @@ export function SuggestionWizard({
         onClick={submit}
       >
         {busy && <span className="spinner" />}
-        {busy ? t('wizard.submitting') : t('wizard.submit', { count: allSuggestions.length })}
+        {busy ? t('wizard.submitting') : tt('wizard.submit', { count: allSuggestions.length })}
       </button>
     </>
   )

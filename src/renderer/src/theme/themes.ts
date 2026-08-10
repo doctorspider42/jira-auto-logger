@@ -1,4 +1,19 @@
 /**
+ * Strings a theme may speak in its own voice. The texts themselves live in the
+ * locale files (a theme must not hardcode language), under the subtree named
+ * by `key`; this only says which subtree and how it combines with the defaults.
+ */
+export interface ThemeCopy {
+  /** i18n subtree with this theme's strings, e.g. `themeCopy.clairObscur`. */
+  key: string
+  /**
+   * What to do with the theme's `funnyLoading` array, if it has one: `extend`
+   * adds its messages to the shared pool, `replace` uses only its own.
+   */
+  loadingMessages?: 'extend' | 'replace'
+}
+
+/**
  * Themes are plain maps of CSS custom properties. Adding a theme means
  * adding an entry here (or, in the future, loading one from user config).
  */
@@ -6,6 +21,12 @@ export interface Theme {
   id: string
   nameKey: string
   variables: Record<string, string>
+  /**
+   * Optional per-theme wording. Any key under the subtree wins over the same
+   * key at the root of the locale file, so a theme can reword single labels
+   * (see `useThemeText`) without touching the components that render them.
+   */
+  copy?: ThemeCopy
   /**
    * Kept out of the theme dropdown in Settings. The theme itself works
    * normally - `applyTheme` doesn't care - it just isn't offered, so reaching it
@@ -343,6 +364,9 @@ export const THEMES: Theme[] = [
   {
     id: 'clairObscur',
     nameKey: 'settings.themeClairObscur',
+    // The expedition speaks for itself: its own loading messages instead of the
+    // shared jokes, and "We continue" on the button that commits the day.
+    copy: { key: 'themeCopy.clairObscur', loadingMessages: 'replace' },
     variables: {
       ...shared,
       // Clair Obscur: Expedition 33, sampled off its own menu screens: a black

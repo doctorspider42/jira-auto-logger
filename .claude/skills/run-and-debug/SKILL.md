@@ -70,7 +70,17 @@ $env:JAL_THEME='y2k'; npm run dev:mock            # PowerShell (clear later: Rem
 
 It composes with the screenshot driver as well
 (`npx cross-env JAL_THEME=y2k npm run screenshots`) if you want theme-specific
-captures.
+captures. Point `JAL_SCREENSHOTS` at a scratch directory when you only want to
+look - the default `screenshots/` holds the committed README images.
+
+A theme can also change **wording**, not just colours (`Theme.copy` → the
+`themeCopy.<themeId>` subtree in the locale files; see the `architecture` skill).
+To check that, force the theme and look at the strings in **both** languages -
+`clairObscur` is the one that uses it today: its own loading messages while
+suggestions generate, and "We Continue" / "Przemy naprzód" on the wizard's
+log-time button. The language switch sits next to the theme in
+Settings → Appearance and takes effect on Save, no restart - and in mock mode
+nothing is persisted, so switching either is free.
 
 ## Screenshot automation
 

@@ -374,6 +374,48 @@
     "Microwaving the tokens…",
     "Checking if it's the cache… (it's always the cache)"
   ],
+  "themeCopy": {
+    "clairObscur": {
+      "funnyLoading": [
+        "Consulting the Paintress…",
+        "Counting the years left on the monolith…",
+        "Waiting for the Paintress to lift her brush…",
+        "Grinding pigment for your worklogs…",
+        "Mixing one more shade of black…",
+        "Stretching a fresh canvas for the month…",
+        "Cleaning the brushes before the next entry…",
+        "Painting your hours onto the canvas…",
+        "Asking the Gestrals what happened on Friday…",
+        "Waking the big sleepy friend…",
+        "Looking for one more rock for the friend who collects them…",
+        "Crossing the water on a broad white back…",
+        "Trading Pictos for Lumina…",
+        "Equipping a Picto for four more battles…",
+        "Sorting Pictos by how billable they are…",
+        "Spending Chroma on a sharper description…",
+        "Parrying a Nevron…",
+        "Practising the parry timing one more time…",
+        "Free-aiming at the right issue key…",
+        "Waiting for Maelle to change stance…",
+        "Sharpening Lune's stains…",
+        "Letting the cards foretell this sprint…",
+        "Picking a mask for the standup…",
+        "Working the rank back up to S…",
+        "Sending word back to Lumière…",
+        "Lighting the lanterns of Lumière…",
+        "Making camp under the expedition flag…",
+        "Warming up the campfire for the debrief…",
+        "Reading the journals of Expedition 34…",
+        "Adding a page to the expedition journal…",
+        "Writing “for those who come after” in the margin…",
+        "Rounding the quarter-hours up before the Gommage…",
+        "Rehearsing “we continue” one more time…"
+      ],
+      "wizard": {
+        "submit": "We Continue ({{count}})"
+      }
+    }
+  },
   "errors": {
     "JIRA_AUTH": "Jira rejected the credentials. Check the e-mail and API token.",
     "JIRA_UNREACHABLE": "Could not reach Jira.",

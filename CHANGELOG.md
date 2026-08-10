@@ -10,6 +10,13 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.35 — 2026-08-10
+
+- Themes can now bring their own wording. The **Clair Obscur ◆ Expedition 33**
+  theme uses it: while suggestions are generating it shows its own 33 loading
+  messages instead of the usual jokes, and the button that logs them to Jira reads
+  **We Continue** (**Przemy naprzód** in Polish).
+
 ## 0.1.33 — 2026-08-10
 
 - Added a **Clair Obscur ◆ Expedition 33** theme under Settings → Appearance →
