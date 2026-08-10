@@ -58,9 +58,21 @@
    * The petals are deliberately small and sparse - two or three per tile at
    * about 10px. At the size they started they stopped reading as matter in the
    * air and started reading as leaves dropped on the calendar.
+   *
+   * Two colours only, red and white, taken off the game's own key art: scarlet
+   * (#d8232a) and a warm off-white (#f4efe6). Not a rose in between - the art
+   * has no midtone, the two just fall past each other, and softening them into
+   * one dusty pink was the thing that made an earlier pass look nothing like it.
+   *
+   * Both are carried at a high alpha, because a saturated red on a black canvas
+   * loses far more to the background than an off-white does; at the alpha the
+   * pale version wanted, the red petals simply went out.
+   *
+   * The dust stays neutral and small. It is ash and motes rather than petals,
+   * and keeping it out of the red is what gives the three layers their depth.
    */
-  --co-petals-near: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23efe4cd' opacity='0.3'%3E%3Cpath d='M48 66 q5-6 10 0 q-5 6-10 0z' transform='rotate(24 53 66)'/%3E%3Cpath d='M226 206 q5-7 11 0 q-6 7-11 0z' transform='rotate(68 231 206)'/%3E%3C/g%3E%3Cg fill='%23f6c037' opacity='0.24'%3E%3Cpath d='M138 284 q4-6 9 0 q-5 6-9 0z' transform='rotate(-20 142 284)'/%3E%3C/g%3E%3C/svg%3E");
-  --co-petals-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='%23e8dcc4' opacity='0.22'%3E%3Cpath d='M34 52 q3-4 7 0 q-4 4-7 0z' transform='rotate(38 37 52)'/%3E%3Cpath d='M166 26 q3-4 7 0 q-4 4-7 0z' transform='rotate(-28 169 26)'/%3E%3Cpath d='M104 168 q3-5 8 0 q-4 5-8 0z' transform='rotate(74 108 168)'/%3E%3C/g%3E%3C/svg%3E");
+  --co-petals-near: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23d8232a' opacity='0.62'%3E%3Cpath d='M48 66 q5-6 10 0 q-5 6-10 0z' transform='rotate(24 53 66)'/%3E%3Cpath d='M226 206 q6-8 12 0 q-6 8-12 0z' transform='rotate(68 232 206)'/%3E%3C/g%3E%3Cg fill='%23f4efe6' opacity='0.55'%3E%3Cpath d='M138 284 q4-6 9 0 q-5 6-9 0z' transform='rotate(-20 142 284)'/%3E%3C/g%3E%3C/svg%3E");
+  --co-petals-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='%23d8232a' opacity='0.44'%3E%3Cpath d='M34 52 q3-4 7 0 q-4 4-7 0z' transform='rotate(38 37 52)'/%3E%3C/g%3E%3Cg fill='%23f4efe6' opacity='0.4'%3E%3Cpath d='M166 26 q3-4 7 0 q-4 4-7 0z' transform='rotate(-28 169 26)'/%3E%3Cpath d='M104 168 q3-5 8 0 q-4 5-8 0z' transform='rotate(74 108 168)'/%3E%3C/g%3E%3C/svg%3E");
   --co-dust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23f4ecd8' opacity='0.25'%3E%3Ccircle cx='22' cy='32' r='0.9'/%3E%3Ccircle cx='92' cy='16' r='0.7'/%3E%3Ccircle cx='160' cy='52' r='1'/%3E%3Ccircle cx='56' cy='104' r='0.8'/%3E%3Ccircle cx='132' cy='128' r='0.9'/%3E%3Ccircle cx='36' cy='176' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
 }
 
