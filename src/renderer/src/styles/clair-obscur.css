@@ -427,11 +427,87 @@
   border-color: var(--co-gold);
 }
 
-/* Only readouts are allowed to be solid gold - the date badge is one, the way
-   the currency and the skill-point count are. */
+/* ---------- Numbered tiles, after the expedition journals ---------- */
+
+/*
+ * EXPERIMENT, not a citation. The journal list - square tiles carrying one big
+ * numeral - is described from memory by the person who asked for it; it is the
+ * one screen missing from every UI archive I could reach, so unlike the rest of
+ * this file its composition is not sampled off anything. What IS taken from the
+ * screenshots is only the material: bone hairlines, the serif, and the two golds.
+ *
+ * The numeral is set as a ghost behind the tile's contents rather than beside
+ * them. A calendar cell has to keep room for worklog entries, so the date can't
+ * take the space a journal number would; dropping it to a watermark buys the
+ * scale without costing the tile its job.
+ */
+/*
+ * Only a day with nothing logged gets the numeral at journal scale. The first
+ * pass gave it to every tile and the ghost sat straight under "+3 more" on any
+ * day that had worklogs - the tile has a job, and a 42px numeral behind its
+ * contents fights it.
+ *
+ * Restricting it to empty days also happens to say the right thing: a day you
+ * have not logged is a volume nobody has written yet, and it fills in as you
+ * work. `:has()` is already how this codebase styles the report chips.
+ */
+[data-theme='clairObscur'] .calendar-day {
+  position: relative;
+}
+
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-number {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  padding: 0;
+  min-width: 0;
+  font-size: 42px;
+  font-weight: 400;
+  line-height: 1;
+  color: rgba(242, 239, 233, 0.085);
+  pointer-events: none;
+}
+
+/* On those tiles the head row has just lost its left-hand child to the absolute
+   numeral, so the hours total has to be told to stay on the right. */
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-head {
+  justify-content: flex-end;
+  min-height: 15px;
+}
+
+/* Today is the volume lying open: lit rather than ghosted. On a today that does
+   have entries the base theme's solid badge stands, which is what keeps the
+   date findable on the one tile you most need to find. */
 [data-theme='clairObscur'] .calendar-day.today .calendar-day-number {
   border-radius: 0;
-  font-variant: small-caps;
+}
+
+[data-theme='clairObscur']
+  .calendar-day.today:not(:has(.calendar-day-entries > *))
+  .calendar-day-number {
+  background: transparent;
+  color: rgba(246, 192, 55, 0.5);
+}
+
+[data-theme='clairObscur']
+  .calendar-day.selected:not(:has(.calendar-day-entries > *))
+  .calendar-day-number {
+  color: rgba(236, 207, 163, 0.26);
+}
+
+/* The numbered steps in the report builder are the same list, short enough to
+   let the numeral sit at full size on its own tile. */
+[data-theme='clairObscur'] .report-section-number,
+[data-theme='clairObscur'] .report-level-index {
+  width: 34px;
+  height: 40px;
+  border-radius: 0;
+  background: var(--co-ink);
+  border: 1px solid var(--co-bone-dim);
+  color: var(--co-gold-pale);
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
 }
 
 [data-theme='clairObscur'] .calendar-entry {
