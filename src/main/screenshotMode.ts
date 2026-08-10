@@ -16,6 +16,11 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
   mkdirSync(outDir, { recursive: true })
 
   const shot = async (name: string): Promise<void> => {
+    // An unfocused window hands back the previously composited frame, so every
+    // PNG would show the *previous* screen. Discard one capture to force a
+    // fresh paint, then keep the second.
+    await window.webContents.capturePage()
+    await sleep(250)
     const image = await window.webContents.capturePage()
     writeFileSync(join(outDir, `${name}.png`), image.toPNG())
     logger.info('screenshots', `captured ${name}.png`)
@@ -76,10 +81,12 @@ export async function runScreenshotMode(window: BrowserWindow, dir: string): Pro
     // Open the wizard by clicking a mid-month weekday cell. The mouseup must
     // come a beat later: the calendar attaches its listener in an effect
     // after the mousedown re-render.
+    // A day that already has its hours logged leaves the generator no budget
+    // and would produce an empty step 2 - pick an untouched weekday.
     await js(`(() => {
       const cells = [...document.querySelectorAll('.calendar-day:not(.outside):not(.weekend)')]
-      const withEntries = cells.filter((c) => c.querySelector('.calendar-entry'))
-      const cell = withEntries[Math.floor(withEntries.length / 2)] ?? cells[10]
+      const empty = cells.filter((c) => !c.querySelector('.calendar-entry'))
+      const cell = empty[Math.floor(empty.length / 2)] ?? cells[10]
       cell.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
     })()`)
     await sleep(300)

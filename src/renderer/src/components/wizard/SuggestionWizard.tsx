@@ -208,6 +208,13 @@ export function SuggestionWizard({
   const hoursStatus = (hours: number, target: number): string =>
     hours === target ? 'ok' : hours < target ? 'under' : 'over'
 
+  /** Sum over every project of whatever the day filter currently shows. */
+  const visibleSuggestions = dateFilter
+    ? allSuggestions.filter((s) => s.date === dateFilter)
+    : allSuggestions
+  const visibleTotal = visibleSuggestions.reduce((sum, s) => sum + s.hours, 0)
+  const visibleTarget = targetHours * (dateFilter ? 1 : tabDates.length)
+
   const renderDayTabs = (): JSX.Element | null => {
     if (tabDates.length < 2) return null
     const locale = dateLocale(config.language)
@@ -480,6 +487,12 @@ export function SuggestionWizard({
           {renderDayTabs()}
           <div className="wizard-step2-head">
             <p className="hint wizard-info">{t('wizard.suggestionsInfo')}</p>
+            <div className="wizard-total">
+              <span>{t('wizard.totalHours')}</span>
+              <span className={`wizard-total-hours ${hoursStatus(visibleTotal, visibleTarget)}`}>
+                {formatHours(visibleTotal * 3600)}/{formatHours(visibleTarget * 3600)}h
+              </span>
+            </div>
             <div className="wizard-layout-toggle" role="group" aria-label={t('wizard.layout')}>
               <button
                 className={`btn btn-sm ${layout === 'cards' ? 'btn-primary' : 'btn-ghost'}`}

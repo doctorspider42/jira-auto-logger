@@ -89,17 +89,20 @@
   margin-top: 2px;
 }
 
-.day-tab-hours.ok {
+.day-tab-hours.ok,
+.wizard-total-hours.ok {
   color: var(--color-success);
   background: color-mix(in srgb, var(--color-success) 15%, transparent);
 }
 
-.day-tab-hours.under {
+.day-tab-hours.under,
+.wizard-total-hours.under {
   color: var(--color-warning);
   background: color-mix(in srgb, var(--color-warning) 15%, transparent);
 }
 
-.day-tab-hours.over {
+.day-tab-hours.over,
+.wizard-total-hours.over {
   color: var(--color-danger);
   background: color-mix(in srgb, var(--color-danger) 15%, transparent);
 }
@@ -118,6 +121,24 @@
   display: inline-flex;
   gap: 2px;
   flex-shrink: 0;
+}
+
+/* Sum of every project's entries for the days currently in view. */
+.wizard-total {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.wizard-total-hours {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
 }
 
 /* ---------- Tabular layout ---------- */
