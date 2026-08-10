@@ -42,7 +42,7 @@ back to the default theme in `applyTheme`, so typos degrade gracefully.
 
 Valid ids come from `THEMES` in `src/renderer/src/theme/themes.ts`: `dark`,
 `light`, `iteoLight`, `iteoDark`, `win95`, `fallout`, `falloutNV`, `ps1`,
-`helloKitty`, `y2k`, `maaSnEk`.
+`helloKitty`, `y2k`, `maaSnEk`, `clairObscur`.
 
 `maaSnEk` is flagged `hidden` in that registry, so it is **not** in the Settings
 dropdown. Three ways in, all equivalent - the theme itself is not gated, only its

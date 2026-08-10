@@ -10,6 +10,16 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.33 — 2026-08-10
+
+- Added a **Clair Obscur ◆ Expedition 33** theme under Settings → Appearance →
+  Theme: a black oil canvas with an art-nouveau lattice painted under it, panels
+  framed by hand-drawn corner brackets, everything set in an old-style serif with
+  gold small-caps headings, and petals and dust drifting across the window the
+  whole time. Tabs are the game's elongated hexagons, picking something fills it
+  dark plum rather than gold, and the loading indicator is a gauge with pointed
+  caps. (Honors "reduce motion" — the petals stop.)
+
 ## 0.1.32 — 2026-08-06
 
 - Prevented Jira Auto Logger from opening more than once, so a repeated launch
