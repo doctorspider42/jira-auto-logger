@@ -51,12 +51,41 @@ code means adding it to `AppErrorCode` and both locale files.
 4. `mockConfig()` in `services/mock/data.ts`, 5. settings UI + i18n.
 
 **i18n**: every user-visible string goes through `t()`; add keys to **both**
-`src/renderer/src/i18n/pl.json` and `en.json` in the same change.
+`src/renderer/src/i18n/pl.json` and `en.json` in the same change. Some strings
+are also **reworded per theme** (`themeCopy.*`, see Themes below) - before
+renaming or removing a key, grep for it under `themeCopy`: nothing typechecks
+i18n key strings, so a rename silently orphans the theme's version and the UI
+quietly falls back to the default wording.
 
 **Themes**: colors, radii, fonts and shadows are CSS variables defined per
 theme in `src/renderer/src/theme/themes.ts`. Never hardcode a color in
-component CSS - use the variables (or `color-mix` on them) so all four themes
-keep working.
+component CSS - use the variables (or `color-mix` on them) so every theme in
+`THEMES` keeps working.
+
+**A theme can also reword the UI, not just recolour it** - assume any label may
+be themed and keep new UI open to it. The mechanism is `Theme.copy`, resolved by
+`src/renderer/src/theme/useThemeCopy.ts`. The strings themselves stay in the
+locale files under `themeCopy.<themeId>` (a theme must never hardcode language);
+the theme entry only points at that subtree and says how it combines:
+- **A single label**: put it at the same path inside the subtree
+  (`themeCopy.clairObscur.wizard.submit` overrides `wizard.submit`) and render it
+  with `useThemeText()`'s `tt()` instead of `t()`. `tt()` tries the theme's key
+  first and falls back to the root one, so themes without the subtree - and
+  labels no theme rewords - behave exactly as before. Interpolation and `count`
+  work the same, so keep the placeholders (`{{count}}`) in the themed string.
+- **Loading messages** (`FunnyLoader`): add a `funnyLoading` array to the subtree
+  and set `copy.loadingMessages` to `'extend'` (its messages join the shared
+  pool) or `'replace'` (only its own). Consumed via `useLoadingMessages()`.
+
+Which is which today: `clairObscur` replaces the loading messages and reads
+"We Continue" / "Przemy naprzód" on the wizard's log-time button; no other theme
+declares `copy`.
+
+When adding UI, prefer `tt()` for the few labels that carry an app's *voice*
+(headline actions, empty states, loaders) and plain `t()` for everything factual
+(field labels, errors, numbers) - a theme rewording "Save" is character, a theme
+rewording an error message is a support ticket. Themed copy is optional
+flavour: the app must read correctly with none of it.
 
 **User-facing changes**: if a change is something a user would notice, add a
 `CHANGELOG.md` entry in the same commit - it feeds the in-app "What's new" /

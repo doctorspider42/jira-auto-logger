@@ -374,6 +374,48 @@
     "Podgrzewanie tokenów w mikrofalówce…",
     "Sprawdzanie, czy to nie wina cache'a… (to zawsze cache)"
   ],
+  "themeCopy": {
+    "clairObscur": {
+      "funnyLoading": [
+        "Konsultowanie się z Malarką…",
+        "Liczenie lat pozostałych na monolicie…",
+        "Czekanie, aż Malarka podniesie pędzel…",
+        "Ucieranie pigmentu na Twoje wpisy…",
+        "Mieszanie jeszcze jednego odcienia czerni…",
+        "Naciąganie świeżego płótna na nowy miesiąc…",
+        "Czyszczenie pędzli przed kolejnym wpisem…",
+        "Nakładanie Twoich godzin na płótno…",
+        "Wypytywanie Gestrali, co się działo w piątek…",
+        "Wybudzanie wielkiego śpiocha…",
+        "Szukanie kolejnego kamyka dla przyjaciela, który je zbiera…",
+        "Przeprawianie się przez wodę na szerokim białym grzbiecie…",
+        "Wymienianie Pictosów na Luminę…",
+        "Zakładanie Pictosa na jeszcze cztery walki…",
+        "Sortowanie Pictosów po tym, które da się zafakturować…",
+        "Wydawanie Chromy na ostrzejszy opis…",
+        "Parowanie ciosu Nevrona…",
+        "Ćwiczenie wyczucia parowania jeszcze raz…",
+        "Celowanie w odpowiedni klucz zadania…",
+        "Czekanie, aż Maelle zmieni postawę…",
+        "Mieszanie plam Lune…",
+        "Wróżenie z kart o tym sprincie…",
+        "Dobieranie maski na standup…",
+        "Podnoszenie rangi z powrotem do S…",
+        "Wysyłanie wieści do Lumière…",
+        "Zapalanie latarni w Lumière…",
+        "Rozbijanie obozu pod flagą ekspedycji…",
+        "Rozpalanie ogniska na odprawę…",
+        "Czytanie dzienników Ekspedycji 34…",
+        "Dopisywanie strony do dziennika ekspedycji…",
+        "Dopisywanie na marginesie „dla tych, którzy przyjdą po nas”…",
+        "Zaokrąglanie kwadransów w górę przed Gommage…",
+        "Powtarzanie „przemy naprzód” jeszcze raz…"
+      ],
+      "wizard": {
+        "submit": "Przemy naprzód ({{count}})"
+      }
+    }
+  },
   "errors": {
     "JIRA_AUTH": "Jira odrzuciła dane logowania. Sprawdź e-mail i token API.",
     "JIRA_UNREACHABLE": "Nie udało się połączyć z Jirą.",
