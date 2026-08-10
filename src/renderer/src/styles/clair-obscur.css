@@ -31,9 +31,6 @@
   --co-bone-dim: rgba(242, 239, 233, 0.4);
   --co-plum: #3a2132;
   --co-ink: #0b0a09;
-  /* The blue-violet the game spends on AP. Kept for the one spinner, so the
-     palette has a cool note somewhere without gold losing its monopoly. */
-  --co-periwinkle: #7581ed;
 
   /*
    * The canvas. Two turbulence passes rather than one: a very low frequency for
@@ -504,7 +501,6 @@
 [data-theme='clairObscur'] .spinner {
   border-color: rgba(242, 239, 233, 0.18);
   border-top-color: var(--co-gold);
-  border-right-color: var(--co-periwinkle);
 }
 
 /* ---------- Chrome ---------- */
