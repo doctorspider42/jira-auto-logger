@@ -5,5 +5,8 @@ dist/
 *.log
 .DS_Store
 
+# QA artifact written by the screenshot run
+screenshots/pdf/
+
 # Internal brand material dropped in the repo root for reference - not ours to publish
 iteo_Brandbook.pdf

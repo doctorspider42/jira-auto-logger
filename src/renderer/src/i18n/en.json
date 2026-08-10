@@ -75,6 +75,7 @@
     "submitted": "Logged {{count}} entries.",
     "missingIssue": "Fill in the issue for every entry.",
     "allDays": "All days",
+    "totalHours": "Total",
     "layout": "Layout",
     "layoutCards": "Cards",
     "layoutTable": "Table",

@@ -75,6 +75,7 @@
     "submitted": "Zalogowano {{count}} wpisów.",
     "missingIssue": "Uzupełnij zadanie we wszystkich wpisach.",
     "allDays": "Wszystkie dni",
+    "totalHours": "Łącznie",
     "layout": "Układ",
     "layoutCards": "Karty",
     "layoutTable": "Tabela",
