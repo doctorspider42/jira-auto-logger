@@ -10,6 +10,18 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.36 — 2026-08-11
+
+- In the **Clair Obscur ◆ Expedition 33** theme, a day with nothing logged now
+  carries its date as a single numeral filling the whole tile, the way the
+  expedition journals are numbered, and in a brighter ink than before — the date
+  was hard to read at the old weight.
+- The outline of the hexagonal header tabs in that theme keeps an even weight
+  all the way into its points instead of thinning out at them.
+- Fixed weekends of the neighbouring months showing up at full strength in the
+  month view, so they looked like part of the month you are on. They are now
+  dimmed like every other day outside it.
+
 ## 0.1.35 — 2026-08-10
 
 - Themes can now bring their own wording. The **Clair Obscur ◆ Expedition 33**
