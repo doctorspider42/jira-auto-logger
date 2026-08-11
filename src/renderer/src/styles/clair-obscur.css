@@ -295,8 +295,8 @@
 
 /*
  * The elongated hexagon the game uses for every tab and list row. Drawn as two
- * stacked clipped layers - a bone one at the full size and an ink one inset by a
- * pixel - because a clip-path cuts a border off along the diagonals, so the
+ * stacked clipped layers - a bone one at the full size and an ink one a pixel
+ * smaller - because a clip-path cuts a border off along the diagonals, so the
  * outline has to BE a shape rather than a border.
  *
  * The layers sit at negative z-index so the label paints over them, and the tab
@@ -325,9 +325,31 @@
   background: var(--co-bone-dim);
 }
 
+/*
+ * The inner shape is NOT the outer one inset by a pixel. `inset: 1px` shortens
+ * the hexagon by 2px while its 13px slants stay 13px, so the two diagonals are
+ * not parallel and the stroke tapers along them - 1.4px where they meet the
+ * straight edges down to 0.8px at the points, which reads as the outline giving
+ * out at the tips.
+ *
+ * These are the outer polygon's vertices offset inward by exactly 1px
+ * perpendicular to each edge, with the points mitred: the apex moves in by
+ * hypot(13, h)/h and the slant vertices by the same, tracked back along the now
+ * parallel diagonal (h = half the tab height, ~17px). Recompute them if the
+ * tab's font size or padding changes - a wrong h only re-introduces a taper far
+ * too small to see, so this is safe to leave alone at other text sizes.
+ */
 [data-theme='clairObscur'] .nav-tab::after {
-  inset: 1px;
+  inset: 0;
   z-index: -1;
+  clip-path: polygon(
+    13.5px 1px,
+    calc(100% - 13.5px) 1px,
+    calc(100% - 1.25px) 50%,
+    calc(100% - 13.5px) calc(100% - 1px),
+    13.5px calc(100% - 1px),
+    1.25px 50%
+  );
   background: var(--co-ink);
 }
 
@@ -467,16 +489,47 @@
   position: relative;
 }
 
+/* The numeral is sized off the tile, not off a fixed px value: the grid rows
+   flex with the window, so anything fixed fills the tile at one window height
+   and floats in it at every other. `container-type: size` is safe here only
+   because the tile is empty - a row's height comes from the grid, never from
+   its contents, and there are no entries to measure. */
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) {
+  container-type: size;
+}
+
+/*
+ * Two things about Constantia decide the geometry here, and both were measured
+ * rather than assumed:
+ *
+ * - Its figures are old-style, so 3/4/7/9 hang below the baseline and 1/2/0 only
+ *   reach x-height. At journal scale that reads as a broken column - "11" would
+ *   fill half the tile that "18" fills, and the descenders would hang out of it.
+ *   `lining-nums` is what the numbered plates want anyway: one height for every
+ *   day, sitting on the baseline.
+ * - Its ink sits low in the line box (baseline at 0.84em of a line-height:1 box),
+ *   so centring the *box* leaves the glyph about a tenth of a tile too low.
+ *   `text-box` trims the box to exactly cap-height..baseline, which with lining
+ *   figures is exactly the ink - so the numeral centres on its own shape and the
+ *   size below is the visible height, not an em box guess (cap height is 0.68em,
+ *   hence the 1.26 factor for a numeral 86% of the tile tall).
+ */
 [data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-number {
   position: absolute;
-  top: 0;
-  left: 6px;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
   padding: 0;
   min-width: 0;
-  font-size: 42px;
+  text-align: center;
+  font-variant-numeric: lining-nums;
+  /* Two digits are what sets the width limit. */
+  font-size: min(126cqh, 78cqw);
   font-weight: 400;
   line-height: 1;
-  color: rgba(242, 239, 233, 0.085);
+  text-box: trim-both cap alphabetic;
+  color: rgba(242, 239, 233, 0.32);
   pointer-events: none;
 }
 
@@ -498,13 +551,13 @@
   .calendar-day.today:not(:has(.calendar-day-entries > *))
   .calendar-day-number {
   background: transparent;
-  color: rgba(246, 192, 55, 0.5);
+  color: rgba(246, 192, 55, 0.62);
 }
 
 [data-theme='clairObscur']
   .calendar-day.selected:not(:has(.calendar-day-entries > *))
   .calendar-day-number {
-  color: rgba(236, 207, 163, 0.26);
+  color: rgba(236, 207, 163, 0.42);
 }
 
 /* The numbered steps in the report builder are the same list, short enough to

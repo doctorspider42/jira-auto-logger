@@ -142,6 +142,13 @@
   opacity: 0.75;
 }
 
+/* Both classes set `opacity`, and `.weekend` wins by coming later - an outside
+   weekend was landing on 0.75 and reading as part of the current month. Apply
+   what the two would have compounded to. */
+.calendar-day.outside.weekend {
+  opacity: 0.34;
+}
+
 .calendar-day.weekend.selected {
   background: var(--color-selection);
   opacity: 1;
