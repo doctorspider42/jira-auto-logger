@@ -1,5 +1,6 @@
 import type {
   AppConfig,
+  AutoLoggerPrompt,
   AutoLoggerRunResult,
   CommitInfo,
   JiraIssue,
@@ -99,8 +100,8 @@ export interface IpcApi {
   autoLogger: {
     /** Run immediately, bypassing the configured time and weekday check. */
     runNow(): Promise<Result<AutoLoggerRunResult>>
-    /** Fired after the user clicks the scheduled confirmation notification. */
-    onConfirmationRequested(callback: (date: string) => void): () => void
+    /** Fired when a scheduled run wants the wizard opened for one day. */
+    onPrompt(callback: (prompt: AutoLoggerPrompt) => void): () => void
   }
 }
 
@@ -141,4 +142,4 @@ export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
 
 /** Push channel: main → renderer updater state snapshots (see IpcApi.updates.onStateChange). */
 export const UPDATES_STATE_EVENT = 'updates:stateChange'
-export const AUTO_LOGGER_CONFIRM_EVENT = 'autoLogger:confirmationRequested'
+export const AUTO_LOGGER_PROMPT_EVENT = 'autoLogger:promptRequested'

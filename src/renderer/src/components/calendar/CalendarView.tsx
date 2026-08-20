@@ -15,8 +15,8 @@ export function CalendarView(): JSX.Element {
   const { t } = useTranslation()
   const config = useAppStore((s) => s.config)
   const saveConfig = useAppStore((s) => s.saveConfig)
-  const autoLoggerDate = useAppStore((s) => s.autoLoggerDate)
-  const consumeAutoLoggerConfirmation = useAppStore((s) => s.consumeAutoLoggerConfirmation)
+  const autoLoggerPrompt = useAppStore((s) => s.autoLoggerPrompt)
+  const consumeAutoLoggerPrompt = useAppStore((s) => s.consumeAutoLoggerPrompt)
   const language = config.language
   const [wizardDates, setWizardDates] = useState<string[] | null>(null)
   const [wizardAutoStart, setWizardAutoStart] = useState(false)
@@ -28,12 +28,14 @@ export function CalendarView(): JSX.Element {
   }, [])
   const calendar = useCalendar(openWizard)
 
+  // Confirmation mode generates straight away; notify-only opens the wizard
+  // untouched, exactly as clicking that day in the calendar does.
   useEffect(() => {
-    if (!autoLoggerDate) return
-    setWizardAutoStart(true)
-    setWizardDates([autoLoggerDate])
-    consumeAutoLoggerConfirmation()
-  }, [autoLoggerDate, consumeAutoLoggerConfirmation])
+    if (!autoLoggerPrompt) return
+    setWizardAutoStart(autoLoggerPrompt.autoStart)
+    setWizardDates([autoLoggerPrompt.date])
+    consumeAutoLoggerPrompt()
+  }, [autoLoggerPrompt, consumeAutoLoggerPrompt])
 
   // ---------- Task filter ----------
   // Autocomplete is sourced from the tasks that actually have entries in the

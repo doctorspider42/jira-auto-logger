@@ -181,10 +181,13 @@ export interface AppConfig {
   lastUsed: LastUsedSelection
 }
 
-export type AutoLoggerMode = 'off' | 'confirm' | 'auto'
+export type AutoLoggerMode = 'off' | 'notify' | 'confirm' | 'auto'
 
 export interface AutoLoggerConfig {
-  /** Off, notify and open the review wizard, or generate and submit directly. */
+  /**
+   * Off; notify only and open the untouched day; notify and open the review
+   * wizard with suggestions already generated; or generate and submit directly.
+   */
   mode: AutoLoggerMode
   /** Local time (HH:MM) at which the weekday automation runs. */
   runAt: string
@@ -194,8 +197,18 @@ export interface AutoLoggerConfig {
   minimizeToTray: boolean
 }
 
+/**
+ * Asks the renderer to open the suggestion wizard for one day.
+ * `autoStart: false` reproduces a plain click on that day in the calendar: the
+ * wizard opens on its first step and generates nothing until the user asks.
+ */
+export interface AutoLoggerPrompt {
+  date: string
+  autoStart: boolean
+}
+
 export interface AutoLoggerRunResult {
-  /** Review opens the suggestion wizard; completed is a full-auto submission. */
+  /** Review opened the suggestion wizard; completed is a full-auto submission. */
   kind: 'review' | 'completed'
   createdCount: number
   totalSeconds: number

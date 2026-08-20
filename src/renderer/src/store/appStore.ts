@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AppConfig, Result, UpdateState } from '@shared/domain'
+import type { AppConfig, AutoLoggerPrompt, Result, UpdateState } from '@shared/domain'
 import i18n from '@/i18n'
 import { applyTheme } from '@/theme/themes'
 
@@ -18,15 +18,15 @@ interface AppState {
   view: AppView
   /** Month preselected when a reminder opens the Reports tab. */
   reportMonth: string | null
-  /** Date requested by a clicked scheduled confirmation notification. */
-  autoLoggerDate: string | null
+  /** Day the scheduler wants opened, and whether to generate right away. */
+  autoLoggerPrompt: AutoLoggerPrompt | null
   update: UpdateState | null
   /** True once the user closes the update banner; the tab badge stays. */
   updateBannerDismissed: boolean
   setView(view: AppView): void
   openReports(month?: string): void
-  requestAutoLoggerConfirmation(date: string): void
-  consumeAutoLoggerConfirmation(): void
+  requestAutoLoggerPrompt(prompt: AutoLoggerPrompt): void
+  consumeAutoLoggerPrompt(): void
   /** Persists the config and applies theme/language side effects. */
   saveConfig(config: AppConfig): Promise<Result<void>>
   /** Updates lastUsed without any UI side effects. */
@@ -41,14 +41,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   config: null as unknown as AppConfig,
   view: 'calendar',
   reportMonth: null,
-  autoLoggerDate: null,
+  autoLoggerPrompt: null,
   update: null,
   updateBannerDismissed: false,
 
   setView: (view) => set({ view, ...(view === 'reports' ? { reportMonth: null } : {}) }),
   openReports: (month) => set({ view: 'reports', reportMonth: month ?? null }),
-  requestAutoLoggerConfirmation: (date) => set({ view: 'calendar', autoLoggerDate: date }),
-  consumeAutoLoggerConfirmation: () => set({ autoLoggerDate: null }),
+  requestAutoLoggerPrompt: (prompt) => set({ view: 'calendar', autoLoggerPrompt: prompt }),
+  consumeAutoLoggerPrompt: () => set({ autoLoggerPrompt: null }),
 
   saveConfig: async (config) => {
     const previous = get().config

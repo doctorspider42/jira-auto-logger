@@ -2,6 +2,7 @@ import { BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { AppException, err, ok } from '@shared/domain'
 import type {
   AppConfig,
+  AutoLoggerPrompt,
   NewWorklog,
   RegenerateDescriptionRequest,
   ReportRequest,
@@ -59,7 +60,8 @@ export function registerIpcHandlers(
   telemetry: TelemetryService,
   configService: ConfigService,
   onConfigChanged: (config: AppConfig) => void,
-  requestAutoLoggerConfirmation: (date: string) => void
+  requestAutoLoggerPrompt: (prompt: AutoLoggerPrompt, focus?: boolean) => void,
+  isMainWindowVisible: () => boolean
 ): MainServices {
   const getConfig = (): AppConfig => configService.get()
   const connections = new ConnectionManager(getConfig)
@@ -74,7 +76,8 @@ export function registerIpcHandlers(
     llm,
     connections,
     telemetry,
-    requestAutoLoggerConfirmation
+    requestAutoLoggerPrompt,
+    isMainWindowVisible
   )
   telemetry.bindConfig(getConfig)
 

@@ -6,8 +6,9 @@ import { runScreenshotMode } from './screenshotMode'
 import { ConfigService } from './services/ConfigService'
 import { TelemetryService } from './services/TelemetryService'
 import { logger } from './services/logger'
-import type { AppConfig } from '@shared/domain'
-import { AUTO_LOGGER_CONFIRM_EVENT } from '@shared/ipc'
+import type { AppConfig, AutoLoggerPrompt } from '@shared/domain'
+import { AUTO_LOGGER_PROMPT_EVENT } from '@shared/ipc'
+import type { AutoLoggerService } from './services/AutoLoggerService'
 
 // Keep the background services and tray icon owned by one process. This must
 // run before any application initialization so a second launch exits cleanly.
@@ -38,6 +39,9 @@ function windowIcon(): string {
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
+// Needed by showMainWindow, which runs from tray/dock handlers registered
+// before the services exist.
+let autoLogger: AutoLoggerService | null = null
 const configService = new ConfigService()
 
 function createWindow(startHidden = false): BrowserWindow {
@@ -61,6 +65,10 @@ function createWindow(startHidden = false): BrowserWindow {
   window.on('ready-to-show', () => {
     if (!startHidden) window.show()
   })
+
+  // The window becoming visible is what a pending notify-only reminder waits
+  // for, including the first paint after a launch that missed the run time.
+  window.on('show', () => autoLogger?.flushPendingPrompt())
 
   window.on('close', (event) => {
     if (!isQuitting && configService.get().autoLogger.minimizeToTray) {
@@ -97,7 +105,16 @@ function showMainWindow(): BrowserWindow {
   if (window.isMinimized()) window.restore()
   window.show()
   window.focus()
+  // Opening the app is exactly the moment a notify-only reminder waits for.
+  autoLogger?.flushPendingPrompt()
   return window
+}
+
+/** True when the user can already see the app, i.e. it is not hidden in the tray. */
+function isMainWindowVisible(): boolean {
+  return Boolean(
+    mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() && !mainWindow.isMinimized()
+  )
 }
 
 function configureTray(config: AppConfig): void {
@@ -168,9 +185,17 @@ function configureLinuxAutostart(enabled: boolean): void {
   )
 }
 
-function requestAutoLoggerConfirmation(date: string): void {
-  const window = showMainWindow()
-  const send = (): void => window.webContents.send(AUTO_LOGGER_CONFIRM_EVENT, date)
+/**
+ * Hands one day over to the renderer's wizard. `focus` is false only for a
+ * notify-only reminder landing in a window the user already has open - it must
+ * not jump in front of whatever they are doing. Anything else (a confirmation
+ * run, a clicked notification, a reminder opened from the tray) brings the app
+ * forward, and a hidden window is always shown first so the wizard is seen.
+ */
+function requestAutoLoggerPrompt(prompt: AutoLoggerPrompt, focus = true): void {
+  const visible = isMainWindowVisible()
+  const window = !focus && visible && mainWindow ? mainWindow : showMainWindow()
+  const send = (): void => window.webContents.send(AUTO_LOGGER_PROMPT_EVENT, prompt)
   if (window.webContents.isLoading()) window.webContents.once('did-finish-load', send)
   else send()
 }
@@ -187,8 +212,10 @@ if (isPrimaryInstance) {
       telemetry!,
       configService,
       applyDesktopConfig,
-      requestAutoLoggerConfirmation
+      requestAutoLoggerPrompt,
+      isMainWindowVisible
     )
+    autoLogger = services.autoLogger
     const openedAtLogin =
       app.isPackaged &&
       (process.argv.includes('--hidden') ||
