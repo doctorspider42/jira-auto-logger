@@ -906,6 +906,7 @@ export function SettingsView(): JSX.Element {
               }
             >
               <option value="off">{t('settings.autoLoggerOff')}</option>
+              <option value="notify">{t('settings.autoLoggerNotify')}</option>
               <option value="confirm">{t('settings.autoLoggerConfirm')}</option>
               <option value="auto">{t('settings.autoLoggerAuto')}</option>
             </select>
@@ -954,7 +955,12 @@ export function SettingsView(): JSX.Element {
             </div>
           </div>
         </div>
-        {draft.autoLogger.mode !== 'off' && (
+        {draft.autoLogger.mode === 'notify' && (
+          <p className="hint">{t('settings.autoLoggerNotifyHint')}</p>
+        )}
+        {/* Notify-only asks the user to pick projects itself, so the remembered
+            selection only matters to the modes that generate. */}
+        {(draft.autoLogger.mode === 'confirm' || draft.autoLogger.mode === 'auto') && (
           <p className="hint">
             {draft.lastUsed.selections.length > 0
               ? t('settings.autoLoggerRecentReady', { count: draft.lastUsed.selections.length })

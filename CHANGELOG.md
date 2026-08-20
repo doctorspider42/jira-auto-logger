@@ -10,6 +10,15 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.37 — 2026-08-20
+
+- The auto logger has a third mode: **Notify only — open the day, log nothing**.
+  At the configured time it shows a notification and nothing else; when you open
+  the app (from the notification or the tray) it opens that day just as clicking
+  it in the calendar does — you still pick the projects and start the generation
+  yourself. Unlike confirmation mode it never pulls the window in front of what
+  you are doing, and it never generates or logs anything on its own.
+
 ## 0.1.36 — 2026-08-11
 
 - In the **Clair Obscur ◆ Expedition 33** theme, a day with nothing logged now

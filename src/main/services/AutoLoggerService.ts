@@ -4,6 +4,7 @@ import { join } from 'path'
 import { AppException } from '@shared/domain'
 import type {
   AppConfig,
+  AutoLoggerPrompt,
   AutoLoggerRunResult,
   NewWorklog,
   ProjectSuggestions,
@@ -31,13 +32,20 @@ export class AutoLoggerService {
   private timer: NodeJS.Timeout | null = null
   private running = false
   private state: AutoLoggerState = { lastScheduledAttemptKey: '' }
+  /**
+   * Notify-only reminder waiting for the user to open the app. Deliberately
+   * in-memory: a reminder is about today, and re-opening a stale day on every
+   * launch would be worse than losing it when the app quits.
+   */
+  private pendingPrompt: AutoLoggerPrompt | null = null
 
   constructor(
     private readonly getConfig: () => AppConfig,
     private readonly llm: LlmService,
     private readonly connections: ConnectionManager,
     private readonly telemetry: TelemetryService,
-    private readonly requestConfirmation: (date: string) => void
+    private readonly requestPrompt: (prompt: AutoLoggerPrompt, focus?: boolean) => void,
+    private readonly isWindowVisible: () => boolean
   ) {
     this.state = this.loadState()
   }
@@ -57,6 +65,8 @@ export class AutoLoggerService {
     // The interval reads live config. Keeping config changes side-effect free
     // also makes "Run now" deterministic immediately after saving settings.
     const { mode, runAt } = this.getConfig().autoLogger
+    // A reminder nobody opened yet belongs to the mode that produced it.
+    if (mode !== 'notify') this.pendingPrompt = null
     logger.info('auto-logger', 'configuration changed', { mode, runAt })
   }
 
@@ -73,8 +83,10 @@ export class AutoLoggerService {
     this.running = true
     logger.info('auto-logger', 'manual run started', { date, mode: config.autoLogger.mode })
     try {
-      if (config.autoLogger.mode === 'confirm') {
-        this.requestConfirmation(date)
+      if (config.autoLogger.mode === 'confirm' || config.autoLogger.mode === 'notify') {
+        // A manual run always comes from the open Settings tab, so the wizard
+        // can be handed over right away even in notify-only mode.
+        this.deliverPrompt({ date, autoStart: config.autoLogger.mode === 'confirm' })
         return { kind: 'review', createdCount: 0, totalSeconds: 0 }
       }
       const created = await this.runFullAuto(date, config)
@@ -111,6 +123,8 @@ export class AutoLoggerService {
     try {
       if (config.autoLogger.mode === 'confirm') {
         this.showConfirmation(date, config.language)
+      } else if (config.autoLogger.mode === 'notify') {
+        this.showReminder(date, config.language)
       } else {
         await this.runFullAuto(date, config)
       }
@@ -143,8 +157,50 @@ export class AutoLoggerService {
     // Do not rely on an OS toast: Windows can suppress notifications even
     // though Electron reports them as supported. Opening the review wizard is
     // the reliable confirmation surface and mirrors the manual action.
-    this.requestConfirmation(date)
+    this.deliverPrompt({ date, autoStart: true })
     logger.info('auto-logger', 'confirmation notification and review requested', { date })
+  }
+
+  /**
+   * Notify-only mode: nothing is generated and nothing is logged. The reminder
+   * only points at the day; opening the app opens the wizard for it exactly as
+   * a click on that day in the calendar would.
+   */
+  private showReminder(date: string, language: AppConfig['language']): void {
+    const prompt: AutoLoggerPrompt = { date, autoStart: false }
+    const title = language === 'pl' ? 'Czas uzupełnić dzień' : 'Time to complete your day'
+    const body =
+      language === 'pl'
+        ? 'Otwórz aplikację, aby zalogować ten dzień. Nic nie zostało jeszcze dodane.'
+        : 'Open the app to log this day. Nothing has been added yet.'
+    if (Notification.isSupported()) {
+      const notification = new Notification({ title, body, silent: false })
+      notification.on('click', () => this.deliverPrompt(prompt))
+      notification.show()
+    }
+    // Unlike confirmation mode this must not steal focus: an open window just
+    // gets the wizard, a window hidden in the tray keeps the reminder pending
+    // until the user opens the app themselves.
+    if (this.isWindowVisible()) this.deliverPrompt(prompt, false)
+    else this.pendingPrompt = prompt
+    logger.info('auto-logger', 'reminder shown', { date, pending: this.pendingPrompt !== null })
+  }
+
+  /**
+   * Hands a reminder the user has not opened yet to the freshly shown window.
+   * Called while that window is being shown, so it needs no focus of its own.
+   */
+  flushPendingPrompt(): void {
+    const prompt = this.pendingPrompt
+    if (!prompt) return
+    logger.info('auto-logger', 'delivering pending reminder', { date: prompt.date })
+    this.deliverPrompt(prompt, false)
+  }
+
+  /** Opens the wizard for a day; clears the pending reminder so it fires once. */
+  private deliverPrompt(prompt: AutoLoggerPrompt, focus = true): void {
+    this.pendingPrompt = null
+    this.requestPrompt(prompt, focus)
   }
 
   private async runFullAuto(

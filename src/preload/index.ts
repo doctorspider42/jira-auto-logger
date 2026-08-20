@@ -1,13 +1,14 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
   AppConfig,
+  AutoLoggerPrompt,
   NewWorklog,
   RegenerateDescriptionRequest,
   ReportRequest,
   SuggestionRequest,
   UpdateState
 } from '@shared/domain'
-import { AUTO_LOGGER_CONFIRM_EVENT, IPC_CHANNELS, UPDATES_STATE_EVENT } from '@shared/ipc'
+import { AUTO_LOGGER_PROMPT_EVENT, IPC_CHANNELS, UPDATES_STATE_EVENT } from '@shared/ipc'
 import type { IpcApi } from '@shared/ipc'
 
 const api: IpcApi = {
@@ -76,10 +77,10 @@ const api: IpcApi = {
   },
   autoLogger: {
     runNow: () => ipcRenderer.invoke(IPC_CHANNELS.autoLoggerRunNow),
-    onConfirmationRequested: (callback: (date: string) => void) => {
-      const listener = (_e: unknown, date: string): void => callback(date)
-      ipcRenderer.on(AUTO_LOGGER_CONFIRM_EVENT, listener)
-      return () => ipcRenderer.removeListener(AUTO_LOGGER_CONFIRM_EVENT, listener)
+    onPrompt: (callback: (prompt: AutoLoggerPrompt) => void) => {
+      const listener = (_e: unknown, prompt: AutoLoggerPrompt): void => callback(prompt)
+      ipcRenderer.on(AUTO_LOGGER_PROMPT_EVENT, listener)
+      return () => ipcRenderer.removeListener(AUTO_LOGGER_PROMPT_EVENT, listener)
     }
   }
 }
