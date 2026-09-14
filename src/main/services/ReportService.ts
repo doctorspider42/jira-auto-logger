@@ -43,7 +43,13 @@ interface MonthRange {
   monthIndex: number
 }
 
-const BASE_GROUPINGS = new Set<ReportGroupKey>(['project', 'issue', 'day', 'connection'])
+const BASE_GROUPINGS = new Set<ReportGroupKey>([
+  'project',
+  'issue',
+  'day',
+  'connection',
+  'worklog'
+])
 const BASE_COLUMNS = new Set<ReportColumnKey>([
   'date',
   'project',
@@ -336,6 +342,11 @@ export class ReportService {
     if (key === 'issue') return `${entry.issueKey} - ${entry.issueSummary}`
     if (key === 'day') return entry.startDate
     if (key === 'connection') return entry.connection.name || entry.connection.jira.baseUrl
+    // Tempo's "Worklog" level: worklogs sharing a description aggregate into a
+    // single row, the way every other level aggregates the entries below it.
+    if (key === 'worklog') {
+      return entry.description.trim() || (language === 'pl' ? 'Bez opisu' : 'No description')
+    }
     const field = this.customField(config, key)
     if (!field) return ''
     if (entry.connection.id !== field.connectionId) {
@@ -360,6 +371,7 @@ export class ReportService {
     if (key === 'issue') return 'Work Item'
     if (key === 'day') return 'Date'
     if (key === 'connection') return 'Connection'
+    if (key === 'worklog') return 'Worklog'
     return this.customField(config, key)?.label ?? 'Custom field'
   }
 

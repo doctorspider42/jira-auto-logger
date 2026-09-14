@@ -243,7 +243,7 @@ export interface TelemetryConfig {
   enabled: boolean
 }
 
-export type ReportBaseGrouping = 'project' | 'issue' | 'day' | 'connection'
+export type ReportBaseGrouping = 'project' | 'issue' | 'day' | 'connection' | 'worklog'
 export type ReportGroupKey = ReportBaseGrouping | `custom:${string}`
 export type ReportLayout = 'summary' | 'detailed'
 export type ReportTimeFormat = 'hours' | 'hours-minutes'

@@ -10,6 +10,13 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.38 — 2026-09-14
+
+- Reports can now group by **Worklog** — the same level Tempo offers next to
+  Space and Work Item. Worklogs sharing a description are summed into one row,
+  so a summary report can list the actual work done ("Code review", "Daily")
+  with its total hours instead of only issue keys.
+
 ## 0.1.37 — 2026-08-20
 
 - The auto logger has a third mode: **Notify only — open the day, log nothing**.

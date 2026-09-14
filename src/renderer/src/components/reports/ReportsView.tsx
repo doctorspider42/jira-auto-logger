@@ -93,6 +93,7 @@ export function ReportsView(): JSX.Element {
     { key: 'project', label: t('reports.groupProject') },
     { key: 'issue', label: t('reports.groupIssue') },
     { key: 'day', label: t('reports.groupDay') },
+    { key: 'worklog', label: t('reports.groupWorklog') },
     { key: 'connection', label: t('reports.groupConnection') },
     ...availableCustomFields.map((field) => ({
       key: `custom:${field.id}` as ReportGroupKey,
@@ -639,7 +640,9 @@ export function ReportsView(): JSX.Element {
                                 ? 'PRJ-123 - Example work item'
                                 : grouping === 'day'
                                   ? '2026-06-15'
-                                  : 'Company Jira'}
+                                  : grouping === 'worklog'
+                                    ? t('reports.previewWorklog')
+                                    : 'Company Jira'}
                         </span>
                         <b>{Math.max(8, 168 - index * 40)}</b>
                       </div>
