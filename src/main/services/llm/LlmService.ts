@@ -151,11 +151,11 @@ export class LlmService {
       throw new AppException('CONFIG_INVALID', 'Claude CLI path cannot contain quotes or line breaks')
     }
 
-    // `start` treats its first quoted argument as a window title. Passing
-    // `"Claude login"` as a spawn argument caused Node to quote it a second
-    // time, so cmd tried to open a file named `login\\` on Windows. Give
-    // `start` an explicit empty title and send the complete command as one
-    // argument to the outer cmd process instead.
+    // `start` treats its first quoted argument as a window title, so it gets an
+    // explicit empty one and the whole command travels as a single cmd argument.
+    // Node escapes the quotes inside that argument with backslashes, which cmd
+    // does not understand - it would receive `start \"\" ...` and try to open
+    // `\\`. `windowsVerbatimArguments` hands the command line over untouched.
     const windowsLoginCommand = `start "" cmd.exe /k "${cli}"`
     const commands: Record<string, { cmd: string; args: string[] }> = {
       // Starting interactive Claude triggers its built-in browser login flow
@@ -169,7 +169,12 @@ export class LlmService {
       throw new AppException('LLM_FAILED', `Unsupported platform: ${process.platform}`)
     }
     try {
-      spawn(launcher.cmd, launcher.args, { detached: true, stdio: 'ignore' }).unref()
+      spawn(launcher.cmd, launcher.args, {
+        detached: true,
+        stdio: 'ignore',
+        // Windows-only option, ignored elsewhere.
+        windowsVerbatimArguments: true
+      }).unref()
     } catch (e) {
       throw new AppException('LLM_FAILED', 'Could not open a terminal for Claude login', String(e))
     }
