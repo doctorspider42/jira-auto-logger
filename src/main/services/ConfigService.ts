@@ -270,7 +270,7 @@ export class ConfigService {
           calendarIcon: f.calendarIcon ?? ''
         }))
 
-      const reportBaseGroups = new Set(['project', 'issue', 'day', 'connection'])
+      const reportBaseGroups = new Set(['project', 'issue', 'day', 'connection', 'worklog'])
       const reportBaseColumns = new Set([
         'date',
         'project',
