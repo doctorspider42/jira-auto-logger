@@ -10,6 +10,21 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.40 — 2026-09-16
+
+- Generated suggestions are no longer lost when you close the popup. They stay
+  in memory until you log them or explicitly discard them, so you can go to
+  settings, look something up, come back to the calendar and click that day
+  again to pick up exactly where you left off — edits, notes and all. Days with
+  waiting suggestions are marked with a ✎ in the month view, and step 2 has a
+  **Discard suggestions** button for when you don't want them after all.
+- Fixed suggestion generation failing with "The model returned malformed JSON"
+  when the model added a closing remark after the JSON answer (or split it into
+  one array per day). The response is now read by scanning for a complete JSON
+  array instead of everything up to the last `]` in the text, so a trailing
+  note mentioning an issue key like `[PROJ-12]` no longer breaks the whole run.
+  When parsing does fail, the error details now carry the model's actual reply.
+
 ## 0.1.38 — 2026-09-14
 
 - Reports can now group by **Worklog** — the same level Tempo offers next to

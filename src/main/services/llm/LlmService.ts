@@ -26,6 +26,48 @@ import { ClaudeCliProvider } from './ClaudeCliProvider'
 import { CopilotCliProvider } from './CopilotCliProvider'
 import { OpenAiApiProvider } from './OpenAiApiProvider'
 
+/** Rows the model actually meant as suggestions, as opposed to prose brackets. */
+function looksLikeSuggestion(row: unknown): boolean {
+  return (
+    typeof row === 'object' &&
+    row !== null &&
+    ('issueKey' in row || 'description' in row || 'hours' in row)
+  )
+}
+
+/**
+ * Every top-level `[...]` substring with balanced brackets, string literals
+ * respected so a `]` inside a description doesn't end the scan early. Arrays
+ * nested inside a match are skipped - only the outermost ones are yielded.
+ */
+function* balancedArrays(text: string): Generator<string> {
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] !== '[') continue
+    let depth = 0
+    let inString = false
+    let escaped = false
+    for (let j = i; j < text.length; j++) {
+      const ch = text[j]
+      if (inString) {
+        if (escaped) escaped = false
+        else if (ch === '\\') escaped = true
+        else if (ch === '"') inString = false
+        continue
+      }
+      if (ch === '"') inString = true
+      else if (ch === '[' || ch === '{') depth++
+      else if (ch === ']' || ch === '}') {
+        depth--
+        if (depth <= 0) {
+          yield text.slice(i, j + 1)
+          i = j
+          break
+        }
+      }
+    }
+  }
+}
+
 interface RawSuggestion {
   date?: string
   issueKey?: string
@@ -492,19 +534,34 @@ export class LlmService {
   }
 
   private extractJsonArray(text: string): unknown[] {
-    // Models occasionally wrap JSON in fences or add prose - find the array.
-    const start = text.indexOf('[')
-    const end = text.lastIndexOf(']')
-    if (start === -1 || end <= start) {
-      throw new AppException('LLM_BAD_RESPONSE', 'The model response contains no JSON array', text.slice(0, 2000))
+    // Models occasionally wrap JSON in fences, add a closing remark, or split
+    // the answer into one array per day. Slicing from the first '[' to the
+    // last ']' broke on all of those - a trailing sentence mentioning
+    // "[PROJ-12]" swallowed the prose between them into the parse. Scanning
+    // for balanced arrays instead tolerates anything around the answer.
+    const arrays: unknown[][] = []
+    let sawCandidate = false
+    for (const candidate of balancedArrays(text)) {
+      sawCandidate = true
+      try {
+        const parsed = JSON.parse(candidate)
+        if (Array.isArray(parsed)) arrays.push(parsed)
+      } catch {
+        // Prose that merely looks like an array - keep scanning.
+      }
     }
-    try {
-      const parsed = JSON.parse(text.slice(start, end + 1))
-      if (!Array.isArray(parsed)) throw new Error('not an array')
-      return parsed
-    } catch (e) {
-      throw new AppException('LLM_BAD_RESPONSE', 'The model returned malformed JSON', String(e))
+    if (arrays.length === 0) {
+      throw new AppException(
+        'LLM_BAD_RESPONSE',
+        sawCandidate ? 'The model returned malformed JSON' : 'The model response contains no JSON array',
+        text.slice(0, 2000)
+      )
     }
+    // Keep every array that carries rows (a per-day split must not be
+    // truncated to its first chunk) and drop bracketed prose alongside them.
+    const withRows = arrays.filter((rows) => rows.some(looksLikeSuggestion))
+    // No rows anywhere: an empty array is the legitimate "nothing to log" answer.
+    return withRows.length > 0 ? withRows.flat() : arrays[0]
   }
 
   private normalizeHours(hours: unknown): number {

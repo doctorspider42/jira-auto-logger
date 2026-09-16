@@ -30,6 +30,8 @@
     "viewMonth": "Miesiąc",
     "viewDay": "Dzień",
     "openDay": "Otwórz widok dnia",
+    "openDraft": "Wróć do sugestii",
+    "draftPending": "Niezatwierdzone sugestie — kliknij dzień, aby do nich wrócić.",
     "weekdays": ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"],
     "activeConnections": "Aktywne połączenia Jira",
     "editor": {
@@ -58,6 +60,8 @@
     "previewTokens": "≈ {{count}} tokenów (input)",
     "generating": "Generuję sugestie…",
     "suggestionsInfo": "Sprawdź i popraw sugestie. Czas zostanie zalogowany dopiero po zatwierdzeniu.",
+    "draftKept": "Zamknięcie okna nic nie kasuje — wrócisz do tych sugestii, klikając ten dzień w kalendarzu.",
+    "discard": "Odrzuć sugestie",
     "issue": "Zadanie",
     "issuePlaceholder": "np. PROJ-123 lub szukaj…",
     "openInJira": "Otwórz w Jirze",

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { format, isSameMonth, isToday } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
-import { useAppStore } from '@/store/appStore'
+import { findDraft, useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
 import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
@@ -22,18 +22,33 @@ export function CalendarView(): JSX.Element {
   const [wizardAutoStart, setWizardAutoStart] = useState(false)
   const [editing, setEditing] = useState<CalendarEntry | null>(null)
   const [taskFilter, setTaskFilter] = useState('')
+  const drafts = useAppStore((s) => s.drafts)
+  // A day that belongs to an unsubmitted generation reopens that whole run
+  // instead of starting a blank one beside it.
   const openWizard = useCallback((dates: string[]) => {
     setWizardAutoStart(false)
-    setWizardDates(dates)
+    setWizardDates(findDraft(useAppStore.getState().drafts, dates)?.dates ?? dates)
   }, [])
+
+  /** Days carrying suggestions that were generated but never submitted. */
+  const draftDates = useMemo(
+    () =>
+      new Set(
+        Object.values(drafts)
+          .filter((draft) => draft.groups.length > 0)
+          .flatMap((draft) => draft.dates)
+      ),
+    [drafts]
+  )
   const calendar = useCalendar(openWizard)
 
   // Confirmation mode generates straight away; notify-only opens the wizard
   // untouched, exactly as clicking that day in the calendar does.
   useEffect(() => {
     if (!autoLoggerPrompt) return
+    const date = autoLoggerPrompt.date
     setWizardAutoStart(autoLoggerPrompt.autoStart)
-    setWizardDates([autoLoggerPrompt.date])
+    setWizardDates(findDraft(useAppStore.getState().drafts, [date])?.dates ?? [date])
     consumeAutoLoggerPrompt()
   }, [autoLoggerPrompt, consumeAutoLoggerPrompt])
 
@@ -163,8 +178,10 @@ export function CalendarView(): JSX.Element {
         )}
         <div className="calendar-actions">
           {isDayView ? (
-            <button className="btn btn-primary" onClick={() => setWizardDates([focusedIso])}>
-              {t('calendar.generateSuggestions')}
+            <button className="btn btn-primary" onClick={() => openWizard([focusedIso])}>
+              {draftDates.has(focusedIso)
+                ? t('calendar.openDraft')
+                : t('calendar.generateSuggestions')}
             </button>
           ) : (
             calendar.selected.size > 1 && (
@@ -173,7 +190,7 @@ export function CalendarView(): JSX.Element {
                 <button className="btn btn-ghost btn-sm" onClick={calendar.clearSelection}>
                   {t('calendar.clearSelection')}
                 </button>
-                <button className="btn btn-primary" onClick={() => setWizardDates(selectedDates)}>
+                <button className="btn btn-primary" onClick={() => openWizard(selectedDates)}>
                   {t('calendar.generateSuggestions')}
                 </button>
               </>
@@ -285,11 +302,18 @@ export function CalendarView(): JSX.Element {
                 >
                   {day.getDate()}
                 </span>
-                {totalSeconds > 0 && (
-                  <span className="calendar-day-total">
-                    {formatHours(totalSeconds)}{t('app.hoursShort')}
-                  </span>
-                )}
+                <span className="calendar-day-meta">
+                  {draftDates.has(iso) && (
+                    <span className="calendar-day-draft" title={t('calendar.draftPending')}>
+                      ✎
+                    </span>
+                  )}
+                  {totalSeconds > 0 && (
+                    <span className="calendar-day-total">
+                      {formatHours(totalSeconds)}{t('app.hoursShort')}
+                    </span>
+                  )}
+                </span>
               </div>
               <MonthDayEntries
                 entries={worklogs}
