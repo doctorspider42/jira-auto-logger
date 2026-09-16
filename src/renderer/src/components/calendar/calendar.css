@@ -179,6 +179,22 @@
   padding: 0 4px;
 }
 
+.calendar-day-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Marks a day whose generated suggestions are waiting, not yet logged. */
+.calendar-day-draft {
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
 .calendar-day-total {
   font-size: 11px;
   color: var(--color-text-muted);

@@ -13,7 +13,7 @@ import type {
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { FunnyLoader } from '@/components/common/FunnyLoader'
 import { Modal } from '@/components/common/Modal'
-import { useAppStore } from '@/store/appStore'
+import { findDraft, useAppStore, type WizardDraft } from '@/store/appStore'
 import { useThemeText } from '@/theme/useThemeCopy'
 import { dateLocale, formatHours } from '@/utils/format'
 import { SuggestionRow } from './SuggestionRow'
@@ -39,6 +39,10 @@ const nextId = (): string => `local-${++clientId}`
  * toggle per project. Each project then gets its own isolated LLM pass.
  * Step 2 shows fully editable suggestions grouped by project and only
  * submits to Tempo after explicit confirmation.
+ *
+ * Closing the popup does not throw the work away: the whole state is parked in
+ * the store as a draft and restored when those days are opened again. Only
+ * "discard" - or a successful submit - clears it.
  */
 export function SuggestionWizard({
   dates,
@@ -50,24 +54,33 @@ export function SuggestionWizard({
   const tt = useThemeText()
   const config = useAppStore((s) => s.config)
   const rememberLastUsed = useAppStore((s) => s.rememberLastUsed)
+  const saveDraft = useAppStore((s) => s.saveDraft)
+  const discardDraft = useAppStore((s) => s.discardDraft)
 
-  const [step, setStep] = useState<Step>('input')
+  // Read once: the caller remounts the wizard (keyed by dates) whenever the
+  // days change, so a draft picked up at mount stays the right one.
+  const [restored] = useState(() => findDraft(useAppStore.getState().drafts, dates))
+
+  const [step, setStep] = useState<Step>(restored?.step ?? 'input')
   /** Step-2 layout: stacked cards (default) or the experimental dense table. */
-  const [layout, setLayout] = useState<'cards' | 'table'>('cards')
+  const [layout, setLayout] = useState<'cards' | 'table'>(restored?.layout ?? 'cards')
   /** Selected projects with their per-generation inputs, in selection order. */
   const [selections, setSelections] = useState<ProjectSelection[]>(() =>
-    autoStart
+    restored?.selections ??
+    (autoStart
       ? config.lastUsed.selections.filter((selection) => {
           const project = config.projects.find((candidate) => candidate.id === selection.projectId)
           return project && !project.archived
         })
-      : []
+      : [])
   )
 
-  const [groups, setGroups] = useState<ProjectSuggestions[]>([])
+  const [groups, setGroups] = useState<ProjectSuggestions[]>(restored?.groups ?? [])
   /** When set, step 2 shows only the entries of this date. */
-  const [dateFilter, setDateFilter] = useState<string | null>(null)
-  const [commitsByProject, setCommitsByProject] = useState<Record<string, CommitInfo[]>>({})
+  const [dateFilter, setDateFilter] = useState<string | null>(restored?.dateFilter ?? null)
+  const [commitsByProject, setCommitsByProject] = useState<Record<string, CommitInfo[]>>(
+    restored?.commitsByProject ?? {}
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
   const [preview, setPreview] = useState<PromptPreview[] | null>(null)
@@ -151,12 +164,44 @@ export function SuggestionWizard({
 
   const autoStarted = useRef(false)
   useEffect(() => {
+    // A parked generation for this day is shown as it is - the scheduler must
+    // not silently replace suggestions the user already edited.
+    if (restored?.groups.length) return
     if (!autoStart || selections.length === 0 || autoStarted.current) return
     autoStarted.current = true
     void generate()
     // The scheduled wizard must run exactly once with its mount-time selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // ---------- Draft persistence ----------
+
+  /** Set when the draft must NOT be parked: explicit discard, or a done submit. */
+  const dropped = useRef(false)
+  const latest = useRef<WizardDraft | null>(null)
+  // Cheaper than writing to the store on every keystroke: the store only needs
+  // the final state, so keep a snapshot and park it once, on unmount.
+  useEffect(() => {
+    latest.current = { dates, step, layout, selections, groups, commitsByProject, dateFilter }
+  })
+  useEffect(
+    () => () => {
+      const draft = latest.current
+      if (dropped.current || !draft) return
+      // Nothing typed and nothing generated - don't mark the day with an empty draft.
+      if (draft.groups.length === 0 && draft.selections.length === 0) discardDraft(dates)
+      else saveDraft(draft)
+    },
+    // Runs once, on unmount, over whatever the last render left in the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  )
+
+  const discard = (): void => {
+    dropped.current = true
+    discardDraft(dates)
+    onClose()
+  }
 
   // Groups are one per (project, target) pair; the target id identifies them.
   const patchGroup = (
@@ -292,6 +337,8 @@ export function SuggestionWizard({
       }
     }
     setBusy(false)
+    dropped.current = true
+    discardDraft(dates)
     onDone()
   }
 
@@ -308,7 +355,7 @@ export function SuggestionWizard({
         {previewLoading ? <span className="spinner" /> : '{ }'} {t('wizard.previewContext')}
       </button>
       <span style={{ flex: 1 }} />
-      <button className="btn btn-ghost" onClick={onClose}>
+      <button className="btn btn-ghost" onClick={discard}>
         {t('app.cancel')}
       </button>
       <button className="btn btn-primary" disabled={busy || !canGenerate} onClick={generate}>
@@ -322,6 +369,10 @@ export function SuggestionWizard({
       <button className="btn btn-ghost" onClick={() => setStep('input')} disabled={busy}>
         {t('app.back')}
       </button>
+      <button className="btn btn-ghost" onClick={discard} disabled={busy}>
+        {t('wizard.discard')}
+      </button>
+      <span style={{ flex: 1 }} />
       <button
         className="btn btn-primary"
         disabled={busy || allSuggestions.length === 0}
@@ -488,7 +539,9 @@ export function SuggestionWizard({
         <>
           {renderDayTabs()}
           <div className="wizard-step2-head">
-            <p className="hint wizard-info">{t('wizard.suggestionsInfo')}</p>
+            <p className="hint wizard-info">
+              {t('wizard.suggestionsInfo')} {t('wizard.draftKept')}
+            </p>
             <div className="wizard-total">
               <span>{t('wizard.totalHours')}</span>
               <span className={`wizard-total-hours ${hoursStatus(visibleTotal, visibleTarget)}`}>

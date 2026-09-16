@@ -30,6 +30,8 @@
     "viewMonth": "Month",
     "viewDay": "Day",
     "openDay": "Open day view",
+    "openDraft": "Back to suggestions",
+    "draftPending": "Unsubmitted suggestions — click the day to come back to them.",
     "weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     "activeConnections": "Active Jira connections",
     "editor": {
@@ -58,6 +60,8 @@
     "previewTokens": "≈ {{count}} tokens (input)",
     "generating": "Generating suggestions…",
     "suggestionsInfo": "Review and adjust the suggestions. Time is logged only after you confirm.",
+    "draftKept": "Closing the window discards nothing — click that day in the calendar to come back to these suggestions.",
+    "discard": "Discard suggestions",
     "issue": "Issue",
     "issuePlaceholder": "e.g. PROJ-123 or search…",
     "openInJira": "Open in Jira",
