@@ -87,6 +87,16 @@ const ISSUE_KEY_PATTERN = /[A-Z][A-Z0-9]+-\d+/g
 /** How many recent worklogs are sent to the LLM as style examples. */
 const EXAMPLE_WORKLOG_COUNT = 10
 
+/**
+ * Cap on a standing instruction (a project's, or a custom field's) in the
+ * prompt. Generous on purpose: these are the developer's own rules, and a rule
+ * that arrives half-cut is worse than none - the earlier 300-char cap silently
+ * dropped the second half of a policy (e.g. what does NOT count as creative
+ * work), so the model only ever saw the part that said yes. The clip stays as a
+ * backstop against a pasted document blowing up every pass.
+ */
+const INSTRUCTION_LIMIT = 4000
+
 /** Truncates free text going into the prompt; long tails add tokens, not signal. */
 const clip = (text: string, max: number): string =>
   text.length > max ? `${text.slice(0, max - 1)}…` : text
@@ -312,7 +322,7 @@ export class LlmService {
       project: {
         key: target.jiraProjectKey,
         name: project.name,
-        ...(project.instruction.trim() ? { instructions: clip(project.instruction, 600) } : {})
+        ...(project.instruction.trim() ? { instructions: clip(project.instruction, INSTRUCTION_LIMIT) } : {})
       },
       projectCount: request.selections.length,
       ...(autoFillFields.length > 0
@@ -321,7 +331,7 @@ export class LlmService {
               key: f.key,
               label: clip(f.label, 80),
               type: f.type,
-              ...(f.instruction.trim() ? { instruction: clip(f.instruction, 300) } : {})
+              ...(f.instruction.trim() ? { instruction: clip(f.instruction, INSTRUCTION_LIMIT) } : {})
             }))
           }
         : {}),
