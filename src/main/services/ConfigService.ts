@@ -8,6 +8,7 @@ import {
   DEFAULT_REPORT_FILENAME_TEMPLATE,
   validateReportFilenameTemplate
 } from '@shared/reportFilename'
+import { LEGACY_DEFAULT_MAIN_PROMPT } from './legacyPrompt'
 import { isMockMode, mockConfig } from './mock'
 
 interface StoredConfig {
@@ -143,9 +144,7 @@ export class ConfigService {
       // Merge over defaults so new fields added in future versions get sane values.
       const config: AppConfig = { ...defaultConfig(), ...stored.config }
       config.llm = { ...defaultConfig().llm, ...stored.config.llm }
-      // The main prompt is now baked into the app; drop any user-edited copy
-      // left over from older versions so it never resurfaces.
-      delete (config.llm as { mainPrompt?: string }).mainPrompt
+      this.migrateLegacyMainPrompt(config)
       config.issuePool = { ...defaultConfig().issuePool, ...stored.config.issuePool }
       config.updates = { ...defaultConfig().updates, ...stored.config.updates }
       config.telemetry = { ...defaultConfig().telemetry, ...stored.config.telemetry }
@@ -303,6 +302,43 @@ export class ConfigService {
     } catch {
       return defaultConfig()
     }
+  }
+
+  /**
+   * The main prompt used to live in `llm.mainPrompt`, fully editable, so rules
+   * the developer cared about ("non-creative work always gets description X")
+   * were typically written straight into it. Baking the prompt into the app
+   * dropped that field on load - and with it those rules, silently, which is
+   * how instructions that had worked for months stopped being applied.
+   *
+   * So the stored prompt's own lines - the ones that are not part of the old
+   * default - move to `llm.additionalInstructions`, which is injected as a
+   * highest-priority override and is editable in Settings. An untouched copy
+   * contributes nothing and is dropped as before. Lines the user *deleted* from
+   * the default cannot be represented this way; the built-in prompt wins there.
+   */
+  private migrateLegacyMainPrompt(config: AppConfig): void {
+    const llm = config.llm as AppConfig['llm'] & { mainPrompt?: string }
+    const stored = llm.mainPrompt
+    // Gone for good either way: the field no longer exists in the shape.
+    delete llm.mainPrompt
+    // Nothing stored, or the user already has their own extra instructions -
+    // never overwrite what they can see and edit today.
+    if (!stored?.trim() || config.llm.additionalInstructions.trim()) return
+
+    // Both sides are normalized the same way, so reindenting or rewrapping the
+    // default does not make its lines look custom. Placeholders go because
+    // `{{input}}` is substituted *after* this text is injected - a carried line
+    // holding one would paste the whole input JSON a second time.
+    const normalize = (line: string): string =>
+      line.replace(/\{\{\w+\}\}/g, '').replace(/\s+/g, ' ').trim()
+    const builtIn = new Set(LEGACY_DEFAULT_MAIN_PROMPT.split('\n').map(normalize))
+    const custom = stored
+      .split('\n')
+      .map(normalize)
+      .filter((line) => line !== '' && !builtIn.has(line))
+
+    if (custom.length > 0) config.llm.additionalInstructions = custom.join('\n')
   }
 
   /** Wraps a single-Jira config (pre-multi-connection) into a connection. */

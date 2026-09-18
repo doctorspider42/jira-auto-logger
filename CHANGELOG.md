@@ -10,6 +10,24 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.41 — 2026-09-18
+
+- **Your standing instructions now reach the model in full.** A project's
+  instruction and a custom field's instruction were cut to 600 and 300
+  characters before being sent, silently — so a longer rule (say a definition of
+  creative work with a list of what does *not* count as one) arrived
+  half-finished and the model only ever saw its first paragraph. Both limits are
+  now 4000 characters, which no realistic instruction hits.
+- **Fixed: rules written into the old editable main prompt were dropped.** When
+  the main prompt became built-in, the version stored in your config was deleted
+  on the next launch — together with any rule you had written into it, with no
+  warning and nowhere to find it. Those lines now move into
+  Settings → LLM → "Extra LLM instructions", where they are sent as a
+  highest-priority override. If your prompt was never edited, nothing is
+  carried over. **Configs that were already migrated by an earlier version
+  cannot be recovered** — if suggestions have been ignoring a rule of yours,
+  retype it in that field.
+
 ## 0.1.40 — 2026-09-16
 
 - Generated suggestions are no longer lost when you close the popup. They stay
