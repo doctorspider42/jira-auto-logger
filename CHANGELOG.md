@@ -10,6 +10,17 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.43 — 2026-09-25
+
+- **New theme: Animus ▲ 1.28.** The first Assassin's Creed's Animus menus —
+  a cloudy steel-blue sky crossed by thin white lines, dark slate blocks with
+  `>` in front of every tab, the current one in solid black, and pale glowing
+  cyan for the Animus's own layer. Structural formulas of DNA/RNA bases rise
+  slowly out of the fog, and a sync sweep re-renders the screen from the bottom
+  up. The loader turns into a spinning DNA helix with Abstergo's own
+  (Jira-flavoured) status lines, errors briefly desynchronise, and the
+  log-time button now reads **Synchronize**. Pick it in Settings → Appearance.
+
 ## 0.1.42 — 2026-09-25
 
 - **See which model wrote your suggestions.** The review step now says in

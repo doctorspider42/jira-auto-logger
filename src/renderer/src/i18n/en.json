@@ -193,6 +193,7 @@
     "themeY2K": "Y2K ✧ Ultra",
     "themeMaaSnEk": "maa-sn-ek",
     "themeClairObscur": "Clair Obscur ◆ Expedition 33",
+    "themeAnimus": "Animus ▲ 1.28",
     "workingHours": "Working hours per day",
     "workdayStart": "Workday start",
     "showWeekends": "Show weekends in the calendar",
@@ -422,6 +423,46 @@
       ],
       "wizard": {
         "submit": "We Continue ({{count}})"
+      }
+    },
+    "animus": {
+      "funnyLoading": [
+        "Loading Animus 1.28 (Jira edition)…",
+        "Synchronizing with your ancestral worklogs…",
+        "Calibrating the Animus to the current sprint…",
+        "Loading genetic memory: Friday, 16:45…",
+        "Extracting genetic memories of a forgotten standup…",
+        "Scanning your DNA for traces of billable hours…",
+        "Rebuilding the memory corridor to the backlog…",
+        "Reconstructing 1191 A.D.… close enough to last sprint…",
+        "Rendering the white void. Do not look directly at the backlog…",
+        "Climbing a viewpoint to see the whole sprint…",
+        "Using Eagle Vision to find out who's actually assigned…",
+        "Blending in with a group of scholars at the retro…",
+        "Leap of faith into a haystack of open issues…",
+        "Pickpocketing story points from a sub-task…",
+        "Eavesdropping on the Product Owner in Damascus…",
+        "Reporting the sprint summary to Al Mualim at Masyaf…",
+        "Malik is unimpressed with your estimates, novice…",
+        "Dr. Vidic requests one more session. And one more ticket…",
+        "Lucy is backing up your worklogs. For science…",
+        "Subject 17, please remain in the Animus until the sprint ends…",
+        "Collecting all 100 flags… sorry, 100 unresolved tickets…",
+        "Memory fragment corrupted: “fix”, “fix2”, “final fix”…",
+        "Genetic memory indicates your ancestor also logged 8h on “Meetings”…",
+        "Your ancestor did not round up to the quarter hour. Desynchronizing…",
+        "Desynchronization averted: you did attend the daily…",
+        "Bleeding effect detected: you now think in story points…",
+        "Resolving a Templar merge conflict…",
+        "Assembling the Templars' Gantt chart…",
+        "Mapping your git history onto the Third Crusade…",
+        "Filling the synchronization bar one worklog at a time…",
+        "Nothing is true, everything is estimated…",
+        "Abstergo Industries thanks you for your continued timesheet compliance…",
+        "Abstergo reminds you: the Animus is not a place to hide from standups…"
+      ],
+      "wizard": {
+        "submit": "Synchronize ({{count}})"
       }
     }
   },
