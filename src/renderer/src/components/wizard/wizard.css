@@ -14,6 +14,14 @@
   margin-top: 0;
 }
 
+/* Which model produced the suggestions - small print under the last group. */
+.wizard-model {
+  margin: 4px 0 0;
+  font-size: 11px;
+  text-align: right;
+  opacity: 0.8;
+}
+
 .wizard-connection-group {
   margin-bottom: 20px;
 }

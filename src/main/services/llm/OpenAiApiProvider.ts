@@ -1,9 +1,11 @@
 import { AppException } from '@shared/domain'
 import type { OpenAiConfig } from '@shared/domain'
 import { logger } from '../logger'
-import type { LlmProvider } from './LlmProvider'
+import type { LlmCompletion, LlmProvider } from './LlmProvider'
 
 interface ChatCompletionDto {
+  /** Resolved model snapshot, e.g. `gpt-4o-mini-2024-07-18`. */
+  model?: string
   choices: Array<{ message: { content: string } }>
 }
 
@@ -26,7 +28,7 @@ export class OpenAiApiProvider implements LlmProvider {
     return null
   }
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string): Promise<LlmCompletion> {
     const { apiKey, model, baseUrl } = this.config
     if (!apiKey) {
       throw new AppException('CONFIG_INVALID', 'OpenAI API key is not configured')
@@ -67,6 +69,6 @@ export class OpenAiApiProvider implements LlmProvider {
     if (!content) {
       throw new AppException('LLM_BAD_RESPONSE', 'OpenAI returned an empty response')
     }
-    return content
+    return { text: content, model: dto.model || model || 'gpt-4o-mini' }
   }
 }

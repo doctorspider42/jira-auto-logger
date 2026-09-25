@@ -456,6 +456,8 @@ export interface ProjectSuggestions {
   connectionId: string
   connectionName: string
   jiraProjectKey: string
+  /** Model that produced this group, as reported by the backend; absent when unknown. */
+  model?: string
   suggestions: WorklogSuggestion[]
 }
 

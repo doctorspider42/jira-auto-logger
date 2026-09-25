@@ -10,6 +10,14 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.42 — 2026-09-25
+
+- **See which model wrote your suggestions.** The review step now says in
+  small print which model generated them — the real one, not just the alias
+  from your settings: with Claude set to `opus` it shows e.g.
+  `claude-opus-5-5`. The OpenAI API reports its exact model snapshot too; for
+  the Copilot CLI, which doesn't report it, the configured model is shown.
+
 ## 0.1.41 — 2026-09-18
 
 - **Your standing instructions now reach the model in full.** A project's

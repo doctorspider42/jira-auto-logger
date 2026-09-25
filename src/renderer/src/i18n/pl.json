@@ -79,6 +79,7 @@
     "submitted": "Zalogowano {{count}} wpisów.",
     "missingIssue": "Uzupełnij zadanie we wszystkich wpisach.",
     "allDays": "Wszystkie dni",
+    "generatedWith": "Wygenerowano modelem: {{models}}",
     "totalHours": "Łącznie",
     "layout": "Układ",
     "layoutCards": "Karty",
