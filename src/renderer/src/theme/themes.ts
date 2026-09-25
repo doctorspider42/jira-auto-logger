@@ -410,6 +410,44 @@ export const THEMES: Theme[] = [
         "Constantia, 'Palatino Linotype', 'Book Antiqua', Garamond, Cambria, Georgia, 'Times New Roman', serif",
       '--shadow-popup': '0 22px 60px rgba(0, 0, 0, 0.85)'
     }
+  },
+  {
+    id: 'animus',
+    nameKey: 'settings.themeAnimus',
+    // Abstergo's own loading lines, and "Synchronise" on the button that
+    // commits the day - logging time is just syncing with a memory.
+    copy: { key: 'themeCopy.animus', loadingMessages: 'replace' },
+    variables: {
+      ...shared,
+      // Animus 1.28, the first Assassin's Creed, sampled off its menu screens:
+      // a cloudy steel-blue sky, dark slate label blocks with plain white type,
+      // solid black for the item you are on. The pale glowing cyan (#3fd8ff) is
+      // the Animus's information layer and does the accent work - on these dark
+      // blocks it is legible as text too. The sky, the rising nucleobase
+      // formulas and the `>` menu idiom live in animus.css.
+      '--color-scheme': 'dark',
+      '--color-bg': '#5d778b',
+      '--color-bg-raised': '#1b2630',
+      '--color-bg-hover': '#2a3946',
+      '--color-border': '#4a6072',
+      '--color-text': '#f2f7fa',
+      '--color-text-muted': '#aec1ce',
+      '--color-accent': '#3fd8ff',
+      '--color-accent-contrast': '#04202b',
+      '--color-accent-soft': 'rgba(63, 216, 255, 0.16)',
+      // Desynchronisation red.
+      '--color-danger': '#ff5c64',
+      '--color-success': '#5ee3a8',
+      '--color-warning': '#ffcf5a',
+      '--color-selection': 'rgba(63, 216, 255, 0.3)',
+      // The game's blocks are sharp rectangles, every one of them.
+      '--radius-sm': '0px',
+      '--radius-md': '0px',
+      '--radius-lg': '0px',
+      // A plain grotesque, as in the menus. Arial stands in on Windows.
+      '--font-family': "'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif",
+      '--shadow-popup': '0 18px 50px rgba(8, 14, 20, 0.55), 0 0 0 1px rgba(242, 247, 250, 0.12)'
+    }
   }
 ]
 

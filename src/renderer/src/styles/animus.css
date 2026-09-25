@@ -1,0 +1,571 @@
+/*
+ * Animus — the Animus 1.28 skin for the `animus` theme, after the first
+ * Assassin's Creed, taken off its own menu screens.
+ *
+ * What those screens are: a steel-blue sky thick with cloud, a couple of thin
+ * white lines cutting across the whole frame, and the structural formulas of
+ * the nucleobases drawn in white in the corners - the machine is reading DNA,
+ * and it lets you see the chemistry. Every label is a sharp dark slate block
+ * with plain white type and a `>` in front of it; the item you are on is the
+ * same block in solid black. Nothing is rounded.
+ *
+ * The pale glowing cyan is this app's addition on top of that: the Animus's
+ * information layer, used for the primary action, focus, today and the loader.
+ * The formulas rise up out of the fog at the bottom of the frame, the way the
+ * memory corridor builds itself underneath you.
+ *
+ * Everything is scoped under `[data-theme="animus"]` (the attribute
+ * `applyTheme` stamps on <html>), so switching away drops all of it and nothing
+ * leaks. Base variables live in themes.ts; this file adds what variables can't
+ * express.
+ */
+
+[data-theme='animus'] {
+  --an-cyan: #3fd8ff;
+  --an-cyan-glow: rgba(63, 216, 255, 0.5);
+  --an-cyan-faint: rgba(63, 216, 255, 0.16);
+  /* The label block. Translucent so the sky shows through, the way the game's
+     blocks let the clouds through behind the text. */
+  --an-block: rgba(27, 38, 48, 0.78);
+  --an-block-soft: rgba(27, 38, 48, 0.55);
+  --an-black: #05080b;
+  --an-rule: rgba(20, 28, 36, 0.55);
+  --an-white: #f2f7fa;
+
+  /*
+   * Rising nucleobases, two depths: uracil, thymine and cytosine rings and the
+   * open C=N-O backbone fragment, bonds stopping short of each letter as in the
+   * game's diagrams. Separate layers so each travels a different distance in
+   * the same loop - near ones rise fast, far ones barely move.
+   *
+   * Every travel distance in `an-rise` is an exact multiple of its tile size,
+   * or the loop would visibly jump when it restarts.
+   */
+  --an-mol-near: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420'%3E%3Cdefs%3E%3Cg id='u'%3E%3Cpath d='M4.8 -13.0L9.1 -10.5 M15.5 -2.2L15.5 2.8 M12.3 -2.2L12.3 2.8 M9.1 11.0L4.8 13.5 M-4.8 13.5L-9.1 11.0 M-13.9 2.8L-13.9 -2.2 M-9.1 -10.5L-4.8 -13.0 M-1.6 -21.2L-1.6 -26.2 M1.6 -21.2L1.6 -26.2 M-17.8 12.4L-22.1 14.9 M-19.4 9.6L-23.7 12.1 M-18.6 -10.5L-22.9 -13.0 M18.6 -10.5L22.9 -13.0 M18.6 11.0L22.9 13.5 M0.0 21.8L0.0 29.1' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='0.0' y='-12.5'%3EC%3C/text%3E%3Ctext x='13.9' y='-4.5'%3EC%3C/text%3E%3Ctext x='13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='0.0' y='19.5'%3EN%3C/text%3E%3Ctext x='-13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='-13.9' y='-4.5'%3EN%3C/text%3E%3Ctext x='0.0' y='-28.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='19.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='19.5'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='t'%3E%3Cpath d='M4.8 -13.0L9.1 -10.5 M15.5 -2.2L15.5 2.8 M12.3 -2.2L12.3 2.8 M9.1 11.0L4.8 13.5 M-4.8 13.5L-9.1 11.0 M-13.9 2.8L-13.9 -2.2 M-9.1 -10.5L-4.8 -13.0 M-1.6 -21.2L-1.6 -26.2 M1.6 -21.2L1.6 -26.2 M-17.8 12.4L-22.1 14.9 M-19.4 9.6L-23.7 12.1 M-18.6 -10.5L-22.9 -13.0 M18.6 -10.5L22.9 -13.0 M18.6 11.0L22.9 13.5 M0.0 21.8L0.0 29.1' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='0.0' y='-12.5'%3EC%3C/text%3E%3Ctext x='13.9' y='-4.5'%3EC%3C/text%3E%3Ctext x='13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='0.0' y='19.5'%3EN%3C/text%3E%3Ctext x='-13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='-13.9' y='-4.5'%3EN%3C/text%3E%3Ctext x='0.0' y='-28.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='19.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='-12.5'%3ECH%3Ctspan dy='2' font-size='6'%3E3%3C/tspan%3E%3C/text%3E%3Ctext x='27.7' y='19.5'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='c'%3E%3Cpath d='M2.6 -8.1L7.0 -5.6 M13.3 2.7L13.3 7.7 M10.1 2.7L10.1 7.7 M7.0 15.9L2.6 18.4 M-6.9 18.4L-11.2 15.9 M-16.0 7.7L-16.0 2.7 M-12.0 -7.0L-7.7 -9.5 M-10.4 -4.2L-6.1 -6.7 M-2.1 -16.3L-2.1 -21.3 M-20.0 17.3L-24.3 19.8 M-21.6 14.5L-25.9 17.0 M16.5 -5.6L20.8 -8.1 M16.5 15.9L20.8 18.4 M-2.1 26.7L-2.1 34.0 M-6.9 -29.6L-11.3 -32.1 M2.6 -29.6L7.0 -32.1' stroke='%23bff1ff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23bff1ff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='-2.1' y='-7.6'%3EC%3C/text%3E%3Ctext x='11.7' y='0.4'%3EC%3C/text%3E%3Ctext x='11.7' y='16.4'%3EC%3C/text%3E%3Ctext x='-2.1' y='24.4'%3EN%3C/text%3E%3Ctext x='-16.0' y='16.4'%3EC%3C/text%3E%3Ctext x='-16.0' y='0.4'%3EN%3C/text%3E%3Ctext x='-2.1' y='-23.6'%3EN%3C/text%3E%3Ctext x='-29.8' y='24.4'%3EO%3C/text%3E%3Ctext x='25.6' y='-7.6'%3EH%3C/text%3E%3Ctext x='25.6' y='24.4'%3EH%3C/text%3E%3Ctext x='-16.0' y='-31.6'%3EH%3C/text%3E%3Ctext x='11.8' y='-31.6'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='k'%3E%3Cpath d='M-15.3 -25.4L-8.9 -29.0 M-13.8 -22.6L-7.3 -26.2 M1.5 -27.6L7.9 -24.0 M12.7 -15.8L12.7 -8.8 M7.9 -0.6L1.5 3.0 M-3.3 11.2L-3.3 18.2 M2.2 25.0L8.7 28.6 M0.7 27.8L7.1 31.4 M16.6 36.6L20.8 40.8 M-24.0 -24.3L-33.3 -30.3' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='-19.3' y='-18.1'%3EC%3C/text%3E%3Ctext x='-3.3' y='-27.1'%3EN%3C/text%3E%3Ctext x='12.7' y='-18.1'%3EC%3C/text%3E%3Ctext x='12.7' y='-0.1'%3EN%3C/text%3E%3Ctext x='-3.3' y='8.9'%3EO%3C/text%3E%3Ctext x='-3.3' y='26.9'%3EN%3C/text%3E%3Ctext x='12.7' y='35.9'%3EC%3C/text%3E%3Ctext x='24.7' y='47.9'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3C/defs%3E%3Cg opacity='0.62'%3E%3Cuse href='%23c' transform='translate(80 90)'/%3E%3Cuse href='%23k' transform='translate(300 150)'/%3E%3Cuse href='%23u' transform='translate(170 320)'/%3E%3Cuse href='%23t' transform='translate(345 355) scale(0.85)'/%3E%3C/g%3E%3C/svg%3E");
+  --an-mol-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cdefs%3E%3Cg id='u'%3E%3Cpath d='M4.8 -13.0L9.1 -10.5 M15.5 -2.2L15.5 2.8 M12.3 -2.2L12.3 2.8 M9.1 11.0L4.8 13.5 M-4.8 13.5L-9.1 11.0 M-13.9 2.8L-13.9 -2.2 M-9.1 -10.5L-4.8 -13.0 M-1.6 -21.2L-1.6 -26.2 M1.6 -21.2L1.6 -26.2 M-17.8 12.4L-22.1 14.9 M-19.4 9.6L-23.7 12.1 M-18.6 -10.5L-22.9 -13.0 M18.6 -10.5L22.9 -13.0 M18.6 11.0L22.9 13.5 M0.0 21.8L0.0 29.1' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='0.0' y='-12.5'%3EC%3C/text%3E%3Ctext x='13.9' y='-4.5'%3EC%3C/text%3E%3Ctext x='13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='0.0' y='19.5'%3EN%3C/text%3E%3Ctext x='-13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='-13.9' y='-4.5'%3EN%3C/text%3E%3Ctext x='0.0' y='-28.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='19.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='19.5'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='t'%3E%3Cpath d='M4.8 -13.0L9.1 -10.5 M15.5 -2.2L15.5 2.8 M12.3 -2.2L12.3 2.8 M9.1 11.0L4.8 13.5 M-4.8 13.5L-9.1 11.0 M-13.9 2.8L-13.9 -2.2 M-9.1 -10.5L-4.8 -13.0 M-1.6 -21.2L-1.6 -26.2 M1.6 -21.2L1.6 -26.2 M-17.8 12.4L-22.1 14.9 M-19.4 9.6L-23.7 12.1 M-18.6 -10.5L-22.9 -13.0 M18.6 -10.5L22.9 -13.0 M18.6 11.0L22.9 13.5 M0.0 21.8L0.0 29.1' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='0.0' y='-12.5'%3EC%3C/text%3E%3Ctext x='13.9' y='-4.5'%3EC%3C/text%3E%3Ctext x='13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='0.0' y='19.5'%3EN%3C/text%3E%3Ctext x='-13.9' y='11.5'%3EC%3C/text%3E%3Ctext x='-13.9' y='-4.5'%3EN%3C/text%3E%3Ctext x='0.0' y='-28.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='19.5'%3EO%3C/text%3E%3Ctext x='-27.7' y='-12.5'%3EH%3C/text%3E%3Ctext x='27.7' y='-12.5'%3ECH%3Ctspan dy='2' font-size='6'%3E3%3C/tspan%3E%3C/text%3E%3Ctext x='27.7' y='19.5'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='c'%3E%3Cpath d='M2.6 -8.1L7.0 -5.6 M13.3 2.7L13.3 7.7 M10.1 2.7L10.1 7.7 M7.0 15.9L2.6 18.4 M-6.9 18.4L-11.2 15.9 M-16.0 7.7L-16.0 2.7 M-12.0 -7.0L-7.7 -9.5 M-10.4 -4.2L-6.1 -6.7 M-2.1 -16.3L-2.1 -21.3 M-20.0 17.3L-24.3 19.8 M-21.6 14.5L-25.9 17.0 M16.5 -5.6L20.8 -8.1 M16.5 15.9L20.8 18.4 M-2.1 26.7L-2.1 34.0 M-6.9 -29.6L-11.3 -32.1 M2.6 -29.6L7.0 -32.1' stroke='%23bff1ff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23bff1ff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='-2.1' y='-7.6'%3EC%3C/text%3E%3Ctext x='11.7' y='0.4'%3EC%3C/text%3E%3Ctext x='11.7' y='16.4'%3EC%3C/text%3E%3Ctext x='-2.1' y='24.4'%3EN%3C/text%3E%3Ctext x='-16.0' y='16.4'%3EC%3C/text%3E%3Ctext x='-16.0' y='0.4'%3EN%3C/text%3E%3Ctext x='-2.1' y='-23.6'%3EN%3C/text%3E%3Ctext x='-29.8' y='24.4'%3EO%3C/text%3E%3Ctext x='25.6' y='-7.6'%3EH%3C/text%3E%3Ctext x='25.6' y='24.4'%3EH%3C/text%3E%3Ctext x='-16.0' y='-31.6'%3EH%3C/text%3E%3Ctext x='11.8' y='-31.6'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3Cg id='k'%3E%3Cpath d='M-15.3 -25.4L-8.9 -29.0 M-13.8 -22.6L-7.3 -26.2 M1.5 -27.6L7.9 -24.0 M12.7 -15.8L12.7 -8.8 M7.9 -0.6L1.5 3.0 M-3.3 11.2L-3.3 18.2 M2.2 25.0L8.7 28.6 M0.7 27.8L7.1 31.4 M16.6 36.6L20.8 40.8 M-24.0 -24.3L-33.3 -30.3' stroke='%23f4fbff' stroke-width='1.1' fill='none'/%3E%3Cg fill='%23f4fbff' font-family='Arial,Helvetica,sans-serif' font-size='9' text-anchor='middle'%3E%3Ctext x='-19.3' y='-18.1'%3EC%3C/text%3E%3Ctext x='-3.3' y='-27.1'%3EN%3C/text%3E%3Ctext x='12.7' y='-18.1'%3EC%3C/text%3E%3Ctext x='12.7' y='-0.1'%3EN%3C/text%3E%3Ctext x='-3.3' y='8.9'%3EO%3C/text%3E%3Ctext x='-3.3' y='26.9'%3EN%3C/text%3E%3Ctext x='12.7' y='35.9'%3EC%3C/text%3E%3Ctext x='24.7' y='47.9'%3EH%3C/text%3E%3C/g%3E%3C/g%3E%3C/defs%3E%3Cg opacity='0.34'%3E%3Cuse href='%23u' transform='translate(70 230) scale(0.6)'/%3E%3Cuse href='%23c' transform='translate(210 80) scale(0.55)'/%3E%3Cuse href='%23k' transform='translate(240 250) scale(0.5)'/%3E%3C/g%3E%3C/svg%3E");
+  --an-fog: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0045' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  2.2 0 0 0 -0.95'/%3E%3C/filter%3E%3Crect width='600' height='600' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E");
+
+  /* The double helix, for the loader. One turn per tile; sliding the tile
+     sideways by exactly its width reads as the strand rotating in place. */
+  --an-helix: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='16'%3E%3Cg stroke='%23a9c7d6' stroke-width='1'%3E%3Cpath d='M3 3.8 V12.2 M9 3.8 V12.2 M15 3.8 V12.2 M21 3.8 V12.2 M0 2 V14 M12 2 V14 M24 2 V14'/%3E%3C/g%3E%3Cg fill='none' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='M0 2 C4 2 8 14 12 14 C16 14 20 2 24 2' stroke='%23f2f7fa'/%3E%3Cpath d='M0 14 C4 14 8 2 12 2 C16 2 20 14 24 14' stroke='%233fd8ff'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- The sky ---------- */
+
+[data-theme='animus'] body {
+  background-color: #577184;
+  background-image:
+    /* The two hairlines that cross the whole menu, corner to corner. */
+    linear-gradient(
+      58deg,
+      transparent calc(50% - 0.6px),
+      rgba(242, 247, 250, 0.4) 50%,
+      transparent calc(50% + 0.6px)
+    ),
+    linear-gradient(
+      -52deg,
+      transparent calc(38% - 0.6px),
+      rgba(242, 247, 250, 0.3) 38%,
+      transparent calc(38% + 0.6px)
+    ),
+    /* Light breaking through at the top, heavier weather below. */
+      radial-gradient(70% 55% at 48% 28%, rgba(176, 202, 218, 0.4), transparent 70%),
+    radial-gradient(60% 50% at 85% 85%, rgba(28, 40, 52, 0.45), transparent 72%),
+    linear-gradient(180deg, #6f8a9e 0%, #577184 55%, #435a6b 100%);
+  background-attachment: fixed;
+}
+
+/*
+ * The weather and the rising formulas share one fixed layer BEHIND the
+ * interface (z-index -1 paints above the canvas but below in-flow blocks), so
+ * they are seen through the translucent blocks rather than drawn over the type.
+ * The fog tile only drifts sideways; the formulas climb.
+ */
+[data-theme='animus'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--an-mol-near), var(--an-mol-far), var(--an-fog), var(--an-fog);
+  background-size: 420px 420px, 300px 300px, 600px 600px, 900px 900px;
+  background-position: 0 0, 0 0, 0 0, 300px 200px;
+  animation: an-rise 90s linear infinite;
+}
+
+@keyframes an-rise {
+  to {
+    /* 3 and 3 tiles up; the fog banks 1 tile sideways, in opposite directions. */
+    background-position: 0 -1260px, 0 -900px, 600px 0, -600px 200px;
+  }
+}
+
+/*
+ * The sync sweep: a band of light that climbs from the floor to the ceiling and
+ * then waits, the way the Animus re-renders a memory from the ground up. It sits
+ * over everything but is faint and passes quickly, so it never blocks a read.
+ */
+[data-theme='animus'] body::before {
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 140px;
+  z-index: 9997;
+  pointer-events: none;
+  background: linear-gradient(
+    0deg,
+    transparent,
+    rgba(63, 216, 255, 0.05) 70%,
+    rgba(63, 216, 255, 0.2) 98%,
+    rgba(242, 247, 250, 0.45)
+  );
+  transform: translateY(100vh);
+  animation: an-sweep 14s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+
+@keyframes an-sweep {
+  0% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+  4% {
+    opacity: 1;
+  }
+  26% {
+    transform: translateY(-140px);
+    opacity: 1;
+  }
+  27%,
+  100% {
+    transform: translateY(-140px);
+    opacity: 0;
+  }
+}
+
+/* Text that sits straight on the sky (hints, the report subtitle, the ghost
+   buttons) has no block behind it, and the clouds are light enough to swallow
+   muted type. A soft shadow gives it the dark edge the game's blocks would;
+   inside a block it isn't needed, so it is dropped there again. */
+[data-theme='animus'] .app-main {
+  text-shadow: 0 1px 3px rgba(10, 16, 22, 0.75);
+}
+
+[data-theme='animus'] .card,
+[data-theme='animus'] .modal,
+[data-theme='animus'] .calendar-day,
+[data-theme='animus'] input,
+[data-theme='animus'] textarea,
+[data-theme='animus'] select {
+  text-shadow: none;
+}
+
+/* ---------- Header: the title block and the rule under it ---------- */
+
+[data-theme='animus'] .app-header {
+  background: linear-gradient(180deg, rgba(27, 38, 48, 0.42), rgba(27, 38, 48, 0.18));
+  border-bottom: 2px solid var(--an-rule);
+}
+
+/* The title is set the way the game sets "WAITING FOR INPUT": big plain white
+   capitals on a slate block, with the Abstergo triangle in front. */
+[data-theme='animus'] .app-header h1 {
+  display: inline-block;
+  padding: 3px 12px 3px 10px;
+  background: var(--an-block);
+  color: var(--an-white);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+[data-theme='animus'] .app-header h1::before {
+  content: '';
+  display: inline-block;
+  width: 13px;
+  height: 12px;
+  margin-right: 9px;
+  vertical-align: -1px;
+  background: var(--an-white);
+  /* A triangle with a notch cut out of its base, near enough to the logo. */
+  clip-path: polygon(50% 0, 100% 100%, 62% 100%, 50% 72%, 38% 100%, 0 100%);
+}
+
+/* The version sits beside the logo where the game keeps its timecode. */
+[data-theme='animus'] .app-version {
+  padding: 2px 7px;
+  background: var(--an-block-soft);
+  color: var(--an-white);
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme='animus'] .modal-header h2,
+[data-theme='animus'] .reports-heading h2,
+[data-theme='animus'] .custom-fields-group h4,
+[data-theme='animus'] .wizard-connection-group h4 {
+  color: var(--an-white);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+[data-theme='animus'] .reports-kicker {
+  color: var(--an-cyan);
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+}
+
+/* ---------- The `>` menu ---------- */
+
+/*
+ * Every menu item in the game is a slate block with `>` in front of it, the
+ * unselected ones faded back into the sky and the current one solid black.
+ * The tabs, the settings sections and the primary action all get that.
+ */
+[data-theme='animus'] .nav-tab,
+[data-theme='animus'] .settings-nav-item {
+  border-radius: 0;
+  background: var(--an-block-soft);
+  color: rgba(242, 247, 250, 0.62);
+}
+
+[data-theme='animus'] .nav-tab::before,
+[data-theme='animus'] .settings-nav-item::before,
+[data-theme='animus'] .btn-primary::before {
+  content: '>';
+  margin-right: 2px;
+}
+
+/* A button is an inline-flex with a 6px gap, so the `>` would sit a whole gap
+   away from its label; pulling it back keeps it as tight as on the tabs. */
+[data-theme='animus'] .btn-primary::before {
+  margin-right: -4px;
+}
+
+[data-theme='animus'] .nav-tab:hover:not(.active),
+[data-theme='animus'] .settings-nav-item:hover:not(.active) {
+  background: var(--an-block);
+  color: var(--an-white);
+}
+
+[data-theme='animus'] .nav-tab.active,
+[data-theme='animus'] .settings-nav-item.active {
+  background: var(--an-black);
+  color: var(--an-white);
+  font-weight: 400;
+  box-shadow: inset 0 -2px 0 var(--an-cyan);
+}
+
+[data-theme='animus'] .nav-tab-badge {
+  border-radius: 0;
+  background: var(--an-cyan);
+  box-shadow: 0 0 6px var(--an-cyan-glow);
+}
+
+/* ---------- Panels ---------- */
+
+[data-theme='animus'] .card,
+[data-theme='animus'] .connection-card {
+  background: var(--an-block);
+  backdrop-filter: blur(6px);
+  border-color: rgba(242, 247, 250, 0.12);
+}
+
+/* Nested panels would stack their translucency into near-black; inside a block
+   the inner one only needs to separate itself, not to sit on the sky. */
+[data-theme='animus'] .card .card,
+[data-theme='animus'] .card .connection-card,
+[data-theme='animus'] .modal .card,
+[data-theme='animus'] .modal .connection-card {
+  background: rgba(242, 247, 250, 0.04);
+  backdrop-filter: none;
+}
+
+/* A dialog and a sticky bar float over live UI rather than over the sky, so
+   they are opaque - the weather is only free to show through where nothing is. */
+[data-theme='animus'] .modal {
+  background: #1d2832;
+  border-color: rgba(242, 247, 250, 0.2);
+}
+
+[data-theme='animus'] .modal-backdrop {
+  background: rgba(58, 78, 94, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+[data-theme='animus'] .modal-header {
+  background: var(--an-black);
+  border-bottom: 2px solid var(--an-rule);
+}
+
+[data-theme='animus'] .settings-save-bar,
+[data-theme='animus'] .reports-action-pro {
+  background-color: #1d2832;
+  border-top: 2px solid var(--an-rule);
+}
+
+/* ---------- Controls ---------- */
+
+[data-theme='animus'] .btn {
+  background: var(--an-block);
+  border-color: transparent;
+  color: var(--an-white);
+}
+
+[data-theme='animus'] .btn:hover:not(:disabled) {
+  background: var(--an-black);
+  border-color: transparent;
+}
+
+/* No bare text buttons: in the game every item is a block, faded when idle. */
+[data-theme='animus'] .btn-ghost {
+  background: var(--an-block-soft);
+}
+
+[data-theme='animus'] .btn-ghost:hover:not(:disabled) {
+  background: var(--an-block);
+}
+
+/* The synchronise action is the one lit block: the glowing cyan as a fill with
+   dark type on it. `:not(.blocked)` so the red validation state still wins. */
+[data-theme='animus'] .btn-primary:not(.blocked) {
+  background: var(--an-cyan);
+  border-color: var(--an-cyan);
+  color: #04202b;
+  box-shadow: 0 0 14px var(--an-cyan-glow);
+}
+
+[data-theme='animus'] .btn-primary:not(.blocked):hover:not(:disabled) {
+  background: #7ae6ff;
+  filter: none;
+  box-shadow: 0 0 22px var(--an-cyan-glow);
+}
+
+[data-theme='animus'] input,
+[data-theme='animus'] textarea,
+[data-theme='animus'] select {
+  background: rgba(8, 13, 18, 0.62);
+  border-color: rgba(242, 247, 250, 0.18);
+}
+
+[data-theme='animus'] input:focus,
+[data-theme='animus'] textarea:focus,
+[data-theme='animus'] select:focus {
+  border-color: var(--an-cyan);
+  box-shadow: 0 0 0 3px var(--an-cyan-faint);
+  outline: none;
+}
+
+[data-theme='animus'] input[type='checkbox'],
+[data-theme='animus'] input[type='radio'] {
+  accent-color: var(--an-cyan);
+}
+
+[data-theme='animus'] .chip {
+  border-radius: 0;
+  background: var(--an-block-soft);
+  border-color: transparent;
+}
+
+[data-theme='animus'] .chip.selected,
+[data-theme='animus'] .report-segmented button.active,
+[data-theme='animus'] .report-column-chip:has(input:checked),
+[data-theme='animus'] .reports-select-chip:has(input:checked) {
+  background: var(--an-black);
+  border-color: var(--an-cyan);
+  color: var(--an-white);
+}
+
+/* ---------- Calendar ---------- */
+
+[data-theme='animus'] .calendar-weekday,
+[data-theme='animus'] .calendar-month-label,
+[data-theme='animus'] .day-tab-weekday {
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+}
+
+[data-theme='animus'] .calendar-weekday {
+  background: var(--an-block);
+  color: var(--an-white);
+}
+
+[data-theme='animus'] .calendar-day {
+  background: var(--an-block-soft);
+  border-color: transparent;
+  transition:
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+[data-theme='animus'] .calendar-day:hover {
+  background: var(--an-block);
+}
+
+/* Today is the memory currently loaded: outlined in the glow. */
+[data-theme='animus'] .calendar-day.today {
+  box-shadow:
+    inset 0 0 0 1px var(--an-cyan),
+    0 0 14px rgba(63, 216, 255, 0.3);
+}
+
+[data-theme='animus'] .calendar-day.today .calendar-day-number {
+  border-radius: 0;
+  background: var(--an-cyan);
+  color: #04202b;
+}
+
+[data-theme='animus'] .calendar-day.selected,
+[data-theme='animus'] .day-tab.selected {
+  background: var(--an-black);
+  border-color: var(--an-cyan);
+}
+
+[data-theme='animus'] .calendar-entry {
+  border-radius: 0;
+}
+
+[data-theme='animus'] .day-now-dot {
+  border-radius: 0;
+}
+
+/* ---------- Waiting: synchronising, with the helix turning ---------- */
+
+[data-theme='animus'] .funny-loader {
+  position: relative;
+  overflow: hidden;
+  background: var(--an-black);
+  border-radius: 0;
+  color: var(--an-white);
+}
+
+/* The synchronisation bar filling left to right, then starting over. */
+[data-theme='animus'] .funny-loader::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, var(--an-cyan) 80%, #ffffff);
+  box-shadow: 0 0 8px var(--an-cyan-glow);
+  transform-origin: left;
+  animation: an-sync 3.2s ease-in-out infinite;
+}
+
+[data-theme='animus'] .funny-loader > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes an-sync {
+  from {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  85% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+/* Only the loader's spinner becomes the helix - the plain one elsewhere in the
+   app is a few pixels wide and a strand would not survive at that size. */
+[data-theme='animus'] .funny-loader .spinner {
+  width: 48px;
+  height: 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--an-helix) 0 0 / 24px 16px repeat-x;
+  filter: drop-shadow(0 0 3px var(--an-cyan-glow));
+  animation: an-helix 1.1s linear infinite;
+}
+
+@keyframes an-helix {
+  to {
+    background-position: 24px 0;
+  }
+}
+
+[data-theme='animus'] .spinner {
+  border-color: rgba(242, 247, 250, 0.2);
+  border-top-color: var(--an-cyan);
+}
+
+/* ---------- Desynchronisation ---------- */
+
+/* An error is the memory rejecting you: the red and the cyan split apart for a
+   moment, the way the Animus tears when Desmond does something Altaïr didn't. */
+[data-theme='animus'] .banner-error {
+  border-left: 3px solid var(--color-danger);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--an-block));
+  animation: an-desync 5s steps(1) infinite;
+}
+
+@keyframes an-desync {
+  0%,
+  92%,
+  100% {
+    text-shadow: none;
+    transform: none;
+  }
+  94% {
+    text-shadow:
+      2px 0 rgba(255, 40, 70, 0.6),
+      -2px 0 rgba(63, 216, 255, 0.75);
+    transform: translateX(1px);
+  }
+  97% {
+    text-shadow:
+      -1px 0 rgba(255, 40, 70, 0.6),
+      1px 0 rgba(63, 216, 255, 0.75);
+    transform: translateX(-1px);
+  }
+}
+
+/* ---------- Chrome ---------- */
+
+[data-theme='animus'] ::selection {
+  background: rgba(63, 216, 255, 0.4);
+  color: #ffffff;
+}
+
+[data-theme='animus'] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+[data-theme='animus'] ::-webkit-scrollbar-track {
+  background: rgba(20, 28, 36, 0.3);
+}
+
+[data-theme='animus'] ::-webkit-scrollbar-thumb {
+  background: rgba(242, 247, 250, 0.3);
+  border-radius: 0;
+}
+
+[data-theme='animus'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--an-cyan);
+}
+
+/* The rising formulas, the drifting fog, the sweep, the helix and the glitch
+   all move; anyone asking for less motion gets a still sky. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='animus'] body::after,
+  [data-theme='animus'] .funny-loader::before,
+  [data-theme='animus'] .funny-loader .spinner,
+  [data-theme='animus'] .banner-error {
+    animation: none;
+  }
+
+  [data-theme='animus'] body::before {
+    display: none;
+  }
+}

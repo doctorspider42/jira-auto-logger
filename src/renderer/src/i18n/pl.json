@@ -193,6 +193,7 @@
     "themeY2K": "Y2K ✧ Ultra",
     "themeMaaSnEk": "maa-sn-ek",
     "themeClairObscur": "Clair Obscur ◆ Expedition 33",
+    "themeAnimus": "Animus ▲ 1.28",
     "workingHours": "Godziny robocze dziennie",
     "workdayStart": "Początek dnia pracy",
     "showWeekends": "Pokazuj weekendy w kalendarzu",
@@ -422,6 +423,46 @@
       ],
       "wizard": {
         "submit": "Przemy naprzód ({{count}})"
+      }
+    },
+    "animus": {
+      "funnyLoading": [
+        "Ładowanie Animusa 1.28 (edycja Jira)…",
+        "Synchronizacja z worklogami Twoich przodków…",
+        "Kalibrowanie Animusa do bieżącego sprintu…",
+        "Wczytywanie pamięci genetycznej: piątek, 16:45…",
+        "Wydobywanie pamięci genetycznej o zapomnianym standupie…",
+        "Skanowanie DNA w poszukiwaniu śladów godzin do zafakturowania…",
+        "Odbudowywanie korytarza pamięci do backlogu…",
+        "Rekonstrukcja roku 1191… wystarczająco blisko ostatniego sprintu…",
+        "Renderowanie białej pustki. Nie patrz bezpośrednio na backlog…",
+        "Wspinaczka na punkt widokowy, żeby zobaczyć cały sprint…",
+        "Orle oko szuka, kto naprawdę jest przypisany…",
+        "Wtapianie się w grupę uczonych na retro…",
+        "Skok wiary w stóg otwartych zgłoszeń…",
+        "Kieszonkowa kradzież story pointów z sub-taska…",
+        "Podsłuchiwanie Product Ownera w Damaszku…",
+        "Składanie Al Mualimowi raportu ze sprintu w Masjafie…",
+        "Malik nie jest pod wrażeniem Twoich estymat, nowicjuszu…",
+        "Dr Vidic prosi o jeszcze jedną sesję. I jeszcze jeden ticket…",
+        "Lucy robi kopię zapasową Twoich worklogów. Dla nauki…",
+        "Obiekt 17, prosimy pozostać w Animusie do końca sprintu…",
+        "Zbieranie wszystkich 100 flag… przepraszamy, 100 nierozwiązanych ticketów…",
+        "Uszkodzony fragment pamięci: „fix”, „fix2”, „final fix”…",
+        "Pamięć genetyczna wskazuje, że przodek też logował 8h na „Spotkania”…",
+        "Twój przodek nie zaokrąglał do kwadransa w górę. Desynchronizacja…",
+        "Desynchronizacja zażegnana: jednak byłeś na daily…",
+        "Wykryto efekt przenikania: myślisz teraz w story pointach…",
+        "Rozwiązywanie konfliktu merge'a z templariuszami…",
+        "Składanie wykresu Gantta templariuszy…",
+        "Nakładanie historii gita na trzecią krucjatę…",
+        "Napełnianie paska synchronizacji worklog po worklogu…",
+        "Nic nie jest prawdą, wszystko jest estymowane…",
+        "Abstergo Industries dziękuje za dalsze przestrzeganie zasad raportowania czasu…",
+        "Abstergo przypomina: Animus to nie miejsce, by chować się przed standupem…"
+      ],
+      "wizard": {
+        "submit": "Synchronizuj ({{count}})"
       }
     }
   },
