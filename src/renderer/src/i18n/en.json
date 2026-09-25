@@ -80,6 +80,7 @@
     "missingIssue": "Fill in the issue for every entry.",
     "allDays": "All days",
     "totalHours": "Total",
+    "generatedWith": "Generated with: {{models}}",
     "layout": "Layout",
     "layoutCards": "Cards",
     "layoutTable": "Table",

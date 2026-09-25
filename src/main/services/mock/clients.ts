@@ -10,7 +10,7 @@ import type {
 import type { CommitSource } from '../GitService'
 import type { JiraApi } from '../JiraClient'
 import type { TempoApi } from '../TempoClient'
-import type { LlmProvider } from '../llm/LlmProvider'
+import type { LlmCompletion, LlmProvider } from '../llm/LlmProvider'
 import {
   MOCK_ISSUES,
   PROJECTS_BY_CONNECTION,
@@ -204,8 +204,12 @@ interface MockPromptInput {
  * response goes through the real parsing/validation pipeline.
  */
 export class MockLlmProvider implements LlmProvider {
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string): Promise<LlmCompletion> {
     await sleep(1500)
+    return { text: this.respond(prompt), model: 'mock-model' }
+  }
+
+  private respond(prompt: string): string {
     if (!prompt.includes('JSON array')) {
       return 'Adjusted the implementation according to review feedback and extended the tests.'
     }

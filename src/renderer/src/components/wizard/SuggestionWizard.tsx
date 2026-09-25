@@ -426,6 +426,10 @@ export function SuggestionWizard({
     )
   }
 
+  // Every pass reports its own model; normally they match, but a config change
+  // between a restored draft and a regeneration can mix them.
+  const usedModels = [...new Set(groups.flatMap((g) => (g.model ? [g.model] : [])))]
+
   const renderGroup = (group: ProjectSuggestions): JSX.Element => {
     const project = projectById.get(group.projectId)
     const connection = config.connections.find((c) => c.id === group.connectionId)
@@ -565,6 +569,11 @@ export function SuggestionWizard({
             </div>
           </div>
           {groups.map(renderGroup)}
+          {usedModels.length > 0 && (
+            <p className="hint wizard-model">
+              {t('wizard.generatedWith', { models: usedModels.join(', ') })}
+            </p>
+          )}
         </>
       )}
 

@@ -21,7 +21,7 @@ import type { ConnectionManager } from '../ConnectionManager'
 import type { CommitSource } from '../GitService'
 import { logger } from '../logger'
 import { isMockMode, MockLlmProvider } from '../mock'
-import type { LlmProvider } from './LlmProvider'
+import type { LlmCompletion, LlmProvider } from './LlmProvider'
 import { ClaudeCliProvider } from './ClaudeCliProvider'
 import { CopilotCliProvider } from './CopilotCliProvider'
 import { OpenAiApiProvider } from './OpenAiApiProvider'
@@ -135,9 +135,9 @@ export class LlmService {
           candidateIssues: built.candidates.length,
           promptLength: built.prompt.length
         })
-        const text = await this.completeFor(label, built.prompt)
+        const { text, model } = await this.completeFor(label, built.prompt)
         const suggestions = this.parseSuggestions(text, request.dates, built.candidates, target)
-        logger.info('llm', `"${label}": ${suggestions.length} suggestions parsed`)
+        logger.info('llm', `"${label}": ${suggestions.length} suggestions parsed`, { model })
         results.push({
           projectId: project.id,
           projectName: project.name,
@@ -145,6 +145,7 @@ export class LlmService {
           connectionId: connection.id,
           connectionName: connection.name,
           jiraProjectKey: target.jiraProjectKey,
+          ...(model ? { model } : {}),
           suggestions
         })
       }
@@ -188,7 +189,7 @@ export class LlmService {
       .replaceAll('{{notes}}', freeText || '(none)')
       .replaceAll('{{hint}}', hint || 'Rewrite it to be clearer.')
 
-    const text = (await this.createProvider().complete(prompt)).trim()
+    const text = (await this.createProvider().complete(prompt)).text.trim()
     if (!text) {
       throw new AppException('LLM_BAD_RESPONSE', 'The model returned an empty description')
     }
@@ -248,7 +249,7 @@ export class LlmService {
   }
 
   /** Adds the project name so the user knows which pass failed. */
-  private async completeFor(projectName: string, prompt: string): Promise<string> {
+  private async completeFor(projectName: string, prompt: string): Promise<LlmCompletion> {
     try {
       return await this.createProvider().complete(prompt)
     } catch (e) {

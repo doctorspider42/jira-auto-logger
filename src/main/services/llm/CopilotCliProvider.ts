@@ -1,5 +1,5 @@
 import { AppException } from '@shared/domain'
-import type { LlmProvider } from './LlmProvider'
+import type { LlmCompletion, LlmProvider } from './LlmProvider'
 import { runCli } from './cliRunner'
 
 const AUTH_ERROR_PATTERNS = [
@@ -16,7 +16,7 @@ export class CopilotCliProvider implements LlmProvider {
     private readonly model: string
   ) {}
 
-  async complete(prompt: string): Promise<string> {
+  async complete(prompt: string): Promise<LlmCompletion> {
     const args = ['-p', '-s']
     if (this.model) args.push('--model', this.model)
     const result = await runCli(this.cliPath, args, prompt)
@@ -28,6 +28,7 @@ export class CopilotCliProvider implements LlmProvider {
     if (result.exitCode !== 0) {
       throw new AppException('LLM_FAILED', 'Copilot CLI failed', combined.slice(0, 2000))
     }
-    return result.stdout
+    // Silent mode prints only the answer, so the configured name is all we know.
+    return { text: result.stdout, model: this.model || undefined }
   }
 }
