@@ -42,7 +42,14 @@ export function mockConfig(): AppConfig {
       {
         id: 'mock-project-app',
         name: 'Mobile App',
-        targets: [{ id: 'mock-target-app', connectionId: CONN_MAIN, jiraProjectKey: 'APP' }],
+        targets: [
+          {
+            id: 'mock-target-app',
+            connectionId: CONN_MAIN,
+            jiraProjectKey: 'APP',
+            instruction: 'Prefer logging to stories over the epic.'
+          }
+        ],
         gitFolders: [
           {
             path: 'C:\\dev\\mobile-app',
@@ -51,16 +58,16 @@ export function mockConfig(): AppConfig {
             includeAllAuthors: false
           }
         ],
-        instruction: 'Prefer logging to stories over the epic.',
         color: '#6d9eff',
         archived: false
       },
       {
         id: 'mock-project-int',
         name: 'Internal Tools',
-        targets: [{ id: 'mock-target-int', connectionId: CONN_MAIN, jiraProjectKey: 'INT' }],
+        targets: [
+          { id: 'mock-target-int', connectionId: CONN_MAIN, jiraProjectKey: 'INT', instruction: '' }
+        ],
         gitFolders: [],
-        instruction: '',
         color: '#ffc857',
         archived: false
       },
@@ -70,8 +77,18 @@ export function mockConfig(): AppConfig {
         id: 'mock-project-shop',
         name: 'Client X Shop',
         targets: [
-          { id: 'mock-target-shop', connectionId: CONN_CLIENT, jiraProjectKey: 'SHOP' },
-          { id: 'mock-target-clx', connectionId: CONN_MAIN, jiraProjectKey: 'CLX' }
+          {
+            id: 'mock-target-shop',
+            connectionId: CONN_CLIENT,
+            jiraProjectKey: 'SHOP',
+            instruction: 'Descriptions must be client-friendly, no internal jargon.'
+          },
+          {
+            id: 'mock-target-clx',
+            connectionId: CONN_MAIN,
+            jiraProjectKey: 'CLX',
+            instruction: 'Short internal notes are fine; name the client ticket when there is one.'
+          }
         ],
         gitFolders: [
           {
@@ -87,7 +104,6 @@ export function mockConfig(): AppConfig {
             includeAllAuthors: false
           }
         ],
-        instruction: 'Descriptions must be client-friendly, no internal jargon.',
         color: '#4fd28a',
         archived: false
       }

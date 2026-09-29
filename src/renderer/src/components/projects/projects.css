@@ -68,6 +68,19 @@
   margin: 0 0 6px;
 }
 
+/* A target is its Jira plus the instruction for that Jira, boxed together so a
+   multi-Jira project reads which instruction belongs to which Jira. */
+.projects-target {
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+}
+
+.projects-target > .field {
+  margin-bottom: 0;
+}
+
 .projects-target-row {
   align-items: flex-end;
   margin-bottom: 6px;

@@ -3,7 +3,14 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { dirname, join } from 'path'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
-import type { AppConfig, GitFolder, JiraConfig, JiraConnection, TempoConfig } from '@shared/domain'
+import type {
+  AppConfig,
+  GitFolder,
+  JiraConfig,
+  JiraConnection,
+  ProjectConfig,
+  TempoConfig
+} from '@shared/domain'
 import {
   DEFAULT_REPORT_FILENAME_TEMPLATE,
   validateReportFilenameTemplate
@@ -36,6 +43,8 @@ interface LegacyProjectFields {
   gitFolder?: GitFolder | null
   connectionId?: string
   jiraProjectKey?: string
+  /** The standing LLM instruction, before it moved onto each target. */
+  instruction?: string
 }
 
 export function defaultConfig(): AppConfig {
@@ -224,14 +233,24 @@ export class ConfigService {
             {
               id: randomUUID(),
               connectionId: legacyProject.connectionId,
-              jiraProjectKey: legacyProject.jiraProjectKey
+              jiraProjectKey: legacyProject.jiraProjectKey,
+              instruction: ''
             }
           ]
         }
-        targets = targets.map((t) => ({ ...t, id: t.id ?? randomUUID() }))
+        // The standing instruction used to be one per project; it is now per
+        // target. Every target inherits the old one, so a multi-Jira project
+        // keeps generating exactly as before until the user splits it.
+        const legacyInstruction = legacyProject.instruction ?? ''
+        targets = targets.map((t) => ({
+          ...t,
+          id: t.id ?? randomUUID(),
+          instruction: t.instruction ?? legacyInstruction
+        }))
 
+        const { instruction: _dropped, ...rest } = project as ProjectConfig & LegacyProjectFields
         return {
-          ...project,
+          ...rest,
           targets,
           gitFolders: folders,
           color: project.color ?? PROJECT_COLOR_PALETTE[index % PROJECT_COLOR_PALETTE.length],

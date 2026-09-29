@@ -10,6 +10,15 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.45 — 2026-09-29
+
+- **Each Jira in a project now has its own standing instruction.** When a
+  project logs to several Jiras (say, the client's and your company's), you
+  can tell the LLM how to write entries for each one separately, e.g.
+  client-friendly wording in the client's Jira and short internal notes in
+  yours. Your existing project instruction is copied to every Jira of that
+  project, so nothing changes until you edit them.
+
 ## 0.1.44 — 2026-09-29
 
 - **The Animus theme no longer stutters.** The rising formulas and the fog

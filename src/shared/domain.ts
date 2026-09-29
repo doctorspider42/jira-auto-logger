@@ -82,12 +82,18 @@ export interface ProjectTarget {
   connectionId: string
   /** Key of the matched Jira project, e.g. "SHOP". */
   jiraProjectKey: string
+  /**
+   * Optional standing instruction sent to the LLM with every generation pass
+   * for this target. Per target, not per project: the client's Jira and the
+   * company Jira usually want differently worded entries.
+   */
+  instruction: string
 }
 
 /**
  * A user-defined project: the unit of work selection. Pins one or more Jira
- * projects (targets), optionally git repositories and a standing instruction
- * for the LLM.
+ * projects (targets, each with its own standing LLM instruction) and
+ * optionally git repositories.
  */
 export interface ProjectConfig {
   id: string
@@ -97,8 +103,6 @@ export interface ProjectConfig {
   targets: ProjectTarget[]
   /** Repositories the project's commits come from. */
   gitFolders: GitFolder[]
-  /** Optional standing instruction sent to the LLM with every generation. */
-  instruction: string
   /** Hex color used to tint this project's entries in the calendar. */
   color: string
   /**

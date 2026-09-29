@@ -11,7 +11,7 @@ import './projects.css'
  * Standalone project management view (main menu, next to the calendar).
  * A project pins one or more Jira projects (targets - e.g. the client's Jira
  * and the company Jira), optional repositories (each with its commit-author
- * filter) and a standing LLM instruction.
+ * filter); each target carries its own standing LLM instruction.
  */
 export function ProjectsView(): JSX.Element {
   const { t } = useTranslation()
@@ -50,7 +50,12 @@ export function ProjectsView(): JSX.Element {
     patchProject(project.id, {
       targets: [
         ...project.targets,
-        { id: crypto.randomUUID(), connectionId: config.connections[0]?.id ?? '', jiraProjectKey: '' }
+        {
+          id: crypto.randomUUID(),
+          connectionId: config.connections[0]?.id ?? '',
+          jiraProjectKey: '',
+          instruction: ''
+        }
       ]
     })
 
@@ -67,11 +72,11 @@ export function ProjectsView(): JSX.Element {
           {
             id: crypto.randomUUID(),
             connectionId: config.connections[0]?.id ?? '',
-            jiraProjectKey: ''
+            jiraProjectKey: '',
+            instruction: ''
           }
         ],
         gitFolders: [],
-        instruction: '',
         color: PROJECT_COLOR_PALETTE[projects.length % PROJECT_COLOR_PALETTE.length],
         archived: false
       }
@@ -222,59 +227,71 @@ export function ProjectsView(): JSX.Element {
               {project.targets.map((target) => {
                 const jiraProjects = jiraProjectsByConnection[target.connectionId] ?? []
                 return (
-                  <div key={target.id} className="field-row projects-target-row">
-                    <div className="field">
-                      <label>{t('settings.projectConnection')}</label>
-                      <select
-                        className={errorClass(!project.archived && !target.connectionId)}
-                        value={target.connectionId}
-                        onChange={(e) => {
-                          patchTarget(project, target.id, {
-                            connectionId: e.target.value,
-                            jiraProjectKey: ''
-                          })
-                          ensureJiraProjects(e.target.value)
-                        }}
-                      >
-                        <option value="">—</option>
-                        {config.connections.map((connection) => (
-                          <option key={connection.id} value={connection.id}>
-                            {connection.name || connection.jira.baseUrl}
-                          </option>
-                        ))}
-                      </select>
+                  <div key={target.id} className="projects-target">
+                    <div className="field-row projects-target-row">
+                      <div className="field">
+                        <label>{t('settings.projectConnection')}</label>
+                        <select
+                          className={errorClass(!project.archived && !target.connectionId)}
+                          value={target.connectionId}
+                          onChange={(e) => {
+                            patchTarget(project, target.id, {
+                              connectionId: e.target.value,
+                              jiraProjectKey: ''
+                            })
+                            ensureJiraProjects(e.target.value)
+                          }}
+                        >
+                          <option value="">—</option>
+                          {config.connections.map((connection) => (
+                            <option key={connection.id} value={connection.id}>
+                              {connection.name || connection.jira.baseUrl}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="field">
+                        <label>{t('settings.projectJiraKey')}</label>
+                        <input
+                          className={errorClass(!project.archived && !target.jiraProjectKey.trim())}
+                          list={`jira-projects-${target.id}`}
+                          value={target.jiraProjectKey}
+                          placeholder="PROJ"
+                          spellCheck={false}
+                          onFocus={() => ensureJiraProjects(target.connectionId)}
+                          onChange={(e) => {
+                            // The datalist option carries "KEY — name"; keep the key only.
+                            const key = e.target.value.split('—')[0].trim().toUpperCase()
+                            patchTarget(project, target.id, { jiraProjectKey: key })
+                          }}
+                        />
+                        <datalist id={`jira-projects-${target.id}`}>
+                          {jiraProjects.map((p) => (
+                            <option key={p.id} value={p.key}>
+                              {`${p.key} — ${p.name}`}
+                            </option>
+                          ))}
+                        </datalist>
+                      </div>
+                      {project.targets.length > 1 && (
+                        <button
+                          className="btn btn-ghost btn-sm btn-danger projects-target-remove"
+                          onClick={() => removeTarget(project, target.id)}
+                        >
+                          {t('projects.removeTarget')}
+                        </button>
+                      )}
                     </div>
                     <div className="field">
-                      <label>{t('settings.projectJiraKey')}</label>
-                      <input
-                        className={errorClass(!project.archived && !target.jiraProjectKey.trim())}
-                        list={`jira-projects-${target.id}`}
-                        value={target.jiraProjectKey}
-                        placeholder="PROJ"
-                        spellCheck={false}
-                        onFocus={() => ensureJiraProjects(target.connectionId)}
-                        onChange={(e) => {
-                          // The datalist option carries "KEY — name"; keep the key only.
-                          const key = e.target.value.split('—')[0].trim().toUpperCase()
-                          patchTarget(project, target.id, { jiraProjectKey: key })
-                        }}
+                      <label>{t('settings.projectInstruction')}</label>
+                      <textarea
+                        value={target.instruction}
+                        placeholder={t('settings.projectInstructionPlaceholder')}
+                        onChange={(e) =>
+                          patchTarget(project, target.id, { instruction: e.target.value })
+                        }
                       />
-                      <datalist id={`jira-projects-${target.id}`}>
-                        {jiraProjects.map((p) => (
-                          <option key={p.id} value={p.key}>
-                            {`${p.key} — ${p.name}`}
-                          </option>
-                        ))}
-                      </datalist>
                     </div>
-                    {project.targets.length > 1 && (
-                      <button
-                        className="btn btn-ghost btn-sm btn-danger projects-target-remove"
-                        onClick={() => removeTarget(project, target.id)}
-                      >
-                        {t('projects.removeTarget')}
-                      </button>
-                    )}
                   </div>
                 )
               })}
@@ -334,15 +351,6 @@ export function ProjectsView(): JSX.Element {
                   + {t('projects.pickFolder')}
                 </button>
               </div>
-            </div>
-
-            <div className="field">
-              <label>{t('settings.projectInstruction')}</label>
-              <textarea
-                value={project.instruction}
-                placeholder={t('settings.projectInstructionPlaceholder')}
-                onChange={(e) => patchProject(project.id, { instruction: e.target.value })}
-              />
             </div>
 
             <div className="settings-test-row">

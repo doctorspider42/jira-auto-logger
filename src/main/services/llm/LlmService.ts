@@ -323,7 +323,7 @@ export class LlmService {
       project: {
         key: target.jiraProjectKey,
         name: project.name,
-        ...(project.instruction.trim() ? { instructions: clip(project.instruction, INSTRUCTION_LIMIT) } : {})
+        ...(target.instruction.trim() ? { instructions: clip(target.instruction, INSTRUCTION_LIMIT) } : {})
       },
       projectCount: request.selections.length,
       ...(autoFillFields.length > 0

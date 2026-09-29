@@ -331,12 +331,12 @@
     "later": "Później"
   },
   "projects": {
-    "hint": "Projekt łączy nazwę, jeden lub więcej projektów z Jiry (np. Jirę klienta i firmową), opcjonalne repozytoria (z filtrem autora commitów) i stałą instrukcję dla LLM. Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
+    "hint": "Projekt łączy nazwę, jeden lub więcej projektów z Jiry (np. Jirę klienta i firmową, każdy z własną stałą instrukcją dla LLM) i opcjonalne repozytoria (z filtrem autora commitów). Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
     "color": "Kolor",
     "colorHint": "Tym kolorem będą oznaczone wpisy projektu w kalendarzu",
     "noConnections": "Najpierw dodaj połączenie Jira w ustawieniach.",
     "jiraTargets": "Projekty Jira",
-    "jiraTargetsHint": "Jeśli logujesz ten sam czas w kilku Jirach (np. u klienta i w firmie), dodaj kilka pozycji — dla każdej Jiry wygenerują się niezależne wpisy z jej zadaniami.",
+    "jiraTargetsHint": "Jeśli logujesz ten sam czas w kilku Jirach (np. u klienta i w firmie), dodaj kilka pozycji — dla każdej Jiry wygenerują się niezależne wpisy z jej zadaniami i jej własną stałą instrukcją.",
     "addTarget": "Dodaj Jirę",
     "removeTarget": "Usuń",
     "foldersHint": "Podłącz lokalne repozytoria git, do których commitujesz w tym projekcie. Aplikacja czyta Twoje ostatnie opisy commitów (nigdy sam kod) i wysyła je do modelu jako kontekst, dzięki czemu wygenerowane opisy wpisów pasują do tego, co faktycznie robiłeś(-aś). Opcjonalne — zostaw puste, aby opisać pracę wyłącznie na podstawie notatek.",

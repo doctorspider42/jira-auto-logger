@@ -479,7 +479,11 @@ export function SuggestionWizard({
               jiraBaseUrl={connection?.jira.baseUrl ?? ''}
               projectKey={group.jiraProjectKey}
               customFields={fieldsForConnection(group.connectionId)}
-              freeText={selection?.note ?? project?.instruction ?? ''}
+              freeText={
+                selection?.note ??
+                project?.targets.find((target) => target.id === group.targetId)?.instruction ??
+                ''
+              }
               commits={commitsByProject[group.projectId] ?? []}
               onChange={(next) =>
                 patchGroup(group.targetId, (list) => list.map((s) => (s.id === next.id ? next : s)))

@@ -11,7 +11,7 @@ interface EntryEditorProps {
   jiraBaseUrl: string
   /** Custom fields configured for the entry's connection. */
   customFields: CustomFieldConfig[]
-  /** Standing LLM instruction of the matched project; used when regenerating. */
+  /** Standing LLM instruction of the matched Jira target; used when regenerating. */
   instruction: string
   onClose(): void
   /** Called after a successful save or delete so the calendar can refresh. */
@@ -73,7 +73,7 @@ export function EntryEditor({
     setRegenerating(true)
     setError(null)
     // No commits are fetched for a past entry; the model rewrites from the
-    // current description, the hint and the project's standing instruction.
+    // current description, the hint and the matched Jira's standing instruction.
     const result = await window.api.llm.regenerateDescription({
       suggestion: {
         id: `edit-${entry.tempoWorklogId}`,
