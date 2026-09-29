@@ -10,6 +10,14 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.1.44 — 2026-09-29
+
+- **The Animus theme no longer stutters.** The rising formulas and the fog
+  used to repaint the whole window on every frame, and each panel re-blurred
+  the sky behind it, which made the app choppy and nearly unusable on 4K
+  screens. The sky now moves on the graphics card, and it looks the same. One
+  fog bank also stops jumping each time its loop restarts.
+
 ## 0.1.43 — 2026-09-25
 
 - **New theme: Animus ▲ 1.28.** The first Assassin's Creed's Animus menus —

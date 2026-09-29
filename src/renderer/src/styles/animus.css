@@ -76,27 +76,88 @@
 }
 
 /*
- * The weather and the rising formulas share one fixed layer BEHIND the
- * interface (z-index -1 paints above the canvas but below in-flow blocks), so
- * they are seen through the translucent blocks rather than drawn over the type.
- * The fog tile only drifts sideways; the formulas climb.
+ * The weather and the rising formulas sit BEHIND the interface (negative
+ * z-index paints above the canvas but below in-flow blocks), so they are seen
+ * through the translucent blocks rather than drawn over the type. The fog banks
+ * only drift sideways, in opposite directions; the formulas climb.
+ *
+ * Each depth is its own fixed layer, oversized by one tile in the direction it
+ * travels, and moves by `transform` - never by animating `background-position`.
+ * A moving background position repaints the whole window every frame (and with
+ * it the fog's fractal noise and every blurred panel over it), which is what
+ * made this theme stutter, and crawl on a 4K screen. A transform only shifts an
+ * already painted layer on the GPU.
+ *
+ * Every travel distance is exactly one tile, or the loop would visibly jump
+ * when it restarts. Speeds: near formulas 14px/s, far 10px/s, fog 6.7px/s.
  */
+html[data-theme='animus']::before,
+html[data-theme='animus']::after,
+[data-theme='animus'] #root::before,
 [data-theme='animus'] body::after {
   content: '';
   position: fixed;
-  inset: 0;
-  z-index: -1;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
-  background-image: var(--an-mol-near), var(--an-mol-far), var(--an-fog), var(--an-fog);
-  background-size: 420px 420px, 300px 300px, 600px 600px, 900px 900px;
-  background-position: 0 0, 0 0, 0 0, 300px 200px;
-  animation: an-rise 90s linear infinite;
+  will-change: transform;
+  animation: linear infinite;
+}
+
+/* Fog, near bank: drifts right. */
+html[data-theme='animus']::before {
+  z-index: -4;
+  left: -600px;
+  width: calc(100% + 600px);
+  background: var(--an-fog) 0 0 / 600px 600px;
+  animation-name: an-drift-right;
+  animation-duration: 90s;
+}
+
+/* Fog, far bank: a bigger tile drifting left at the same speed. */
+html[data-theme='animus']::after {
+  z-index: -3;
+  width: calc(100% + 900px);
+  background: var(--an-fog) 300px 200px / 900px 900px;
+  animation-name: an-drift-left;
+  animation-duration: 135s;
+}
+
+[data-theme='animus'] #root::before {
+  z-index: -2;
+  height: calc(100% + 300px);
+  background: var(--an-mol-far) 0 0 / 300px 300px;
+  --an-tile: -300px;
+  animation-name: an-rise;
+  animation-duration: 30s;
+}
+
+[data-theme='animus'] body::after {
+  z-index: -1;
+  height: calc(100% + 420px);
+  background: var(--an-mol-near) 0 0 / 420px 420px;
+  --an-tile: -420px;
+  animation-name: an-rise;
+  animation-duration: 30s;
 }
 
 @keyframes an-rise {
   to {
-    /* 3 and 3 tiles up; the fog banks 1 tile sideways, in opposite directions. */
-    background-position: 0 -1260px, 0 -900px, 600px 0, -600px 200px;
+    transform: translate3d(0, var(--an-tile), 0);
+  }
+}
+
+@keyframes an-drift-right {
+  to {
+    transform: translate3d(600px, 0, 0);
+  }
+}
+
+@keyframes an-drift-left {
+  to {
+    transform: translate3d(-900px, 0, 0);
   }
 }
 
@@ -268,8 +329,10 @@
 
 [data-theme='animus'] .card,
 [data-theme='animus'] .connection-card {
-  background: var(--an-block);
-  backdrop-filter: blur(6px);
+  /* A touch denser than the label block instead of a backdrop blur: blurring
+     what is behind a panel means redoing the blur every frame the formulas
+     move under it, for every panel on screen. */
+  background: rgba(27, 38, 48, 0.86);
   border-color: rgba(242, 247, 250, 0.12);
 }
 
@@ -280,7 +343,6 @@
 [data-theme='animus'] .modal .card,
 [data-theme='animus'] .modal .connection-card {
   background: rgba(242, 247, 250, 0.04);
-  backdrop-filter: none;
 }
 
 /* A dialog and a sticky bar float over live UI rather than over the sky, so
@@ -291,8 +353,9 @@
 }
 
 [data-theme='animus'] .modal-backdrop {
-  background: rgba(58, 78, 94, 0.55);
-  backdrop-filter: blur(3px);
+  /* Tinted, not blurred - a full-window blur over the moving sky would be
+     recomputed every frame the dialog is open. */
+  background: rgba(40, 55, 68, 0.72);
 }
 
 [data-theme='animus'] .modal-header {
@@ -558,6 +621,9 @@
 /* The rising formulas, the drifting fog, the sweep, the helix and the glitch
    all move; anyone asking for less motion gets a still sky. */
 @media (prefers-reduced-motion: reduce) {
+  html[data-theme='animus']::before,
+  html[data-theme='animus']::after,
+  [data-theme='animus'] #root::before,
   [data-theme='animus'] body::after,
   [data-theme='animus'] .funny-loader::before,
   [data-theme='animus'] .funny-loader .spinner,
