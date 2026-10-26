@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reports — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.rail-btn:hover,.ghost:hover{background:#1A1C21}
+.primary:hover{background:#FFFFFF}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:760px){
+.rail{flex-direction:row !important;width:100% !important;border-right:0 !important;border-bottom:1px solid #23262D;padding:8px 12px !important}
+.rail-nav{flex-direction:row !important}
+.rail-foot{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 1000px; display: flex; flex-wrap: wrap; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<aside class="rail" style="flex: 0 0 76px; width: 76px; box-sizing: border-box; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 28px; border-right: 1px solid #1C1E24">
+<div aria-label="Jira Auto Logger" role="img" style="width: 32px; height: 32px; border-radius: 9px; background: #EDEEF0; color: #0C0D10; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">jl</div>
+<nav class="rail-nav" aria-label="Main" style="display: flex; flex-direction: column; gap: 6px">
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg>Projects</button>
+<button class="rail-btn" aria-current="page" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: #1A1C21; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-7"></path></svg>Reports</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>Settings</button>
+</nav>
+<div class="rail-foot" style="margin-top: auto; font-family: 'Geist Mono', monospace; font-size: 11px; color: #7E838E">0.9.0</div>
+</aside>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<section aria-label="Report builder" style="flex: 1 1 420px; max-width: 520px; box-sizing: border-box; padding: 24px 32px 0; border-right: 1px solid #1C1E24; display: flex; flex-direction: column">
+<header style="display: flex; flex-direction: column; gap: 14px; padding-bottom: 20px">
+<h1 style="margin: 0; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Report</h1>
+<div role="group" aria-label="Preset" style="display: flex; padding: 3px; border-radius: 10px; background: #15171B; border: 1px solid #1F2228; align-self: flex-start">
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: #23262D; font-size: 13px; font-weight: 500">Tempo summary</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Detailed</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Custom</button>
+</div>
+</header>
+
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 20px 0; border-top: 1px solid #1C1E24">
+<h2 style="margin: 0 0 12px; font-size: 13px; font-weight: 500; color: #8E939E; text-transform: uppercase; letter-spacing: 0.06em">Scope</h2>
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 12px">
+<span style="font-size: 13px; color: #8E939E">Month</span>
+<div style="display: flex; align-items: center; gap: 4px">
+<button class="ghost" aria-label="Previous month" style="width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #8E939E">‹</button>
+<span style="font-weight: 500; min-width: 110px; text-align: center">August 2026</span>
+<button class="ghost" aria-label="Next month" style="width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #8E939E">›</button>
+</div>
+<span style="font-size: 13px; color: #8E939E">Connections</span>
+<div style="display: flex; gap: 6px">
+<button aria-pressed="true" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #3A3E48; background: #1A1C21; font-size: 12px">Acme</button>
+<button aria-pressed="false" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #23262D; background: transparent; color: #8E939E; font-size: 12px">Client X</button>
+</div>
+<span style="font-size: 13px; color: #8E939E">Projects</span>
+<span style="font-size: 13px">All projects <span style="color: #8E939E">· 2</span></span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px; padding: 20px 0; border-top: 1px solid #1C1E24">
+<h2 style="margin: 0 0 2px; font-size: 13px; font-weight: 500; color: #8E939E; text-transform: uppercase; letter-spacing: 0.06em">Group by</h2>
+<sc-for list="{{levels}}" as="l" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 6px 0 10px; border-radius: 10px; background: #131418; border: 1px solid #1C1E24">
+<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="#7E838E"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">{{l.n}}</span>
+<span style="flex: 1">{{l.name}}</span>
+<button class="ghost" aria-label="Remove level" style="width: 28px; height: 28px; border: 0; border-radius: 7px; background: transparent; color: #8E939E">×</button>
+</div>
+</sc-for>
+<button class="ghost" style="align-self: flex-start; height: 30px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #9DB4FF; font-size: 13px">+ Add level</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 20px 0; border-top: 1px solid #1C1E24">
+<h2 style="margin: 0 0 2px; font-size: 13px; font-weight: 500; color: #8E939E; text-transform: uppercase; letter-spacing: 0.06em">Document</h2>
+<label style="display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 12px"><span style="font-size: 13px; color: #8E939E">Title</span><input placeholder="Optional" style="height: 34px; box-sizing: border-box; padding: 0 10px; border-radius: 8px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit; font-size: 13px"></label>
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; gap: 12px">
+<span style="font-size: 13px; color: #8E939E">Time</span>
+<div role="group" aria-label="Time format" style="display: flex; padding: 3px; border-radius: 9px; background: #15171B; border: 1px solid #1F2228; justify-self: start">
+<button style="height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: #23262D; font-family: 'Geist Mono', monospace; font-size: 12px">7.5</button>
+<button style="height: 26px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: #8E939E; font-family: 'Geist Mono', monospace; font-size: 12px">7:30</button>
+</div>
+<span style="font-size: 13px; color: #8E939E">Accent</span>
+<div style="display: flex; gap: 6px">
+<button aria-label="Navy" aria-pressed="true" style="width: 22px; height: 22px; border: 0; border-radius: 6px; background: #1F3A8A; box-shadow: 0 0 0 2px #0C0D10, 0 0 0 4px #EDEEF0"></button>
+<button aria-label="Graphite" style="width: 22px; height: 22px; border: 0; border-radius: 6px; background: #2B2E36"></button>
+<button aria-label="Teal" style="width: 22px; height: 22px; border: 0; border-radius: 6px; background: #0F766E"></button>
+<button aria-label="Orange" style="width: 22px; height: 22px; border: 0; border-radius: 6px; background: #C2410C"></button>
+</div>
+</div>
+</div>
+
+<footer style="position: sticky; bottom: 0; margin-top: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px 0; border-top: 1px solid #1C1E24; background: #0C0D10">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8E939E"><span>Saves as</span><span style="font-family: 'Geist Mono', monospace; color: #EDEEF0">08.2026.pdf</span><span>in Documents / Reports</span><button class="ghost" style="margin-left: auto; height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #9DB4FF; font-size: 13px">Change</button></div>
+<div style="display: flex; gap: 8px">
+<button class="ghost" style="height: 40px; padding: 0 14px; border: 1px solid #23262D; border-radius: 10px; background: transparent; font-size: 13px">Save as default</button>
+<button class="primary" style="flex: 1; height: 40px; border: 0; border-radius: 10px; background: #EDEEF0; color: #0C0D10; font-weight: 600">Generate PDF</button>
+</div>
+</footer>
+</section>
+
+<section aria-label="Live preview" style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; padding: 24px 40px; background: #0F1013; display: flex; flex-direction: column; align-items: center; gap: 16px">
+<div style="align-self: stretch; display: flex; justify-content: space-between; font-size: 13px; color: #8E939E"><span>Live preview</span><span>A4 portrait · 1 page</span></div>
+<article style="width: 100%; max-width: 560px; aspect-ratio: 210 / 297; box-sizing: border-box; padding: 48px 44px; background: #FFFFFF; color: #18181B; border-radius: 4px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 22px; font-size: 11px">
+<header style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 14px; border-bottom: 2px solid #1F3A8A">
+<div><div style="font-size: 10px; color: #5F5F66; text-transform: uppercase; letter-spacing: 0.08em">Timesheet · Acme</div><div style="font-size: 20px; font-weight: 600; letter-spacing: -0.01em">August 2026</div></div>
+<div style="text-align: right"><div style="font-size: 10px; color: #5F5F66">Total</div><div style="font-family: 'Geist Mono', monospace; font-size: 20px; font-weight: 500">35.0 h</div></div>
+</header>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+<section style="display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; padding: 6px 0; font-weight: 600; font-size: 12px; border-bottom: 1px solid #E4E4E7"><span>{{g.name}}</span><span style="font-family: 'Geist Mono', monospace">{{g.h}}</span></div>
+<sc-for list="{{g.rows}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; gap: 10px; padding: 5px 0 5px 12px; border-bottom: 1px solid #F1F1F3"><span style="font-family: 'Geist Mono', monospace; color: #1F3A8A; width: 54px">{{r.key}}</span><span style="flex: 1; color: #3F3F46">{{r.title}}</span><span style="font-family: 'Geist Mono', monospace">{{r.h}}</span></div>
+</sc-for>
+</section>
+</sc-for>
+<footer style="margin-top: auto; display: flex; justify-content: space-between; font-size: 9px; color: #5F5F66"><span>Generated 1 Sep 2026</span><span>1 / 1</span></footer>
+</article>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var r = function (key, title, h) { return { key: key, title: title, h: h.toFixed(1) }; };
+    return {
+      levels: [{ n: '1', name: 'Project' }, { n: '2', name: 'Jira issue' }],
+      groups: [
+        { name: 'Mobile App', h: '19.0', rows: [r('APP-102', 'Offline sync for drafts', 8), r('APP-106', 'Camera permission crash', 5), r('APP-104', 'Refactor session storage', 3), r('APP-105', 'Push notification settings', 3)] },
+        { name: 'Internal Tools', h: '16.0', rows: [r('INT-11', 'Quarterly access review automation', 8), r('INT-13', 'Onboarding docs for the CI pipeline', 5), r('INT-12', 'Team retro and planning', 3)] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

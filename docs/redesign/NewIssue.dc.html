@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New issue — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.ghost:hover{background:#1A1C21}
+.primary:hover{background:#FFFFFF}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #08090B; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<div aria-hidden="true" style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px; opacity: 0.32">
+<div style="height: 22px; width: 220px; border-radius: 6px; background: #1C1E24"></div>
+<div style="height: 1px; background: #1C1E24; margin: 10px 0"></div>
+<sc-for list="{{ghostRows}}" as="g" hint-placeholder-count="6">
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #17191E">
+<span style="width: 16px; height: 16px; border-radius: 4px; background: #23262D"></span>
+<span style="height: 12px; width: 64px; border-radius: 4px; background: #23262D"></span>
+<span style="height: 12px; width: {{g.w}}; border-radius: 4px; background: #1C1E24"></span>
+<span style="margin-left: auto; height: 26px; width: 86px; border-radius: 8px; background: #17191E"></span>
+</div>
+</sc-for>
+</div>
+
+<aside aria-label="New issue" style="flex: 1 1 520px; max-width: 600px; box-sizing: border-box; background: #0F1013; border-left: 1px solid #23262D; box-shadow: -24px 0 60px rgba(0,0,0,0.45); display: flex; flex-direction: column">
+<header style="display: flex; align-items: flex-start; gap: 12px; padding: 22px 28px 18px; border-bottom: 1px solid #1C1E24">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">New issue</h1>
+<span style="font-size: 13px; color: #8E939E">From a suggestion · Wed 12 Aug · 2h</span>
+</div>
+<button class="ghost" aria-label="Close" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #8E939E; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</header>
+
+<div style="flex: 1; padding: 22px 28px; display: flex; flex-direction: column; gap: 18px">
+
+<div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Project</span>
+<select style="height: 38px; padding: 0 10px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit"><option>INT · Internal Tools — Acme</option><option>APP · Mobile App — Acme</option></select></label>
+<div role="group" aria-label="Issue type" style="display: flex; padding: 3px; border-radius: 10px; background: #15171B; border: 1px solid #1F2228">
+<sc-for list="{{types}}" as="t" hint-placeholder-count="3">
+<button aria-pressed="{{t.on}}" style="height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: {{t.bg}}; color: {{t.color}}; font-size: 13px; display: flex; align-items: center; gap: 6px"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 3px; background: {{t.c}}"></span>{{t.name}}</button>
+</sc-for>
+</div>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Summary</span>
+<input value="Fix flaky end-to-end tests on CI" style="height: 42px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 15px; font-weight: 500"></label>
+
+<div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #1F1A10; border: 1px solid #3A2E17; font-size: 13px">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F0B85A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16.5v.01"></path></svg>
+<span style="flex: 1; color: #E9D3A6">Looks similar to <span style="font-family: 'Geist Mono', monospace">INT-7</span> Flaky Selenium runner on the old CI <span style="color: #B9A47C">· Closed</span></span>
+<button class="ghost" style="height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #F0B85A; font-size: 13px">Use INT-7</button>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: #8E939E">Description <span style="display: flex; align-items: center; gap: 8px"><span style="font-size: 12px">Drafted from your notes and commits</span><button class="ghost" style="height: 26px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #9DB4FF; font-size: 12px">Rewrite</button></span></span>
+<textarea style="min-height: 112px; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 13px; resize: vertical">The login e2e test fails intermittently on CI because the mock server is not ready when the suite starts.
+
+- Wait for the mock server health check before running the suite
+- Add one retry for network-bound specs</textarea>
+</label>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Parent</span>
+<select style="height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 13px"><option>INT-2 · CI reliability</option><option>None</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Assignee</span>
+<select style="height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 13px"><option>Me</option><option>Unassigned</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Sprint</span>
+<select style="height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 13px"><option>Sprint 34 (active)</option><option>Backlog</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Component <span style="color: #FF8A7A">· required by INT</span></span>
+<select style="height: 36px; padding: 0 10px; border-radius: 9px; border: 1px solid #23262D; background: #131418; color: #EDEEF0; font: inherit; font-size: 13px"><option>Infrastructure</option><option>Tooling</option></select></label>
+</div>
+
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+<legend style="font-size: 13px; color: #8E939E; padding-bottom: 6px">Labels</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<span style="height: 26px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid #2B2E36; font-size: 12px; display: inline-flex; align-items: center; gap: 4px">ci<button aria-label="Remove ci" style="width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: #8E939E">×</button></span>
+<span style="height: 26px; padding: 0 4px 0 10px; border-radius: 999px; border: 1px solid #2B2E36; font-size: 12px; display: inline-flex; align-items: center; gap: 4px">tests<button aria-label="Remove tests" style="width: 20px; height: 20px; border: 0; border-radius: 50%; background: transparent; color: #8E939E">×</button></span>
+<button class="ghost" style="height: 26px; padding: 0 10px; border-radius: 999px; border: 1px dashed #2B2E36; background: transparent; color: #8E939E; font-size: 12px">+ Label</button>
+</div>
+</fieldset>
+</div>
+
+<footer style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 28px; border-top: 1px solid #1C1E24">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #9DB4FF">Then log <span style="font-family: 'Geist Mono', monospace">2h</span> on Wed 12</label>
+<div style="flex: 1"></div>
+<button class="ghost" style="height: 40px; padding: 0 16px; border: 1px solid #23262D; border-radius: 10px; background: transparent">Cancel</button>
+<button class="primary" style="height: 40px; padding: 0 18px; border: 0; border-radius: 10px; background: #EDEEF0; color: #0C0D10; font-weight: 600">Save issue</button>
+</footer>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var t = function (name, c, on) { return { name: name, c: c, on: on ? 'true' : 'false', bg: on ? '#23262D' : 'transparent', color: on ? '#EDEEF0' : '#8E939E' }; };
+    return {
+      types: [t('Task', '#4C8DF6', true), t('Bug', '#E5534B'), t('Story', '#4BB37F')],
+      ghostRows: [{ w: '220px' }, { w: '180px' }, { w: '260px' }, { w: '200px' }, { w: '240px' }, { w: '160px' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>New entries: context — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.ghost:hover,.pick:hover{background:#1A1C21}
+.primary:hover{background:#FFFFFF}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-direction: column; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; padding: 16px 32px; border-bottom: 1px solid #1C1E24">
+<button class="ghost" aria-label="Close" style="width: 34px; height: 34px; border: 1px solid #23262D; border-radius: 9px; background: transparent; display: flex; align-items: center; justify-content: center; color: #8E939E"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 12px; color: #8E939E">New entries</span>
+<h1 style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em">10 – 12 August</h1>
+</div>
+<ol aria-label="Steps" style="list-style: none; margin: 0 auto; padding: 0; display: flex; align-items: center; gap: 8px; font-size: 13px">
+<li aria-current="step" style="display: flex; align-items: center; gap: 8px; font-weight: 500"><span style="width: 20px; height: 20px; border-radius: 50%; background: #EDEEF0; color: #0C0D10; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600">1</span>Context</li>
+<li aria-hidden="true" style="width: 28px; height: 1px; background: #2B2E36"></li>
+<li style="display: flex; align-items: center; gap: 8px; color: #8E939E"><span style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #2B2E36; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 11px">2</span>Review</li>
+<li aria-hidden="true" style="width: 28px; height: 1px; background: #2B2E36"></li>
+<li style="display: flex; align-items: center; gap: 8px; color: #8E939E"><span style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid #2B2E36; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; font-size: 11px">3</span>Log</li>
+</ol>
+<span style="font-size: 12px; color: #8E939E">3 workdays · 0h logged · 24h to fill</span>
+</header>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; gap: 32px; padding: 28px 32px; align-items: flex-start">
+
+<nav aria-label="Projects" style="flex: 1 1 240px; max-width: 280px; display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 10px 6px">
+<span style="font-size: 12px; font-weight: 500; color: #8E939E; text-transform: uppercase; letter-spacing: 0.06em">Projects</span>
+<button class="ghost" style="height: 26px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #9DB4FF; font-size: 12px">Use recent</button>
+</div>
+<sc-for list="{{projects}}" as="p" hint-placeholder-count="3">
+<label class="pick" style="display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: {{p.bg}}; cursor: pointer">
+<input type="checkbox" checked="{{p.on}}" style="width: 16px; height: 16px; margin: 0; accent-color: #9DB4FF">
+<span style="width: 8px; height: 8px; border-radius: 2px; background: {{p.color}}"></span>
+<span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 500">{{p.name}}</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">{{p.keys}}</span></span>
+</label>
+</sc-for>
+<p style="margin: 12px 10px 0; font-size: 12px; color: #8E939E">Each project gets its own pass. The model only sees that project’s issues, commits and your note.</p></nav>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="2">
+<section style="padding: 20px; border-radius: 14px; background: #131418; border: 1px solid #1C1E24; display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+<span style="width: 8px; height: 8px; border-radius: 2px; background: {{c.color}}"></span>
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">{{c.name}}</h2>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">{{c.keys}}</span>
+<sc-if value="{{c.multi}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; padding: 2px 8px; border-radius: 6px; background: #1F2D4D; color: #C3D1FF">Logs to 2 Jiras</span></sc-if>
+</header>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 14px; border-radius: 10px; background: #0F1013; border: 1px solid #1C1E24">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px">
+<span aria-hidden="true" style="width: 30px; height: 18px; border-radius: 999px; background: #9DB4FF; position: relative"><span style="position: absolute; top: 2px; left: 14px; width: 14px; height: 14px; border-radius: 50%; background: #0C0D10"></span></span>
+<input type="checkbox" checked class="sr">Include commits</label>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #A9AEB8">{{c.repos}}</span>
+<span style="margin-left: auto; font-size: 12px; color: #8E939E">{{c.commits}}</span>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #8E939E">What did you do?</span>
+<textarea placeholder="e.g. mostly meetings and code review, log 2h chunks…" style="min-height: 76px; box-sizing: border-box; padding: 12px; border-radius: 10px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit; resize: vertical">{{c.note}}</textarea>
+</label>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: -4px">
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer">
+<span aria-hidden="true" style="width: 30px; height: 18px; border-radius: 999px; background: {{c.trk}}; position: relative"><span style="position: absolute; top: 2px; left: {{c.knob}}; width: 14px; height: 14px; border-radius: 50%; background: {{c.knobC}}"></span></span>
+<input type="checkbox" checked="{{c.allowNew}}" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Allow new issues</label>
+<span style="font-size: 12px; color: #8E939E">{{c.newHint}}</span>
+</div>
+</section>
+</sc-for>
+</main>
+</div>
+
+<footer style="position: sticky; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 14px 32px; border-top: 1px solid #1C1E24; background: #0C0D10">
+<button class="ghost" style="height: 36px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: #8E939E; font-size: 13px; display: flex; align-items: center; gap: 8px"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6"></path></svg>Preview prompt <span style="font-family: 'Geist Mono', monospace; font-size: 12px">~4.2k tokens</span></button>
+<span style="font-size: 13px; color: #8E939E">2 projects · 2 passes</span>
+<div style="flex: 1 1 20px"></div>
+<button class="ghost" style="height: 40px; padding: 0 16px; border: 1px solid #23262D; border-radius: 10px; background: transparent">Cancel</button>
+<button class="primary" style="height: 40px; padding: 0 18px; border: 0; border-radius: 10px; background: #EDEEF0; color: #0C0D10; font-weight: 600">Generate suggestions</button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var allow = function (on, key) {
+      return { allowNew: on, trk: on ? '#9DB4FF' : '#2B2E36', knob: on ? '14px' : '2px', knobC: on ? '#0C0D10' : '#8E939E',
+        newHint: on ? 'If nothing in ' + key + ' fits, the model may propose a new issue. You confirm it in Review.' : 'Only existing ' + key + ' issues will be suggested.' };
+    };
+    return {
+      projects: [
+        { name: 'Mobile App', keys: 'APP', color: '#8FB3FF', on: true, bg: '#15171B' },
+        { name: 'Internal Tools', keys: 'INT', color: '#F0B85A', on: true, bg: '#15171B' },
+        { name: 'Client X Shop', keys: 'SHOP · CLX', color: '#6FD8A0', on: false, bg: 'transparent' }
+      ],
+      cards: [
+        Object.assign({ name: 'Mobile App', keys: 'APP · Acme', color: '#8FB3FF', multi: false, repos: 'mobile-app', commits: '7 commits since Mon',
+          note: 'Morning: finished the biometric login PR. Afternoon: pairing on the camera crash.' }, allow(false, 'APP')),
+        Object.assign({ name: 'Internal Tools', keys: 'INT · Acme', color: '#F0B85A', multi: false, repos: 'infra-scripts', commits: '2 commits since Mon',
+          note: 'Tuesday was the whole access review. Wednesday retro + planning, then chased the flaky e2e tests on CI.' }, allow(true, 'INT'))
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

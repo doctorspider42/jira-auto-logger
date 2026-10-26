@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Theme system — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;family=VT323&amp;family=Silkscreen&amp;family=Fredoka:wght@400;600&amp;family=Michroma&amp;family=Archivo+Narrow:wght@400;600&amp;family=Cormorant+Garamond:wght@500;600&amp;family=Inter+Tight:wght@400;600&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 1720px; box-sizing: border-box; padding: 72px; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; gap: 48px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px">
+<div style="max-width: 720px">
+<div style="font-size: 12px; font-weight: 500; color: #8E939E; text-transform: uppercase; letter-spacing: 0.08em">Theme system</div>
+<h1 style="margin: 8px 0 12px; font-size: 44px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1">One layout. Twelve characters.</h1>
+<p style="margin: 0; font-size: 16px; color: #A9AEB8">A theme changes five layers and never the layout. Spacing, density and hierarchy stay fixed, so no theme can break a screen, and a new theme is a token file, not a stylesheet of overrides.</p>
+</div>
+<div style="display: flex; gap: 8px; font-size: 13px; color: #8E939E">
+<span style="padding: 6px 12px; border-radius: 999px; border: 1px solid #23262D">12 themes</span>
+<span style="padding: 6px 12px; border-radius: 999px; border: 1px solid #23262D">6 colour tokens each</span>
+</div>
+</header>
+
+<section aria-label="Theme layers" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #1C1E24; border: 1px solid #1C1E24; border-radius: 14px; overflow: hidden">
+<sc-for list="{{layers}}" as="l" hint-placeholder-count="5">
+<div style="background: #121317; padding: 20px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">{{l.n}}</span>
+<span style="font-size: 16px; font-weight: 600">{{l.name}}</span>
+<span style="font-size: 13px; color: #A9AEB8">{{l.text}}</span>
+</div>
+</sc-for>
+</section>
+
+<section aria-label="Themes" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 40px 24px">
+<sc-for list="{{themes}}" as="t" hint-placeholder-count="12">
+<article style="display: flex; flex-direction: column; gap: 14px">
+<div role="img" aria-label="{{t.aria}}" style="position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: {{t.ground}}; color: {{t.ink}}; font-family: {{t.font}}; box-shadow: 0 0 0 1px #23262D">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: {{t.texture}}"></div>
+<div style="position: relative; display: flex; height: 100%">
+<div style="flex: 0 0 34px; background: {{t.surface}}; border-right: 1px solid {{t.line}}; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px">
+<span style="width: 14px; height: 14px; border-radius: {{t.rs}}; background: {{t.accent}}"></span>
+<span style="width: 14px; height: 14px; border-radius: {{t.rs}}; background: {{t.line}}"></span>
+<span style="width: 14px; height: 14px; border-radius: {{t.rs}}; background: {{t.line}}"></span>
+</div>
+<div style="flex: 1; min-width: 0; padding: 12px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="font-family: {{t.display}}; font-size: {{t.ds}}; font-weight: {{t.dw}}; text-transform: {{t.case}}; letter-spacing: {{t.ls}}; line-height: 1">August</span>
+<span style="font-family: {{t.mono}}; font-size: 11px; color: {{t.muted}}">56h</span>
+<span style="margin-left: auto; padding: 5px 9px; font-size: 10px; font-weight: 600; border-radius: {{t.r}}; background: {{t.pBg}}; color: {{t.pInk}}; box-shadow: {{t.bevel}}; text-transform: {{t.case}}">{{t.cta}}</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: {{t.line}}; border: 1px solid {{t.line}}; border-radius: {{t.rs}}; overflow: hidden">
+<sc-for list="{{t.cells}}" as="c" hint-placeholder-count="21">
+<div style="height: 38px; box-sizing: border-box; padding: 4px; background: {{c.bg}}; display: flex; flex-direction: column; gap: 3px">
+<span style="align-self: flex-start; min-width: 13px; height: 13px; padding: 0 2px; box-sizing: border-box; border-radius: 999px; font-family: {{t.mono}}; font-size: 8px; line-height: 13px; text-align: center; background: {{c.nb}}; color: {{c.nc}}">{{c.n}}</span>
+<span style="height: 4px; width: 80%; border-radius: 1px; background: {{c.b1}}"></span>
+<span style="height: 4px; width: 55%; border-radius: 1px; background: {{c.b2}}"></span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 8px">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600">{{t.name}}</h2>
+<span style="font-size: 12px; color: #8E939E">{{t.kind}}</span>
+</div>
+<p style="margin: 0; font-size: 13px; color: #A9AEB8">{{t.desc}}</p>
+<div style="display: flex; align-items: center; gap: 4px; margin-top: 4px">
+<sc-for list="{{t.sw}}" as="s" hint-placeholder-count="6">
+<span style="width: 16px; height: 16px; border-radius: 50%; background: {{s}}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12)"></span>
+</sc-for>
+<span style="margin-left: 8px; font-size: 12px; color: #8E939E">{{t.fontName}}</span>
+</div>
+</div>
+</article>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var mono = "'Geist Mono', monospace";
+    var base = { r: '8px', rs: '6px', dw: '600', ds: '18px', case: 'none', ls: '-0.01em', bevel: 'none', texture: 'none', cta: 'New entries', mono: mono };
+    var raw = [
+      { name: 'Graphite', kind: 'Dark · default', ground: '#0C0D10', surface: '#131418', line: '#23262D', ink: '#EDEEF0', muted: '#8E939E', accent: '#9DB4FF', alt: '#F0B85A', pBg: '#EDEEF0', pInk: '#0C0D10', font: 'Geist, sans-serif', fontName: 'Geist + Geist Mono',
+        desc: 'Neutral greys, one periwinkle accent for selection and today, a white primary button.' },
+      { name: 'Paper', kind: 'Light · default', ground: '#F6F5F1', surface: '#FFFFFF', line: '#E4E2DC', ink: '#18181B', muted: '#6B6A66', accent: '#2F5BEA', alt: '#C77700', pBg: '#18181B', pInk: '#FFFFFF', font: 'Geist, sans-serif', fontName: 'Geist + Geist Mono',
+        desc: 'Warm off-white paper, an ink-black primary button and cobalt for selection.' },
+      { name: 'iteo', kind: 'Light + dark · brand', ground: '#F2F3F7', surface: '#FFFFFF', line: '#DCDDE3', ink: '#040429', muted: '#55556E', accent: '#FF6500', alt: '#040429', pBg: '#040429', pInk: '#FFFFFF', font: 'Geist, sans-serif', fontName: 'Codec Cold (brand)',
+        desc: 'Navy carries text and the primary button. Brand orange marks only today, focus and progress, never small text.' },
+      { name: 'Classic 95', kind: 'Retro OS', ground: '#008080', surface: '#C0C0C0', line: '#808080', ink: '#000000', muted: '#404040', accent: '#000080', alt: '#800000', pBg: '#C0C0C0', pInk: '#000000', font: 'Tahoma, sans-serif', fontName: 'Tahoma',
+        r: '0', rs: '0', dw: '700', ds: '15px', bevel: 'inset -1px -1px #0A0A0A, inset 1px 1px #FFFFFF, inset -2px -2px #808080, inset 2px 2px #DFDFDF',
+        desc: 'Bevels only on real controls. The teal desktop shows around the window, not behind content.' },
+      { name: 'Vault Terminal', kind: 'Fallout · phosphor', ground: '#031008', surface: '#06160C', line: '#1D5C31', ink: '#3DFF7D', muted: '#2BB45A', accent: '#3DFF7D', alt: '#1F9E4A', pBg: '#3DFF7D', pInk: '#031008', font: "'VT323', monospace", fontName: 'VT323', mono: "'VT323', monospace",
+        r: '0', rs: '0', ds: '24px', dw: '400', case: 'uppercase', ls: '0.04em', cta: '> New',
+        texture: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.35) 0 1px, transparent 1px 3px)',
+        desc: 'Single-hue phosphor. Scanlines sit on the backdrop only, never over text fields.' },
+      { name: 'New Vegas', kind: 'Fallout · amber', ground: '#120A03', surface: '#1A1005', line: '#6B4214', ink: '#FFB347', muted: '#C98A35', accent: '#FFBF5A', alt: '#B8741F', pBg: '#FFB347', pInk: '#120A03', font: "'VT323', monospace", fontName: 'VT323', mono: "'VT323', monospace",
+        r: '0', rs: '0', ds: '24px', dw: '400', case: 'uppercase', ls: '0.04em', cta: '> New',
+        texture: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.35) 0 1px, transparent 1px 3px)',
+        desc: 'The same terminal, in Mojave amber. Shares every rule with Vault Terminal except the palette.' },
+      { name: 'Memory Card', kind: 'PS1', ground: '#0A0A16', surface: '#15152A', line: '#34346A', ink: '#E8E8F4', muted: '#9C9CC4', accent: '#6C8CFF', alt: '#E26BC0', pBg: '#6C8CFF', pInk: '#0A0A16', font: 'Geist, sans-serif', fontName: 'Silkscreen + Geist', display: "'Silkscreen', sans-serif",
+        r: '2px', rs: '2px', ds: '15px', dw: '400', case: 'uppercase',
+        texture: 'radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1.2px) 0 0 / 4px 4px',
+        desc: 'Pixel display type for headings only, a dithered backdrop, body copy stays in a clean sans.' },
+      { name: 'Hello Kitty', kind: 'Soft', ground: '#FFE9F1', surface: '#FFFFFF', line: '#FFC2DA', ink: '#4A2C3A', muted: '#8A5A6E', accent: '#E6347E', alt: '#7A5CE0', pBg: '#E6347E', pInk: '#FFFFFF', font: "'Fredoka', sans-serif", fontName: 'Fredoka',
+        r: '999px', rs: '12px', ds: '20px',
+        texture: 'radial-gradient(#FFD3E4 1.5px, transparent 1.6px) 0 0 / 14px 14px',
+        desc: 'Round everything: pill buttons, 12px cells, Fredoka, and a quiet polka-dot backdrop.' },
+      { name: 'Y2K Chrome', kind: 'Glossy', ground: '#CDEFFF', surface: '#F5FCFF', line: '#8CCDF0', ink: '#0B1A52', muted: '#3D5687', accent: '#D61FB5', alt: '#1F6FE0', pBg: 'linear-gradient(#FF7BE5, #C3189F)', pInk: '#FFFFFF', font: 'Geist, sans-serif', fontName: 'Michroma + Geist', display: "'Michroma', sans-serif",
+        r: '999px', rs: '10px', ds: '15px', dw: '400', bevel: 'inset 0 1px 0 rgba(255,255,255,0.7)',
+        texture: 'linear-gradient(160deg, #F0FAFF 0%, #A7E6FF 100%)',
+        desc: 'Glossy pills on a chrome sky. The one theme where gradients are part of the character.' },
+      { name: 'Maa-sn-ek', kind: 'Hard edge', ground: '#16161A', surface: '#202025', line: '#3C3C43', ink: '#ECEBE6', muted: '#A2A19B', accent: '#E0322B', alt: '#ECEBE6', pBg: '#E0322B', pInk: '#FFFFFF', font: "'Archivo Narrow', sans-serif", fontName: 'Archivo Narrow',
+        r: '0', rs: '0', ds: '20px', case: 'uppercase', ls: '0.02em',
+        desc: 'Condensed uppercase labels, square corners and a single red signal colour.' },
+      { name: 'Clair Obscur', kind: 'Gilded', ground: '#070606', surface: '#121110', line: '#3A342D', ink: '#F2EFE9', muted: '#A79F93', accent: '#F6C037', alt: '#B9473A', pBg: '#F6C037', pInk: '#070606', font: 'Geist, sans-serif', fontName: 'Cormorant Garamond + Geist', display: "'Cormorant Garamond', serif",
+        r: '2px', rs: '2px', ds: '24px', dw: '600', ls: '0', cta: 'We Continue',
+        texture: 'radial-gradient(120% 80% at 50% 0%, rgba(246,192,55,0.10), transparent 60%)',
+        desc: 'Serif display on deep black, gold only on what matters. Keeps its own voice: “We Continue”.' },
+      { name: 'Animus', kind: 'Assassin’s Creed', ground: '#5D778B', surface: '#1B2630', line: '#4A6072', ink: '#F2F7FA', muted: '#A9BBC8', accent: '#3FD8FF', alt: '#F2F7FA', pBg: '#3FD8FF', pInk: '#0B141B', font: "'Inter Tight', sans-serif", fontName: 'Inter Tight',
+        r: '0', rs: '0', ds: '17px', case: 'uppercase', ls: '0.08em',
+        texture: 'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px) 0 0 / 100% 10px',
+        desc: 'Steel-blue sky, slate label blocks with plain white type, cyan glints on focus and today.' }
+    ];
+    var filled = { 0: [1, 1], 1: [1, 2], 2: [2, 0], 3: [1, 2], 4: [2, 1], 7: [1, 2], 8: [2, 1], 9: [1, 0], 10: [1, 2], 11: [2, 1] };
+    var themes = raw.map(function (t0) {
+      var t = Object.assign({}, base, t0);
+      t.display = t.display || t.font;
+      var col = function (k) { return k === 1 ? t.accent : k === 2 ? t.alt : 'transparent'; };
+      t.cells = [];
+      for (var i = 0; i < 21; i++) {
+        var f = filled[i] || [0, 0], wk = i % 7 >= 5, today = i === 16;
+        t.cells.push({ n: i + 3, bg: wk ? t.ground : t.surface, b1: col(f[0]), b2: col(f[1]),
+          nb: today ? t.accent : 'transparent', nc: today ? t.surface : t.muted });
+      }
+      t.sw = [t.ground, t.surface, t.line, t.ink, t.muted, t.accent];
+      t.aria = t.name + ' theme preview';
+      return t;
+    });
+    var layers = [
+      { n: '01', name: 'Palette', text: 'Six tokens: ground, surface, line, ink, muted, accent. Every text pair checked at 4.5:1.' },
+      { n: '02', name: 'Type', text: 'A display face for headings, a body face, a mono for issue keys and hours.' },
+      { n: '03', name: 'Shape', text: 'Radius and border weight, from square (Classic 95) to pill (Hello Kitty, Y2K).' },
+      { n: '04', name: 'Texture', text: 'At most one backdrop effect: scanlines, dither, polka. Never behind inputs.' },
+      { n: '05', name: 'Voice', text: 'Optional reworded labels via tt(): loaders, empty states, the main button.' }
+    ];
+    return { themes: themes, layers: layers };
+  }
+}
+</script>
+</body>
+</html>

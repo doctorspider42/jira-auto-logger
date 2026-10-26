@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Calendar — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.rail-btn:hover{background:#1A1C21;color:#EDEEF0}
+.ghost:hover{background:#1A1C21}
+.cell:hover{background:#17191E}
+.chip:hover{border-color:#3A3E48}
+.primary:hover{background:#FFFFFF}
+.cal-scroll{overflow-x:auto}
+@media (max-width:760px){
+.rail{flex-direction:row !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #23262D;padding:8px 12px !important}
+.rail-nav{flex-direction:row !important}
+.rail-foot{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<aside class="rail" style="flex: 0 0 76px; width: 76px; box-sizing: border-box; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 28px; border-right: 1px solid #1C1E24">
+<div aria-label="Jira Auto Logger" role="img" style="width: 32px; height: 32px; border-radius: 9px; background: #EDEEF0; color: #0C0D10; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; letter-spacing: -0.02em">jl</div>
+<nav class="rail-nav" aria-label="Main" style="display: flex; flex-direction: column; gap: 6px">
+<button class="rail-btn" aria-current="page" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: #1A1C21; color: #EDEEF0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>
+Calendar</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg>
+Projects</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-7"></path></svg>
+Reports</button>
+<button class="rail-btn" style="position: relative; width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>
+Settings<span aria-label="Update available" role="img" style="position: absolute; top: 9px; right: 14px; width: 7px; height: 7px; border-radius: 50%; background: #9DB4FF"></span></button>
+</nav>
+<div class="rail-foot" style="margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 10px">
+<button class="rail-btn" aria-label="Switch theme" style="width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: #8E939E; display: flex; align-items: center; justify-content: center">
+<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"></circle><path d="M12 4v16a8 8 0 0 0 0-16z" fill="currentColor"></path></svg></button>
+<span style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #7E838E">0.9.0</span>
+</div>
+</aside>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 24px 32px 32px; display: flex; flex-direction: column; gap: 20px">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<div style="display: flex; align-items: center; gap: 4px">
+<button class="ghost" aria-label="Previous month" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; color: #8E939E">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<button class="ghost" aria-label="Next month" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; color: #8E939E">
+<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+<h1 style="margin: 0 0 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">August <span style="color: #8E939E; font-weight: 400">2026</span></h1>
+</div>
+<div role="group" aria-label="View" style="display: flex; padding: 3px; border-radius: 10px; background: #15171B; border: 1px solid #1F2228">
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: #23262D; font-size: 13px; font-weight: 500">Month</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Week</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Day</button>
+</div>
+<button class="ghost" style="height: 34px; padding: 0 12px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px">Today</button>
+<div style="flex: 1 1 40px"></div>
+<label style="display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; min-width: 220px; border: 1px solid #23262D; border-radius: 9px; color: #8E939E; font-size: 13px">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter by task</span>
+<input placeholder="Filter by task…" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #EDEEF0; font: inherit; outline: none">
+<kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid #2B2E36; color: #8E939E">Ctrl K</kbd>
+</label>
+<button class="ghost" style="height: 34px; padding: 0 12px 0 10px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"></rect><path d="M12 8.5v7M8.5 12h7"></path></svg>
+New issue</button>
+<button class="primary" style="height: 34px; padding: 0 14px 0 12px; border: 0; border-radius: 9px; background: #EDEEF0; color: #0C0D10; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+New entries</button>
+</header>
+
+<section aria-label="Month overview" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; padding: 14px 18px; border-radius: 14px; background: #131418; border: 1px solid #1C1E24">
+<div style="display: flex; align-items: baseline; gap: 8px">
+<span style="font-family: 'Geist Mono', monospace; font-size: 20px; font-weight: 500">56h</span>
+<span style="color: #8E939E; font-size: 13px">logged in August</span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #FF8A7A"></span>
+<span style="font-size: 13px"><b style="font-weight: 600">2 workdays</b> <span style="color: #8E939E">without entries</span></span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #F0B85A"></span>
+<span style="font-size: 13px"><b style="font-weight: 600">3h</b> <span style="color: #8E939E">overtime</span></span>
+</div>
+<div style="flex: 1 1 20px"></div>
+<div role="group" aria-label="Connections" style="display: flex; gap: 6px">
+<button class="chip" aria-pressed="true" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #2B2E36; background: transparent; font-size: 12px; display: flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #EDEEF0"></span>Acme</button>
+<button class="chip" aria-pressed="true" style="height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid #2B2E36; background: transparent; font-size: 12px; display: flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 50%; background: #EDEEF0"></span>Client X</button>
+</div>
+<button class="ghost" style="height: 30px; padding: 0 12px; border: 0; border-radius: 8px; background: #1F2D4D; color: #C3D1FF; font-size: 13px; font-weight: 500">Fill 2 missing days</button>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<div class="cal-scroll" style="flex: 999 1 640px; min-width: 0">
+<div style="min-width: 680px">
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 0.7fr)); padding: 0 2px 8px; color: #8E939E; font-size: 12px; font-weight: 500">
+<span style="padding-left: 10px">Mon</span><span style="padding-left: 10px">Tue</span><span style="padding-left: 10px">Wed</span><span style="padding-left: 10px">Thu</span><span style="padding-left: 10px">Fri</span><span style="padding-left: 10px">Sat</span><span style="padding-left: 10px">Sun</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 0.7fr)); gap: 1px; background: #1C1E24; border: 1px solid #1C1E24; border-radius: 14px; overflow: hidden">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="42">
+<button class="cell" onClick="{{d.pick}}" aria-label="{{d.aria}}" aria-pressed="{{d.pressed}}" style="position: relative; height: 112px; padding: 10px 10px 12px; border: 0; text-align: left; background: {{d.bg}}; box-shadow: {{d.ring}}; display: flex; flex-direction: column; gap: 6px; overflow: hidden">
+<span style="display: flex; align-items: center; justify-content: space-between; width: 100%">
+<span style="min-width: 24px; height: 24px; margin: -3px 0 0 -4px; padding: 0 4px; box-sizing: border-box; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; background: {{d.numBg}}; color: {{d.numColor}}">{{d.num}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: {{d.hColor}}">{{d.hLabel}}</span>
+</span>
+<sc-for list="{{d.shown}}" as="e" hint-placeholder-count="1">
+<span style="display: flex; align-items: center; gap: 6px; width: 100%; font-size: 12px; opacity: {{d.op}}">
+<span style="flex: 0 0 6px; height: 6px; border-radius: 2px; background: {{e.color}}"></span>
+<span style="flex: 1; min-width: 0; font-family: 'Geist Mono', monospace; color: #C9CCD3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.key}}</span>
+<span style="font-family: 'Geist Mono', monospace; color: #8E939E">{{e.h}}h</span>
+</span>
+</sc-for>
+<sc-if value="{{d.hasMore}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: #8E939E">+{{d.more}} more</span></sc-if>
+<sc-if value="{{d.missing}}" hint-placeholder-val="{{false}}"><span style="margin-top: auto; font-size: 12px; color: #FF8A7A">Nothing logged</span></sc-if>
+<span aria-hidden="true" style="position: absolute; left: 10px; right: 10px; bottom: 6px; height: 2px; border-radius: 2px; background: {{d.track}}"><span style="display: block; height: 2px; border-radius: 2px; width: {{d.barW}}; background: {{d.barC}}"></span></span>
+</button>
+</sc-for>
+</div>
+</div>
+</div>
+
+<aside aria-label="Selected day" style="flex: 1 1 300px; max-width: 360px; box-sizing: border-box; padding: 20px; border-radius: 14px; background: #131418; border: 1px solid #1C1E24; display: flex; flex-direction: column; gap: 18px">
+<div>
+<div style="color: #8E939E; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em">{{sel.weekday}}</div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 2px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">{{sel.title}}</h2>
+<span style="font-family: 'Geist Mono', monospace; font-size: 18px">{{sel.total}}</span>
+</div>
+</div>
+<sc-if value="{{sel.empty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 14px; padding: 20px 0 8px">
+<p style="margin: 0; color: #8E939E">{{sel.emptyText}}</p>
+<button class="primary" style="height: 40px; border: 0; border-radius: 10px; background: #EDEEF0; color: #0C0D10; font-weight: 600">Suggest entries for this day</button>
+<button class="ghost" style="height: 40px; border: 1px solid #23262D; border-radius: 10px; background: transparent">Add manually</button>
+</div>
+</sc-if>
+<sc-if value="{{sel.full}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{sel.conns}}" as="c" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8E939E">
+<span style="flex: 0 0 64px">{{c.name}}</span>
+<span style="flex: 1; height: 4px; border-radius: 4px; background: #23262D"><span style="display: block; height: 4px; border-radius: 4px; width: {{c.w}}; background: #9DB4FF"></span></span>
+<span style="font-family: 'Geist Mono', monospace; color: #EDEEF0">{{c.h}}</span>
+</div>
+</sc-for>
+</div>
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{sel.entries}}" as="e" hint-placeholder-count="3">
+<li style="display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid #1F2228">
+<span style="flex: 0 0 3px; border-radius: 3px; background: {{e.color}}"></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; gap: 8px; align-items: baseline"><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #C9CCD3">{{e.key}}</span><span style="font-size: 12px; color: #8E939E">{{e.conn}}</span><sc-if value="{{e.ot}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; padding: 0 6px; border-radius: 4px; background: #3A2E17; color: #F0B85A">Overtime</span></sc-if></span>
+<span style="font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{e.title}}</span>
+</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px">{{e.h}}h</span>
+</li>
+</sc-for>
+</ul>
+<div style="display: flex; gap: 8px">
+<button class="ghost" style="flex: 1; height: 38px; border: 1px solid #23262D; border-radius: 10px; background: transparent; font-size: 13px">Open day</button>
+<button class="ghost" style="flex: 1; height: 38px; border: 1px solid #23262D; border-radius: 10px; background: transparent; font-size: 13px">Add entries</button>
+</div>
+</sc-if>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { picked: '8-6' };
+  }
+  renderVals() {
+    var C = { APP: '#8FB3FF', INT: '#F0B85A', CLX: '#6FD8A0' };
+    var T = {
+      'APP-101': 'Crash reporting for Android builds', 'APP-102': 'Offline sync for drafts',
+      'APP-103': 'Biometric login', 'APP-104': 'Refactor session storage',
+      'APP-105': 'Push notification settings', 'APP-106': 'Camera permission crash',
+      'INT-11': 'Quarterly access review automation', 'INT-12': 'Team retro and planning',
+      'INT-13': 'Onboarding docs for the CI pipeline', 'CLX-1': 'Checkout: saved addresses',
+      'CLX-2': 'Product search filters', 'CLX-3': 'Order export to CSV'
+    };
+    var D = {
+      '7-27': [['INT-13', 8], ['APP-101', 4], ['CLX-2', 4]], '7-28': [['INT-11', 5], ['CLX-1', 3]],
+      '7-29': [['APP-103', 5], ['APP-106', 3]], '7-30': [['APP-102', 8]], '7-31': [['APP-104', 5], ['INT-12', 3]],
+      '8-3': [['CLX-1', 5], ['INT-11', 3, true]], '8-4': [['INT-13', 5], ['APP-105', 3]], '8-5': [['APP-102', 8]],
+      '8-6': [['INT-11', 5], ['APP-104', 3], ['CLX-1', 5], ['CLX-3', 3]],
+      '8-7': [['APP-106', 5], ['INT-12', 3], ['CLX-2', 4], ['CLX-3', 4]]
+    };
+    var WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var self = this, picked = this.state.picked, today = '8-12';
+    var mk = function (k) {
+      return (D[k] || []).map(function (e) {
+        var p = e[0].split('-')[0];
+        return { key: e[0], h: e[1], ot: !!e[2], color: C[p], title: T[e[0]], conn: p === 'CLX' ? 'Client X' : 'Acme' };
+      });
+    };
+    var days = [], sel = null;
+    for (var i = 0; i < 42; i++) {
+      var dt = new Date(2026, 6, 27 + i);
+      var k = (dt.getMonth() + 1) + '-' + dt.getDate();
+      var inMonth = dt.getMonth() === 7, wkend = i % 7 >= 5;
+      var es = mk(k), tot = es.reduce(function (s, e) { return s + e.h; }, 0);
+      var past = inMonth && !wkend && dt.getDate() < 12 && dt.getDate() > 7;
+      var missing = past && tot === 0, isToday = k === today, isSel = k === picked;
+      var info = {
+        weekday: WD[dt.getDay()] + (isToday ? ' · Today' : ''), title: dt.getDate() + ' ' + MN[dt.getMonth()],
+        total: tot + 'h', empty: tot === 0, full: tot > 0, entries: es,
+        emptyText: missing ? 'No worklogs yet. Generate suggestions from your commits and notes, or add entries by hand.' : 'Nothing logged for this day.',
+        conns: ['Acme', 'Client X'].map(function (n) {
+          var h = es.filter(function (e) { return e.conn === n; }).reduce(function (s, e) { return s + e.h; }, 0);
+          return { name: n, h: h + 'h', w: Math.min(100, h / 8 * 100) + '%' };
+        }).filter(function (c) { return c.h !== '0h'; })
+      };
+      if (isSel) sel = info;
+      days.push({
+        num: dt.getDate(), aria: info.title + ', ' + tot + ' hours', pressed: isSel ? 'true' : 'false',
+        bg: wkend ? '#0F1013' : '#121317',
+        ring: isSel ? 'inset 0 0 0 1.5px #9DB4FF' : 'none',
+        numBg: isToday ? '#9DB4FF' : 'transparent',
+        numColor: isToday ? '#0C0D10' : (inMonth ? (wkend ? '#8E939E' : '#EDEEF0') : '#7E838E'),
+        hLabel: tot ? tot + 'h' : '', hColor: tot >= 8 ? '#8E939E' : '#F0B85A',
+        shown: es.slice(0, 2), more: es.length - 2, hasMore: es.length > 2,
+        op: inMonth ? '1' : '0.55', missing: missing,
+        track: (tot || missing) ? '#1F2228' : 'transparent',
+        barW: Math.min(100, tot / 8 * 100) + '%', barC: tot >= 8 ? (inMonth ? '#3D4558' : '#2A2E38') : '#F0B85A',
+        pick: function (key) { return function () { self.setState({ picked: key }); }; }(k)
+      });
+    }
+    return { days: days, sel: sel || days[0] };
+  }
+}
+</script>
+</body>
+</html>

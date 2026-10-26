@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Settings — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.rail-btn:hover,.ghost:hover,.item:hover{background:#1A1C21}
+.primary:hover{background:#FFFFFF}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:760px){
+.rail{flex-direction:row !important;width:100% !important;border-right:0 !important;border-bottom:1px solid #23262D;padding:8px 12px !important}
+.rail-nav{flex-direction:row !important}
+.rail-foot{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 1000px; display: flex; flex-wrap: wrap; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<aside class="rail" style="flex: 0 0 76px; width: 76px; box-sizing: border-box; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 28px; border-right: 1px solid #1C1E24">
+<div aria-label="Jira Auto Logger" role="img" style="width: 32px; height: 32px; border-radius: 9px; background: #EDEEF0; color: #0C0D10; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">jl</div>
+<nav class="rail-nav" aria-label="Main" style="display: flex; flex-direction: column; gap: 6px">
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg>Projects</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-7"></path></svg>Reports</button>
+<button class="rail-btn" aria-current="page" style="position: relative; width: 56px; height: 52px; border: 0; border-radius: 12px; background: #1A1C21; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>Settings<span aria-label="Update available" role="img" style="position: absolute; top: 9px; right: 14px; width: 7px; height: 7px; border-radius: 50%; background: #9DB4FF"></span></button>
+</nav>
+<div class="rail-foot" style="margin-top: auto; font-family: 'Geist Mono', monospace; font-size: 11px; color: #7E838E">0.9.0</div>
+</aside>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<nav aria-label="Settings sections" style="flex: 1 1 220px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; border-right: 1px solid #1C1E24; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0 8px 16px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Settings</h1>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="7">
+<button class="item" aria-current="{{s.cur}}" style="display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 10px; border: 0; border-radius: 9px; background: {{s.bg}}; color: {{s.color}}; text-align: left; font-size: 13px; font-weight: {{s.w}}">{{s.name}}<sc-if value="{{s.badge}}" hint-placeholder-val="{{false}}"><span style="font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #1F2D4D; color: #C3D1FF">{{s.badge}}</span></sc-if></button>
+</sc-for>
+<p style="margin: auto 10px 0; padding-top: 24px; font-size: 12px; color: #7E838E">Config and logs live in your user data folder. <a href="#">Open folder</a></p>
+</nav>
+
+<main style="flex: 999 1 520px; min-width: 0; box-sizing: border-box; padding: 24px 40px 40px; display: flex; flex-direction: column; gap: 36px">
+
+<section style="max-width: 820px; display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px">
+<div style="flex: 1 1 300px"><h2 style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em">Connections</h2><p style="margin: 4px 0 0; font-size: 13px; color: #8E939E">One Jira instance with its own Tempo token. Toggle active ones on the calendar.</p></div>
+<button class="ghost" style="height: 34px; padding: 0 12px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px">+ Add connection</button>
+</header>
+
+<div style="border: 1px solid #1C1E24; border-radius: 14px; overflow: hidden">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 18px; background: #131418; border-bottom: 1px solid #1C1E24">
+<span style="width: 32px; height: 32px; border-radius: 9px; background: #1A1C21; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">A</span>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column"><span style="font-weight: 600">Acme (company)</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">acme.atlassian.net</span></div>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6FD8A0"><span style="width: 6px; height: 6px; border-radius: 50%; background: #6FD8A0"></span>Jira and Tempo connected</span>
+<button class="ghost" aria-expanded="true" aria-label="Collapse Acme" style="width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #8E939E">⌃</button>
+</div>
+<div style="padding: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px">
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Name</span><input value="Acme (company)" style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit"></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Jira URL</span><input value="https://acme.atlassian.net" style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font-family: 'Geist Mono', monospace; font-size: 13px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 13px; color: #8E939E">Account e-mail</span><input value="dev@acme.dev" style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit"></label>
+<div></div>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 13px; color: #8E939E">Jira API token <a href="#" style="font-size: 12px">Create token ↗</a></span><input type="password" value="stored-token" style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit"></label>
+<label style="display: flex; flex-direction: column; gap: 6px"><span style="display: flex; justify-content: space-between; font-size: 13px; color: #8E939E">Tempo API token <a href="#" style="font-size: 12px">Create token ↗</a></span><input type="password" value="stored-token" style="height: 36px; box-sizing: border-box; padding: 0 12px; border-radius: 9px; border: 1px solid #23262D; background: #0F1013; color: #EDEEF0; font: inherit"></label>
+<div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 4px">
+<button class="ghost" style="height: 34px; padding: 0 12px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px">Test connection</button>
+<span style="font-size: 12px; color: #8E939E">Tokens are encrypted with your system keychain.</span>
+<button class="ghost" style="margin-left: auto; height: 34px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: #FF8A7A; font-size: 13px">Remove</button>
+</div>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 16px 18px; border: 1px solid #1C1E24; border-radius: 14px; background: #131418">
+<span style="width: 32px; height: 32px; border-radius: 9px; background: #1A1C21; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">X</span>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column"><span style="font-weight: 600">Client X</span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">clientx.atlassian.net</span></div>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #F0B85A"><span style="width: 6px; height: 6px; border-radius: 50%; background: #F0B85A"></span>Tempo token missing</span>
+<button class="ghost" aria-expanded="false" aria-label="Expand Client X" style="width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: #8E939E">⌄</button>
+</div>
+</section>
+
+<section style="max-width: 820px; display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px">
+<div style="flex: 1 1 300px"><h2 style="margin: 0; font-size: 16px; font-weight: 600">Tempo fields</h2><p style="margin: 4px 0 0; font-size: 13px; color: #8E939E">Work attributes attached to every logged entry.</p></div>
+<button class="ghost" style="height: 32px; padding: 0 12px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px">Fetch from Tempo</button>
+</header>
+<div style="overflow-x: auto; border: 1px solid #1C1E24; border-radius: 12px">
+<table style="width: 100%; min-width: 560px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #8E939E; text-align: left"><th style="padding: 10px 14px; font-weight: 500">Field</th><th style="padding: 10px 14px; font-weight: 500">Type</th><th style="padding: 10px 14px; font-weight: 500">Filled by model</th><th style="padding: 10px 14px; font-weight: 500">In calendar</th><th style="padding: 10px 14px"><span class="sr">Actions</span></th></tr></thead>
+<tbody>
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="2">
+<tr style="border-top: 1px solid #1C1E24"><td style="padding: 12px 14px"><span style="font-weight: 500">{{f.label}}</span> <span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">{{f.key}}</span></td><td style="padding: 12px 14px; color: #A9AEB8">{{f.type}}</td><td style="padding: 12px 14px; color: #A9AEB8">{{f.llm}}</td><td style="padding: 12px 14px; color: #A9AEB8">{{f.cal}}</td><td style="padding: 12px 14px; text-align: right"><button class="ghost" style="height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; font-size: 13px">Edit</button></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var names = [['Connections', ''], ['AI model', ''], ['Appearance', ''], ['Automation', ''], ['PDF reports', ''], ['Updates', '0.9.1'], ['Privacy', '']];
+    return {
+      sections: names.map(function (n, i) {
+        return { name: n[0], badge: n[1], cur: i === 0 ? 'page' : 'false', bg: i === 0 ? '#15171B' : 'transparent', color: i === 0 ? '#EDEEF0' : '#A9AEB8', w: i === 0 ? '500' : '400' };
+      }),
+      fields: [
+        { label: 'Overtime', key: '_Overtime_', type: 'Yes / No', llm: 'Only when notes say so', cal: 'Marker' },
+        { label: 'Account', key: '_Account_', type: 'Text', llm: 'No', cal: 'Hidden' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Day view — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+a{color:#9DB4FF}a:hover{color:#C3D1FF}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.rail-btn:hover,.ghost:hover{background:#1A1C21}
+.block:hover{filter:brightness(1.12)}
+.primary:hover{background:#FFFFFF}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:760px){
+.rail{flex-direction:row !important;width:100% !important;border-right:0 !important;border-bottom:1px solid #23262D;padding:8px 12px !important}
+.rail-nav{flex-direction:row !important}
+.rail-foot{display:none !important}
+}
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+
+<aside class="rail" style="flex: 0 0 76px; width: 76px; box-sizing: border-box; padding: 20px 0; display: flex; flex-direction: column; align-items: center; gap: 28px; border-right: 1px solid #1C1E24">
+<div aria-label="Jira Auto Logger" role="img" style="width: 32px; height: 32px; border-radius: 9px; background: #EDEEF0; color: #0C0D10; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px">jl</div>
+<nav class="rail-nav" aria-label="Main" style="display: flex; flex-direction: column; gap: 6px">
+<button class="rail-btn" aria-current="page" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: #1A1C21; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="3"></rect><path d="M3.5 10h17M8 3v4M16 3v4"></path></svg>Calendar</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"></rect><rect x="13" y="4" width="7" height="7" rx="2"></rect><rect x="4" y="13" width="7" height="7" rx="2"></rect><rect x="13" y="13" width="7" height="7" rx="2"></rect></svg>Projects</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-7"></path></svg>Reports</button>
+<button class="rail-btn" style="width: 56px; height: 52px; border: 0; border-radius: 12px; background: transparent; color: #8E939E; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>Settings</button>
+</nav>
+<div class="rail-foot" style="margin-top: auto; font-family: 'Geist Mono', monospace; font-size: 11px; color: #7E838E">0.9.0</div>
+</aside>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 24px 32px 32px; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<div style="display: flex; align-items: center; gap: 4px">
+<button class="ghost" aria-label="Previous day" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #8E939E; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<button class="ghost" aria-label="Next day" style="width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: #8E939E; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+<h1 style="margin: 0 0 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -0.02em">Thursday <span style="color: #8E939E; font-weight: 400">6 August</span></h1>
+</div>
+<div role="group" aria-label="View" style="display: flex; padding: 3px; border-radius: 10px; background: #15171B; border: 1px solid #1F2228">
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Month</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #8E939E; font-size: 13px">Week</button>
+<button style="height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: #23262D; font-size: 13px; font-weight: 500">Day</button>
+</div>
+<button class="ghost" style="height: 34px; padding: 0 12px; border: 1px solid #23262D; border-radius: 9px; background: transparent; font-size: 13px">Today</button>
+<div style="flex: 1 1 40px"></div>
+<button class="primary" style="height: 34px; padding: 0 14px 0 12px; border: 0; border-radius: 9px; background: #EDEEF0; color: #0C0D10; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>New entries</button>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<section aria-label="Timeline" style="flex: 999 1 640px; min-width: 0; overflow-x: auto">
+<div style="min-width: 600px; display: grid; grid-template-columns: 56px repeat(2, minmax(0, 1fr)); column-gap: 12px">
+<span></span>
+<sc-for list="{{lanes}}" as="l" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px 10px">
+<span style="font-weight: 600">{{l.name}}</span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 13px; color: #8E939E">{{l.h}} / 8h</span>
+</div>
+</sc-for>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{hours}}" as="h" hint-placeholder-count="10">
+<span style="height: 60px; font-family: 'Geist Mono', monospace; font-size: 11px; color: #7E838E; transform: translateY(-7px)">{{h}}</span>
+</sc-for>
+</div>
+<sc-for list="{{lanes}}" as="l" hint-placeholder-count="2">
+<div style="position: relative; height: 600px; border-radius: 12px; background: repeating-linear-gradient(180deg, #1C1E24 0 1px, transparent 1px 60px), #101115">
+<sc-for list="{{l.blocks}}" as="b" hint-placeholder-count="2">
+<button class="block" style="position: absolute; left: 6px; right: 6px; top: {{b.top}}; height: {{b.height}}; box-sizing: border-box; padding: 12px 14px; border: 0; border-radius: 10px; background: {{b.bg}}; text-align: left; display: flex; flex-direction: column; gap: 4px; overflow: hidden">
+<span style="display: flex; align-items: center; gap: 8px; width: 100%"><span style="width: 3px; height: 14px; border-radius: 2px; background: {{b.color}}"></span><span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #C9CCD3">{{b.key}}</span><span style="margin-left: auto; font-family: 'Geist Mono', monospace; font-size: 12px; color: #C9CCD3">{{b.range}}</span></span>
+<span style="font-weight: 500">{{b.title}}</span>
+<span style="font-size: 13px; color: #A9AEB8">{{b.desc}}</span>
+</button>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</section>
+
+<aside aria-label="Day summary" style="flex: 1 1 280px; max-width: 340px; box-sizing: border-box; padding: 20px; border-radius: 14px; background: #131418; border: 1px solid #1C1E24; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><h2 style="margin: 0; font-size: 15px; font-weight: 600">Day total</h2><span style="font-family: 'Geist Mono', monospace; font-size: 22px">16h</span></div>
+<p style="margin: 0; font-size: 13px; color: #A9AEB8">Logged to 2 Jiras. Each connection reaches the 8h workday on its own.</p>
+<dl style="margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 13px">
+<dt style="color: #8E939E">Internal Tools</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace">5h</dd>
+<dt style="color: #8E939E">Mobile App</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace">3h</dd>
+<dt style="color: #8E939E">Client X Shop</dt><dd style="margin: 0; font-family: 'Geist Mono', monospace">8h</dd>
+</dl>
+<div style="height: 1px; background: #1F2228"></div>
+<p style="margin: 0; font-size: 13px; color: #8E939E">Drag a block’s edge to change its hours. Click it to edit the description.</p>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var blk = function (key, title, desc, start, h, color, bg) {
+      var pad = function (n) { return (n < 10 ? '0' : '') + n + ':00'; };
+      return { key: key, title: title, desc: desc, top: (start - 8) * 60 + 3 + 'px', height: h * 60 - 6 + 'px',
+        range: pad(start) + '–' + pad(start + h), color: color, bg: bg };
+    };
+    return {
+      hours: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'],
+      lanes: [
+        { name: 'Acme', h: '8h', blocks: [
+          blk('INT-11', 'Quarterly access review automation', 'Scripted the group membership export and reviewed it with security.', 9, 5, '#F0B85A', '#221D14'),
+          blk('APP-104', 'Refactor session storage', 'Moved tokens to encrypted storage.', 14, 3, '#8FB3FF', '#161C2A')
+        ] },
+        { name: 'Client X', h: '8h', blocks: [
+          blk('CLX-1', 'Checkout: saved addresses', 'Address book API and the checkout form prefill.', 9, 5, '#6FD8A0', '#132119'),
+          blk('CLX-3', 'Order export to CSV', 'Export endpoint with date filters.', 14, 3, '#6FD8A0', '#132119')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

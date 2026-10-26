@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Issue picker — Jira Auto Logger</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#0C0D10}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid #9DB4FF;outline-offset:2px}
+.opt:hover{background:#1A1C21}
+</style>
+</helmet>
+<div style="width: 560px; height: 600px; box-sizing: border-box; padding: 32px; background: #0C0D10; color: #EDEEF0; font-family: Geist, 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; gap: 8px">
+<label style="display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border: 1px solid #9DB4FF; border-radius: 10px; background: #0F1013; box-shadow: 0 0 0 3px #1F2D4D">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Issue</span>
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8E939E" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg>
+<input value="flaky e2e" style="flex: 1; min-width: 0; border: 0; background: transparent; color: #EDEEF0; font: inherit; outline: none">
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #8E939E">INT · Acme</span>
+</label>
+
+<div role="listbox" aria-label="Issues" style="border: 1px solid #23262D; border-radius: 12px; background: #131418; box-shadow: 0 16px 40px rgba(0,0,0,0.5); padding: 6px; display: flex; flex-direction: column">
+<span style="padding: 8px 10px 4px; font-size: 12px; font-weight: 500; color: #8E939E">Matching issues</span>
+<sc-for list="{{issues}}" as="i" hint-placeholder-count="3">
+<button class="opt" role="option" aria-selected="false" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left">
+<span aria-label="{{i.type}}" role="img" style="width: 16px; height: 16px; border-radius: 4px; background: {{i.tc}}; flex: 0 0 16px"></span>
+<span style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #C9CCD3; flex: 0 0 56px">{{i.key}}</span>
+<span style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{i.title}}</span>
+<span style="font-size: 12px; color: #8E939E">{{i.status}}</span>
+</button>
+</sc-for>
+<div style="height: 1px; margin: 6px 4px; background: #23262D"></div>
+<button class="opt" role="option" aria-selected="true" style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 0; border-radius: 8px; background: #1A1F2E; text-align: left">
+<span style="width: 16px; height: 16px; border-radius: 4px; border: 1px dashed #9DB4FF; box-sizing: border-box; display: flex; align-items: center; justify-content: center; color: #9DB4FF; flex: 0 0 16px"><svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column"><span>Create <b style="font-weight: 600">“Flaky e2e”</b> as a Task in INT</span><span style="font-size: 12px; color: #8E939E">Created when you log the time</span></span>
+<kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid #2B3A5E; color: #C3D1FF">Enter</kbd>
+</button>
+<button class="opt" role="option" aria-selected="false" style="display: flex; align-items: center; gap: 10px; padding: 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; color: #A9AEB8">
+<span style="width: 16px; flex: 0 0 16px"></span>
+<span style="flex: 1">Create with details…</span>
+<kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; padding: 1px 6px; border-radius: 5px; border: 1px solid #2B2E36; color: #8E939E">Shift Enter</kbd>
+</button>
+</div>
+<p style="margin: 8px 4px 0; font-size: 12px; color: #8E939E">The quick option uses the project’s default issue type, assigns it to you and puts it in the active sprint. “With details” opens the full form.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":560,"height":600}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      issues: [
+        { key: 'INT-13', title: 'Onboarding docs for the CI pipeline', status: 'In progress', type: 'Task', tc: '#4C8DF6' },
+        { key: 'INT-9', title: 'E2E test environment on staging', status: 'Done', type: 'Story', tc: '#4BB37F' },
+        { key: 'INT-7', title: 'Flaky Selenium runner on the old CI', status: 'Closed', type: 'Bug', tc: '#E5534B' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
