@@ -416,6 +416,151 @@
   flex: 1;
 }
 
+/* ---------- Week view: a column per day, every entry as a card ---------- */
+
+.week-view {
+  flex: 999 1 640px;
+  min-width: 0;
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: repeat(var(--week-days), minmax(120px, 1fr));
+  gap: 1px;
+  overflow-x: auto;
+  background: var(--line-soft);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+
+.week-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 420px;
+  padding: 12px 10px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.week-day.weekend {
+  background: color-mix(in srgb, var(--ground) 55%, var(--surface));
+}
+
+.week-day.selected {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.week-day-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.week-day-name {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.week-day-number {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.week-day.today .week-day-number {
+  color: var(--accent);
+}
+
+.week-day-total {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.week-day-total.partial {
+  color: var(--warning);
+}
+
+/* The month tile's bar, back in flow under the head. */
+.week-day-bar {
+  position: static;
+  margin-top: -4px;
+}
+
+.week-day-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.week-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: color-mix(in srgb, var(--entry-color, var(--accent)) 12%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--entry-color, var(--accent));
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.week-entry:hover {
+  background: color-mix(in srgb, var(--entry-color, var(--accent)) 20%, var(--surface));
+}
+
+.week-entry.dimmed {
+  opacity: 0.3;
+}
+
+.week-entry.matched {
+  box-shadow: inset 3px 0 0 var(--entry-color, var(--accent)), 0 0 0 1.5px var(--accent);
+}
+
+.week-entry-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.week-entry-key {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.week-entry-hours {
+  color: var(--muted);
+}
+
+.week-entry-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--ink) 80%, var(--muted));
+}
+
+.week-day-add {
+  align-self: flex-start;
+  margin-top: auto;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.week-day:hover .week-day-add,
+.week-day-add:focus-visible {
+  opacity: 1;
+}
+
 /* ---------- Day view: one lane per Jira ---------- */
 
 .day-view {

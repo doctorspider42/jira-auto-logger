@@ -13,6 +13,7 @@ import { EntryEditor } from './EntryEditor'
 import { MonthDayEntries } from './MonthDayEntries'
 import { MonthSummary } from './MonthSummary'
 import { useCalendar, type CalendarEntry } from './useCalendar'
+import { WeekView } from './WeekView'
 import './calendar.css'
 
 export function CalendarView(): JSX.Element {
@@ -82,16 +83,21 @@ export function CalendarView(): JSX.Element {
     [filterKey]
   )
   // The total is scoped to what's on screen: the focused day in the day view,
-  // the whole month in the month view.
+  // its week in the week view, the whole month in the month view.
   const isDayView = calendar.view === 'day'
+  const isWeekView = calendar.view === 'week'
   const scopedEntries = useMemo(() => {
     if (isDayView) {
       const iso = toIsoDate(calendar.focusedDay)
       return loadedEntries.filter((e) => e.startDate === iso)
     }
+    if (isWeekView) {
+      const week = new Set(calendar.weekDays.map(toIsoDate))
+      return loadedEntries.filter((e) => week.has(e.startDate))
+    }
     const monthPrefix = format(calendar.month, 'yyyy-MM')
     return loadedEntries.filter((e) => e.startDate.startsWith(monthPrefix))
-  }, [loadedEntries, isDayView, calendar.focusedDay, calendar.month])
+  }, [loadedEntries, isDayView, isWeekView, calendar.focusedDay, calendar.weekDays, calendar.month])
   const filteredSeconds = filterActive
     ? scopedEntries.filter(matchEntry).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
     : 0
@@ -112,11 +118,17 @@ export function CalendarView(): JSX.Element {
   const weekdays = showWeekends ? allWeekdays : allWeekdays.slice(0, 5)
   const focusedIso = toIsoDate(calendar.focusedDay)
   const selectedDates = [...calendar.selected].sort()
-  // Nothing selected: the panel shows today, or the 1st of a month that isn't this one.
+  const weekDays = calendar.weekDays.filter((day) => showWeekends || !isWeekendDay(day))
+  // Nothing selected: the panel shows today, or else the first day on screen.
+  const todayIso = toIsoDate(new Date())
   const inspectedDates =
     selectedDates.length > 0
       ? selectedDates
-      : [toIsoDate(isSameMonth(new Date(), calendar.month) ? new Date() : startOfMonth(calendar.month))]
+      : isWeekView
+        ? [weekDays.some((d) => toIsoDate(d) === todayIso) ? todayIso : focusedIso]
+        : [toIsoDate(isSameMonth(new Date(), calendar.month) ? new Date() : startOfMonth(calendar.month))]
+  const step = (offset: number): void =>
+    isDayView ? calendar.goToDay(offset) : isWeekView ? calendar.goToWeek(offset) : calendar.goToMonth(offset)
   const dayTarget = config.workingHoursPerDay * 3600
 
   const onWizardDone = (): void => {
@@ -132,15 +144,15 @@ export function CalendarView(): JSX.Element {
         <div className="calendar-nav">
           <button
             className="btn btn-ghost btn-icon"
-            onClick={() => (isDayView ? calendar.goToDay(-1) : calendar.goToMonth(-1))}
-            aria-label={t(isDayView ? 'calendar.previousDay' : 'calendar.previousMonth')}
+            onClick={() => step(-1)}
+            aria-label={t(isDayView ? 'calendar.previousDay' : isWeekView ? 'calendar.previousWeek' : 'calendar.previousMonth')}
           >
             <Icon name="chevronLeft" />
           </button>
           <button
             className="btn btn-ghost btn-icon"
-            onClick={() => (isDayView ? calendar.goToDay(1) : calendar.goToMonth(1))}
-            aria-label={t(isDayView ? 'calendar.nextDay' : 'calendar.nextMonth')}
+            onClick={() => step(1)}
+            aria-label={t(isDayView ? 'calendar.nextDay' : isWeekView ? 'calendar.nextWeek' : 'calendar.nextMonth')}
           >
             <Icon name="chevronRight" />
           </button>
@@ -149,6 +161,11 @@ export function CalendarView(): JSX.Element {
               <>
                 {format(calendar.focusedDay, 'EEEE', { locale })}{' '}
                 <span className="soft">{format(calendar.focusedDay, 'd MMMM', { locale })}</span>
+              </>
+            ) : isWeekView ? (
+              <>
+                {format(weekDays[0], 'd MMM', { locale })} – {format(weekDays[weekDays.length - 1], 'd MMM', { locale })}{' '}
+                <span className="soft">{format(weekDays[weekDays.length - 1], 'yyyy')}</span>
               </>
             ) : (
               <>
@@ -159,8 +176,14 @@ export function CalendarView(): JSX.Element {
           </h1>
         </div>
         <div className="segmented" role="group" aria-label={t('calendar.view')}>
-          <button className={!isDayView ? 'active' : ''} onClick={() => calendar.setView('month')}>
+          <button className={calendar.view === 'month' ? 'active' : ''} onClick={() => calendar.setView('month')}>
             {t('calendar.viewMonth')}
+          </button>
+          <button
+            className={isWeekView ? 'active' : ''}
+            onClick={() => calendar.openWeek(new Date(`${inspectedDates[0]}T00:00:00`))}
+          >
+            {t('calendar.viewWeek')}
           </button>
           <button className={isDayView ? 'active' : ''} onClick={() => calendar.setView('day')}>
             {t('calendar.viewDay')}
@@ -206,7 +229,7 @@ export function CalendarView(): JSX.Element {
           <span>
             <b className="mono">{filterKey}</b>{' '}
             <span className="muted">
-              {t(isDayView ? 'calendar.filterTotalDay' : 'calendar.filterTotalMonth', {
+              {t(isDayView ? 'calendar.filterTotalDay' : isWeekView ? 'calendar.filterTotalWeek' : 'calendar.filterTotalMonth', {
                 hours: formatHours(filteredSeconds)
               })}
             </span>
@@ -219,7 +242,7 @@ export function CalendarView(): JSX.Element {
 
       {calendar.error && <ErrorBanner error={calendar.error} onRetry={calendar.reload} />}
 
-      {!isDayView && (
+      {calendar.view === 'month' && (
         <MonthSummary
           config={config}
           month={calendar.month}
@@ -238,6 +261,20 @@ export function CalendarView(): JSX.Element {
             entries={calendar.worklogsByDate.get(focusedIso) ?? []}
             connections={config.connections.filter((c) => config.activeConnectionIds.includes(c.id))}
             workingHoursPerDay={config.workingHoursPerDay}
+            onEditEntry={setEditing}
+            matchEntry={entryMatcher}
+          />
+        ) : isWeekView ? (
+          <WeekView
+            days={weekDays}
+            worklogsByDate={calendar.worklogsByDate}
+            selected={calendar.selected}
+            draftDates={draftDates}
+            dayTarget={dayTarget}
+            loading={calendar.loading}
+            onDayMouseDown={calendar.onDayMouseDown}
+            onDayMouseEnter={calendar.onDayMouseEnter}
+            onAddEntries={openWizard}
             onEditEntry={setEditing}
             matchEntry={entryMatcher}
           />

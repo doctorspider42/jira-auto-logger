@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { addMonths, format } from 'date-fns'
 import type {
   AppError,
   ReportColumnKey,
@@ -14,16 +15,26 @@ import {
   validateReportFilenameTemplate
 } from '@shared/reportFilename'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
+import { Icon } from '@/components/common/Icon'
 import { useAppStore } from '@/store/appStore'
+import { dateLocale } from '@/utils/format'
 import './reports.css'
 
+/** Accent colours offered as swatches; any other comes from the colour picker. */
+const ACCENTS = ['#172b4d', '#0052cc', '#2b2e36', '#0f766e', '#c2410c']
+
+function toMonthValue(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
 function currentMonth(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  return toMonthValue(new Date())
 }
 
 export function ReportsView(): JSX.Element {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const locale = dateLocale(i18n.language)
   const config = useAppStore((state) => state.config)
   const saveConfig = useAppStore((state) => state.saveConfig)
   const requestedMonth = useAppStore((state) => state.reportMonth)
@@ -49,6 +60,8 @@ export function ReportsView(): JSX.Element {
   const [projectIds, setProjectIds] = useState<string[]>(() =>
     config.projects.map((project) => project.id)
   )
+  // Which preset the builder matches; any manual change makes it "custom".
+  const [preset, setPreset] = useState<'tempo' | 'detailed' | 'custom'>('custom')
   const [generating, setGenerating] = useState(false)
   const [savedDefaults, setSavedDefaults] = useState(false)
   const [result, setResult] = useState<ReportResult | null>(null)
@@ -65,8 +78,6 @@ export function ReportsView(): JSX.Element {
     () => config.customFields,
     [config.customFields]
   )
-  const allConnectionsSelected =
-    connectionIds.length === config.connections.length && config.connections.length > 0
   const allVisibleProjectsSelected =
     visibleProjects.length > 0 && visibleProjects.every((project) => projectIds.includes(project.id))
   const formattedHours = useMemo(
@@ -159,6 +170,7 @@ export function ReportsView(): JSX.Element {
 
   const applyTempoPreset = (): void => {
     const custom = availableCustomFields[0]
+    setPreset('tempo')
     setLayout('summary')
     setGroupings([
       ...(custom ? ([`custom:${custom.id}`] as ReportGroupKey[]) : []),
@@ -176,6 +188,7 @@ export function ReportsView(): JSX.Element {
   }
 
   const applyDetailedPreset = (): void => {
+    setPreset('detailed')
     setLayout('detailed')
     setGroupings(['project'])
     setColumns(['date', 'issue', 'description', 'connection'])
@@ -263,480 +276,465 @@ export function ReportsView(): JSX.Element {
     }
   }
 
+  const markCustom = (): void => setPreset('custom')
+  const monthDate = new Date(`${month || currentMonth()}-01T00:00:00`)
+  const shiftMonth = (offset: number): void => setMonth(toMonthValue(addMonths(monthDate, offset)))
+  const outputDirectory = config.reports.outputDirectory || t('reports.defaultOutputDirectoryShort')
+
   return (
-    <div className="reports reports-pro">
-      <div className="reports-heading">
-        <div>
-          <span className="reports-kicker">{t('reports.builderKicker')}</span>
-          <h2>{t('reports.title')}</h2>
-          <p className="hint">{t('reports.hintPro')}</p>
-        </div>
-        <div className="reports-presets">
-          <button className="btn" onClick={applyTempoPreset}>
-            {t('reports.presetTempo')}
-          </button>
-          <button className="btn" onClick={applyDetailedPreset}>
-            {t('reports.presetDetailed')}
-          </button>
-        </div>
-      </div>
+    <div className="report-screen">
+      <section className="report-builder-pane" aria-label={t('reports.title')}>
+        <header className="report-head">
+          <h1 className="page-title">{t('reports.title')}</h1>
+          <div className="segmented" role="group" aria-label={t('reports.preset')}>
+            <button className={preset === 'tempo' ? 'active' : ''} onClick={applyTempoPreset}>
+              {t('reports.presetTempo')}
+            </button>
+            <button className={preset === 'detailed' ? 'active' : ''} onClick={applyDetailedPreset}>
+              {t('reports.presetDetailed')}
+            </button>
+            <button className={preset === 'custom' ? 'active' : ''} onClick={markCustom}>
+              {t('reports.presetCustom')}
+            </button>
+          </div>
+        </header>
 
-      {error && <ErrorBanner error={error} />}
+        {error && <ErrorBanner error={error} />}
 
-      <div className="report-builder">
-        <div className="report-builder-controls">
-          <section className="card report-section">
-            <div className="report-section-title">
-              <span className="report-section-number">1</span>
-              <div>
-                <h3>{t('reports.sectionScope')}</h3>
-                <p>{t('reports.sectionScopeHint')}</p>
-              </div>
-            </div>
-            <div className="field">
-              <label>{t('reports.month')}</label>
-              <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} />
-            </div>
-            <div className="field">
-              <label>{t('reports.connections')}</label>
-              <div className="reports-chip-grid">
-                <label className="reports-select-chip reports-select-all">
-                  <input
-                    type="checkbox"
-                    checked={allConnectionsSelected}
-                    onChange={(event) =>
-                      setConnectionIds(
-                        event.target.checked
-                          ? config.connections.map((connection) => connection.id)
-                          : []
-                      )
-                    }
-                  />
-                  {t('reports.allConnections')}
-                </label>
-                {config.connections.map((connection) => (
-                  <label key={connection.id} className="reports-select-chip">
-                    <input
-                      type="checkbox"
-                      checked={connectionIds.includes(connection.id)}
-                      onChange={() => toggleConnection(connection.id)}
-                    />
-                    {connection.name || connection.jira.baseUrl}
-                  </label>
-                ))}
-              </div>
-            </div>
-            {visibleProjects.length > 0 && (
-              <div className="field">
-                <label>{t('reports.projects')}</label>
-                <div className="reports-chip-grid">
-                  <label className="reports-select-chip reports-select-all">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleProjectsSelected}
-                      onChange={(event) => {
-                        const visible = new Set(visibleProjects.map((project) => project.id))
-                        setProjectIds((current) =>
-                          event.target.checked
-                            ? [...new Set([...current, ...visible])]
-                            : current.filter((id) => !visible.has(id))
-                        )
-                      }}
-                    />
-                    {t('reports.allProjects')}
-                  </label>
-                  {visibleProjects.map((project) => (
-                    <label key={project.id} className="reports-select-chip">
-                      <input
-                        type="checkbox"
-                        checked={projectIds.includes(project.id)}
-                        onChange={() => toggleProject(project.id)}
-                      />
-                      <span className="report-project-dot" style={{ background: project.color }} />
-                      {project.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="card report-section">
-            <div className="report-section-title">
-              <span className="report-section-number">2</span>
-              <div>
-                <h3>{t('reports.sectionStructure')}</h3>
-                <p>{t('reports.sectionStructureHint')}</p>
-              </div>
-            </div>
-            <div className="report-segmented">
-              <button
-                className={layout === 'summary' ? 'active' : ''}
-                onClick={() => setLayout('summary')}
-              >
-                <strong>{t('reports.layoutSummary')}</strong>
-                <span>{t('reports.layoutSummaryHint')}</span>
+        <div className="report-group">
+          <h2 className="eyebrow">{t('reports.sectionScope')}</h2>
+          <div className="report-rows">
+            <span className="report-label">{t('reports.month')}</span>
+            <div className="report-month">
+              <button className="btn btn-ghost btn-icon" onClick={() => shiftMonth(-1)} aria-label={t('calendar.previousMonth')}>
+                <Icon name="chevronLeft" />
               </button>
-              <button
-                className={layout === 'detailed' ? 'active' : ''}
-                onClick={() => setLayout('detailed')}
-              >
-                <strong>{t('reports.layoutDetailed')}</strong>
-                <span>{t('reports.layoutDetailedHint')}</span>
+              <span>{format(monthDate, 'LLLL yyyy', { locale })}</span>
+              <button className="btn btn-ghost btn-icon" onClick={() => shiftMonth(1)} aria-label={t('calendar.nextMonth')}>
+                <Icon name="chevronRight" />
               </button>
             </div>
 
-            <div className="report-subsection-head">
-              <div>
-                <label>{t('reports.groupHierarchy')}</label>
-                <span>{t('reports.groupHierarchyHint')}</span>
-              </div>
-              <button
-                className="btn btn-sm"
-                onClick={addGrouping}
-                disabled={
-                  groupings.length >= Math.min(5, groupingOptions.length) ||
-                  groupingOptions.length === 0
-                }
-              >
-                + {t('reports.addGrouping')}
-              </button>
-            </div>
-            <div className="report-group-builder">
-              {groupings.length === 0 && (
-                <div className="report-empty-builder">{t('reports.noGrouping')}</div>
-              )}
-              {groupings.map((grouping, index) => (
-                <div key={`${grouping}-${index}`} className="report-group-level">
-                  <span className="report-level-index">{index + 1}</span>
-                  <select
-                    value={grouping}
-                    onChange={(event) =>
-                      replaceGrouping(index, event.target.value as ReportGroupKey)
-                    }
-                  >
-                    {groupingOptions
-                      .filter(
-                        (option) => option.key === grouping || !groupings.includes(option.key)
-                      )
-                      .map((option) => (
-                        <option key={option.key} value={option.key}>
-                          {option.label}
-                        </option>
-                      ))}
-                  </select>
-                  <div className="report-level-actions">
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => moveGrouping(index, -1)}
-                      disabled={index === 0}
-                      title={t('reports.moveUp')}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => moveGrouping(index, 1)}
-                      disabled={index === groupings.length - 1}
-                      title={t('reports.moveDown')}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      className="btn btn-sm btn-ghost btn-danger"
-                      onClick={() =>
-                        setGroupings((current) => current.filter((_, item) => item !== index))
-                      }
-                      title={t('reports.removeGrouping')}
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
+            <span className="report-label">{t('reports.connections')}</span>
+            <div className="chip-list">
+              {config.connections.map((connection) => (
+                <button
+                  key={connection.id}
+                  className={`chip ${connectionIds.includes(connection.id) ? 'selected' : ''}`}
+                  aria-pressed={connectionIds.includes(connection.id)}
+                  onClick={() => toggleConnection(connection.id)}
+                >
+                  {connection.name || connection.jira.baseUrl}
+                </button>
               ))}
             </div>
 
-            {layout === 'detailed' && (
+            {visibleProjects.length > 0 && (
               <>
-                <div className="report-subsection-head">
-                  <div>
-                    <label>{t('reports.columns')}</label>
-                    <span>{t('reports.columnsHint')}</span>
-                  </div>
-                </div>
-                <div className="report-column-picker">
-                  {columnOptions.map((option) => (
-                    <label key={option.key} className="report-column-chip">
-                      <input
-                        type="checkbox"
-                        checked={columns.includes(option.key)}
-                        onChange={() => toggleColumn(option.key)}
-                      />
-                      {option.label}
-                    </label>
+                <span className="report-label">{t('reports.projects')}</span>
+                <div className="chip-list">
+                  <button
+                    className={`chip ${allVisibleProjectsSelected ? 'selected' : ''}`}
+                    aria-pressed={allVisibleProjectsSelected}
+                    onClick={() => {
+                      const visible = new Set(visibleProjects.map((project) => project.id))
+                      setProjectIds((current) =>
+                        allVisibleProjectsSelected
+                          ? current.filter((id) => !visible.has(id))
+                          : [...new Set([...current, ...visible])]
+                      )
+                    }}
+                  >
+                    {t('reports.allProjects')}
+                  </button>
+                  {visibleProjects.map((project) => (
+                    <button
+                      key={project.id}
+                      className={`chip ${projectIds.includes(project.id) ? 'selected' : ''}`}
+                      aria-pressed={projectIds.includes(project.id)}
+                      onClick={() => toggleProject(project.id)}
+                    >
+                      <span className="chip-dot" style={{ background: project.color }} />
+                      {project.name}
+                    </button>
                   ))}
                 </div>
               </>
             )}
-          </section>
+          </div>
+        </div>
 
-          <section className="card report-section">
-            <div className="report-section-title">
-              <span className="report-section-number">3</span>
-              <div>
-                <h3>{t('reports.sectionAppearance')}</h3>
-                <p>{t('reports.sectionAppearanceHint')}</p>
+        <div className="report-group">
+          <div className="report-group-head">
+            <h2 className="eyebrow">
+              {t('reports.groupBy')}
+              <HelpTip label={t('reports.groupBy')}>{t('reports.groupHierarchyHint')}</HelpTip>
+            </h2>
+            <div className="segmented" role="group" aria-label={t('reports.layout')}>
+              <button
+                className={layout === 'summary' ? 'active' : ''}
+                title={t('reports.layoutSummaryHint')}
+                onClick={() => {
+                  markCustom()
+                  setLayout('summary')
+                }}
+              >
+                {t('reports.layoutSummary')}
+              </button>
+              <button
+                className={layout === 'detailed' ? 'active' : ''}
+                title={t('reports.layoutDetailedHint')}
+                onClick={() => {
+                  markCustom()
+                  setLayout('detailed')
+                }}
+              >
+                {t('reports.layoutDetailed')}
+              </button>
+            </div>
+          </div>
+
+          {groupings.length === 0 && <p className="hint">{t('reports.noGrouping')}</p>}
+          {groupings.map((grouping, index) => (
+            <div key={`${grouping}-${index}`} className="report-level">
+              <span className="mono report-level-index">{index + 1}</span>
+              <select
+                value={grouping}
+                onChange={(event) => {
+                  markCustom()
+                  replaceGrouping(index, event.target.value as ReportGroupKey)
+                }}
+              >
+                {groupingOptions
+                  .filter((option) => option.key === grouping || !groupings.includes(option.key))
+                  .map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+              </select>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => {
+                  markCustom()
+                  moveGrouping(index, -1)
+                }}
+                disabled={index === 0}
+                aria-label={t('reports.moveUp')}
+                title={t('reports.moveUp')}
+              >
+                ↑
+              </button>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => {
+                  markCustom()
+                  moveGrouping(index, 1)
+                }}
+                disabled={index === groupings.length - 1}
+                aria-label={t('reports.moveDown')}
+                title={t('reports.moveDown')}
+              >
+                ↓
+              </button>
+              <button
+                className="btn btn-ghost btn-icon btn-sm"
+                onClick={() => {
+                  markCustom()
+                  setGroupings((current) => current.filter((_, item) => item !== index))
+                }}
+                aria-label={t('reports.removeGrouping')}
+                title={t('reports.removeGrouping')}
+              >
+                <Icon name="close" size={14} />
+              </button>
+            </div>
+          ))}
+          <button
+            className="link report-add-level"
+            onClick={() => {
+              markCustom()
+              addGrouping()
+            }}
+            disabled={groupings.length >= Math.min(5, groupingOptions.length)}
+          >
+            + {t('reports.addGrouping')}
+          </button>
+
+          {layout === 'detailed' && (
+            <>
+              <span className="report-label">{t('reports.columns')}</span>
+              <div className="chip-list">
+                {columnOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    className={`chip ${columns.includes(option.key) ? 'selected' : ''}`}
+                    aria-pressed={columns.includes(option.key)}
+                    onClick={() => {
+                      markCustom()
+                      toggleColumn(option.key)
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
+            </>
+          )}
+        </div>
+
+        <div className="report-group">
+          <h2 className="eyebrow">{t('reports.sectionDocument')}</h2>
+          <div className="report-rows">
+            <label className="report-label" htmlFor="report-title">
+              {t('reports.reportTitle')}
+            </label>
+            <input
+              id="report-title"
+              value={title}
+              onChange={(event) => {
+                markCustom()
+                setTitle(event.target.value)
+              }}
+              placeholder={t('reports.reportTitlePlaceholder')}
+            />
+
+            <span className="report-label">{t('reports.timeFormat')}</span>
+            <div className="segmented" role="group" aria-label={t('reports.timeFormat')}>
+              <button
+                className={`mono ${timeFormat === 'hours' ? 'active' : ''}`}
+                title={t('reports.timeDecimal')}
+                onClick={() => {
+                  markCustom()
+                  setTimeFormat('hours')
+                }}
+              >
+                7.5
+              </button>
+              <button
+                className={`mono ${timeFormat === 'hours-minutes' ? 'active' : ''}`}
+                title={t('reports.timeHoursMinutes')}
+                onClick={() => {
+                  markCustom()
+                  setTimeFormat('hours-minutes')
+                }}
+              >
+                7:30
+              </button>
             </div>
-            <div className="field">
-              <label>{t('reports.reportTitle')}</label>
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder={t('reports.reportTitlePlaceholder')}
-              />
+
+            <span className="report-label">{t('reports.orientation')}</span>
+            <div className="segmented" role="group" aria-label={t('reports.orientation')}>
+              {(['portrait', 'landscape'] as ReportOrientation[]).map((value) => (
+                <button
+                  key={value}
+                  className={orientation === value ? 'active' : ''}
+                  onClick={() => {
+                    markCustom()
+                    setOrientation(value)
+                  }}
+                >
+                  {t(value === 'portrait' ? 'reports.orientationPortrait' : 'reports.orientationLandscape')}
+                </button>
+              ))}
             </div>
-            <div className={`field report-filename-field ${filenameTemplateError ? 'invalid' : ''}`}>
-              <label>{t('reports.filenameTemplate')}</label>
+
+            <span className="report-label">{t('reports.accentColor')}</span>
+            <div className="swatches">
+              {ACCENTS.map((color) => (
+                <button
+                  key={color}
+                  className={`swatch ${accentColor.toLowerCase() === color ? 'selected' : ''}`}
+                  style={{ background: color }}
+                  aria-label={color}
+                  aria-pressed={accentColor.toLowerCase() === color}
+                  onClick={() => {
+                    markCustom()
+                    setAccentColor(color)
+                  }}
+                />
+              ))}
+              <label
+                className={`swatch swatch-custom ${ACCENTS.includes(accentColor.toLowerCase()) ? '' : 'selected'}`}
+                title={t('projects.colorHint')}
+              >
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(event) => {
+                    markCustom()
+                    setAccentColor(event.target.value)
+                  }}
+                />
+              </label>
+            </div>
+
+            <span className="report-label">{t('reports.extras')}</span>
+            <div className="report-switches">
+              {(
+                [
+                  ['reports.includeSummary', includeSummary, setIncludeSummary],
+                  ['reports.showGeneratedAt', showGeneratedAt, setShowGeneratedAt],
+                  ['reports.showPageNumbers', showPageNumbers, setShowPageNumbers]
+                ] as Array<[string, boolean, (value: boolean) => void]>
+              ).map(([key, checked, set]) => (
+                <label key={key} className="switch">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      markCustom()
+                      set(event.target.checked)
+                    }}
+                  />
+                  {t(key)}
+                </label>
+              ))}
+            </div>
+
+            <label className="report-label" htmlFor="report-filename">
+              {t('reports.filenameTemplate')}
+              <HelpTip label={t('reports.filenameTemplate')}>
+                {t('reports.filenameTokens')} <code>{'{MM}'}</code> <code>{'{YYYY}'}</code>{' '}
+                <code>{'{YYYY-MM}'}</code> <code>{'{layout}'}</code>
+              </HelpTip>
+            </label>
+            <div className={`report-filename ${filenameTemplateError ? 'invalid' : ''}`}>
               <input
+                id="report-filename"
+                className="mono"
                 value={filenameTemplate}
                 onChange={(event) => setFilenameTemplate(event.target.value)}
                 placeholder="{MM}.{YYYY}.pdf"
                 spellCheck={false}
                 aria-invalid={filenameTemplateError ? 'true' : 'false'}
               />
-              <div className="report-filename-meta">
-                <span className="hint">
-                  {t('reports.filenameTokens')}{' '}
-                  <code>{'{MM}'}</code> <code>{'{YYYY}'}</code>{' '}
-                  <code>{'{YYYY-MM}'}</code> <code>{'{layout}'}</code>
-                </span>
-                {filenamePreview && (
-                  <span className="report-filename-preview">
-                    {t('reports.filenamePreview')} <code>{filenamePreview}</code>
-                  </span>
-                )}
-              </div>
-              {filenameErrorText && (
-                <span className="report-field-error">{filenameErrorText}</span>
-              )}
+              {filenameErrorText && <span className="report-field-error">{filenameErrorText}</span>}
             </div>
-            <div className="field-row">
-              <div className="field">
-                <label>{t('reports.timeFormat')}</label>
-                <select
-                  value={timeFormat}
-                  onChange={(event) => setTimeFormat(event.target.value as ReportTimeFormat)}
-                >
-                  <option value="hours">{t('reports.timeDecimal')}</option>
-                  <option value="hours-minutes">{t('reports.timeHoursMinutes')}</option>
-                </select>
-              </div>
-              <div className="field">
-                <label>{t('reports.orientation')}</label>
-                <select
-                  value={orientation}
-                  onChange={(event) => setOrientation(event.target.value as ReportOrientation)}
-                >
-                  <option value="portrait">{t('reports.orientationPortrait')}</option>
-                  <option value="landscape">{t('reports.orientationLandscape')}</option>
-                </select>
-              </div>
-              <div className="field report-color-field">
-                <label>{t('reports.accentColor')}</label>
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(event) => setAccentColor(event.target.value)}
-                />
-              </div>
-            </div>
-            <div className="report-options">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={includeSummary}
-                  onChange={(event) => setIncludeSummary(event.target.checked)}
-                />
-                {t('reports.includeSummary')}
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showGeneratedAt}
-                  onChange={(event) => setShowGeneratedAt(event.target.checked)}
-                />
-                {t('reports.showGeneratedAt')}
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={showPageNumbers}
-                  onChange={(event) => setShowPageNumbers(event.target.checked)}
-                />
-                {t('reports.showPageNumbers')}
-              </label>
-            </div>
-          </section>
+          </div>
         </div>
 
-        <aside className="report-preview-column">
-          <section className="card report-preview-card">
-            <div className="report-preview-head">
-              <div>
-                <span>{t('reports.livePreview')}</span>
-                <strong>{layout === 'summary' ? t('reports.layoutSummary') : t('reports.layoutDetailed')}</strong>
-              </div>
-              <span className="report-preview-paper">{orientation === 'portrait' ? 'A4' : 'A4 ↔'}</span>
-            </div>
-            <div
-              className={`report-paper-preview ${orientation}`}
-              style={{ '--preview-accent': accentColor } as React.CSSProperties}
+        {result && (
+          <div className="banner banner-success reports-result">
+            <Icon name="check" size={16} />
+            <span className="reports-result-copy">
+              <strong>{t('reports.generated')}</strong>
+              <span>
+                {t('reports.generatedSummary', { entries: result.entryCount, hours: formattedHours })}
+              </span>
+            </span>
+            <button className="btn btn-sm" onClick={() => window.api.reports.reveal(result.filePath)}>
+              {t('reports.showInFolder')}
+            </button>
+          </div>
+        )}
+
+        <footer className="report-footer">
+          <div className="report-saves" title={`${outputDirectory} / ${filenamePreview}`}>
+            <span className="muted">{t('reports.savesAs')}</span>
+            <span className="mono">{filenamePreview || '—'}</span>
+            <span className="muted report-saves-dir">{outputDirectory}</span>
+            <button className="link" onClick={changeOutputDirectory}>
+              {t('reports.changeOutput')}
+            </button>
+          </div>
+          <div className="report-actions">
+            <button className="btn btn-lg" onClick={saveAsDefault} disabled={Boolean(filenameTemplateError)}>
+              {savedDefaults ? `✓ ${t('reports.defaultsSaved')}` : t('reports.saveDefaults')}
+            </button>
+            <button
+              className="btn btn-primary btn-lg report-generate"
+              onClick={generate}
+              disabled={generating || !month || connectionIds.length === 0 || Boolean(filenameTemplateError)}
             >
-              <div className="preview-top">
-                <b>{title}</b>
-                <span>
-                  Period: 01/Jun/26 - 30/Jun/26
-                  <br />
-                  Total Logged: <strong>168</strong>
-                </span>
-              </div>
-              <div className="preview-rule" />
-              {includeSummary && (
-                <div className="preview-metrics">
-                  <i />
-                  <i />
-                  <i />
-                  <i />
-                </div>
-              )}
-              {layout === 'summary' ? (
-                <div className="preview-summary">
-                  <div className="preview-table-head">
-                    <span>
-                      {groupings.length > 0
-                        ? groupings.map(groupingLabel).join(' / ')
-                        : t('reports.noGrouping')}
-                    </span>
-                    <b>Logged</b>
-                  </div>
-                  {(groupings.length > 0 ? groupings : ['project' as ReportGroupKey]).map(
-                    (grouping, index) => (
-                      <div
-                        key={`${grouping}-${index}`}
-                        className={`preview-group-line depth-${Math.min(index, 3)}`}
-                      >
-                        <span>
-                          {grouping.startsWith('custom:')
-                            ? index === 0
-                              ? groupingLabel(grouping).replace(
-                                  `${t('reports.groupCustomField')}: `,
-                                  ''
-                                )
-                              : 'Custom value'
-                            : grouping === 'project'
-                              ? 'Project Alpha (PRJ)'
-                              : grouping === 'issue'
-                                ? 'PRJ-123 - Example work item'
-                                : grouping === 'day'
-                                  ? '2026-06-15'
-                                  : grouping === 'worklog'
-                                    ? t('reports.previewWorklog')
-                                    : 'Company Jira'}
-                        </span>
-                        <b>{Math.max(8, 168 - index * 40)}</b>
-                      </div>
-                    )
-                  )}
-                </div>
-              ) : (
-                <div className="preview-detail">
-                  <div className="preview-detail-head">
-                    {columns.slice(0, 4).map((column) => (
-                      <span key={column}>{columnLabel(column)}</span>
-                    ))}
-                    <b>Logged</b>
-                  </div>
-                  {[0, 1, 2, 3].map((row) => (
-                    <div key={row} className="preview-detail-row">
-                      {columns.slice(0, 4).map((column) => (
-                        <i key={column} />
-                      ))}
-                      <b>{row % 2 ? '3:00' : '5:00'}</b>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {(showGeneratedAt || showPageNumbers) && (
-                <div className="preview-footer">
-                  <span>{showGeneratedAt ? '2026-06-30 16:20' : ''}</span>
-                  <span>{showPageNumbers ? 'Page 1 of 1' : ''}</span>
-                </div>
-              )}
-            </div>
-            <div className="report-preview-summary">
-              <span>
-                {groupings.length} {t('reports.groupLevels')}
-              </span>
-              <span>
-                {layout === 'detailed' ? columns.length : 2} {t('reports.visibleColumns')}
-              </span>
-              <span>{orientation === 'portrait' ? 'A4 portrait' : 'A4 landscape'}</span>
-            </div>
-          </section>
-        </aside>
-      </div>
-
-      <section className="card reports-action reports-action-pro">
-        <div className="reports-output">
-          <span>{t('reports.outputLabel')}</span>
-          <code>
-            {config.reports.outputDirectory || t('reports.defaultOutputDirectoryShort')}
-            {filenamePreview ? ` / ${filenamePreview}` : ''}
-          </code>
-          <button className="btn btn-sm btn-ghost" onClick={changeOutputDirectory}>
-            {t('reports.changeOutput')}
-          </button>
-        </div>
-        <div className="reports-action-buttons">
-          {savedDefaults && <span className="reports-default-saved">✓ {t('reports.defaultsSaved')}</span>}
-          <button className="btn" onClick={saveAsDefault} disabled={Boolean(filenameTemplateError)}>
-            {t('reports.saveDefaults')}
-          </button>
-          <button
-            className="btn btn-primary reports-generate"
-            onClick={generate}
-            disabled={
-              generating ||
-              !month ||
-              connectionIds.length === 0 ||
-              Boolean(filenameTemplateError)
-            }
-          >
-            {generating && <span className="spinner" />}
-            {generating ? t('reports.generating') : t('reports.generate')}
-          </button>
-        </div>
+              {generating && <span className="spinner" />}
+              {generating ? t('reports.generating') : t('reports.generate')}
+            </button>
+          </div>
+        </footer>
       </section>
 
-      {result && (
-        <section className="card reports-result">
-          <div className="reports-result-icon">PDF</div>
-          <div className="reports-result-copy">
-            <strong>{t('reports.generated')}</strong>
+      <section className="report-preview-pane" aria-label={t('reports.livePreview')}>
+        <div className="report-preview-meta">
+          <span>{t('reports.livePreview')}</span>
+          <span>
+            {orientation === 'portrait' ? t('reports.orientationPortrait') : t('reports.orientationLandscape')} · A4
+          </span>
+        </div>
+        <div
+          className={`report-paper-preview ${orientation}`}
+          style={{ '--preview-accent': accentColor } as React.CSSProperties}
+        >
+          <div className="preview-top">
+            <b>{title}</b>
             <span>
-              {t('reports.generatedSummary', {
-                entries: result.entryCount,
-                hours: formattedHours
-              })}
+              Period: 01/Jun/26 - 30/Jun/26
+              <br />
+              Total Logged: <strong>168</strong>
             </span>
-            <code>{result.filePath}</code>
           </div>
-          <button className="btn" onClick={() => window.api.reports.reveal(result.filePath)}>
-            {t('reports.showInFolder')}
-          </button>
-        </section>
-      )}
+          <div className="preview-rule" />
+          {includeSummary && (
+            <div className="preview-metrics">
+              <i />
+              <i />
+              <i />
+              <i />
+            </div>
+          )}
+          {layout === 'summary' ? (
+            <div className="preview-summary">
+              <div className="preview-table-head">
+                <span>{groupings.length > 0 ? groupings.map(groupingLabel).join(' / ') : t('reports.noGrouping')}</span>
+                <b>Logged</b>
+              </div>
+              {(groupings.length > 0 ? groupings : ['project' as ReportGroupKey]).map((grouping, index) => (
+                <div key={`${grouping}-${index}`} className={`preview-group-line depth-${Math.min(index, 3)}`}>
+                  <span>
+                    {grouping.startsWith('custom:')
+                      ? index === 0
+                        ? groupingLabel(grouping).replace(`${t('reports.groupCustomField')}: `, '')
+                        : 'Custom value'
+                      : grouping === 'project'
+                        ? 'Project Alpha (PRJ)'
+                        : grouping === 'issue'
+                          ? 'PRJ-123 - Example work item'
+                          : grouping === 'day'
+                            ? '2026-06-15'
+                            : grouping === 'worklog'
+                              ? t('reports.previewWorklog')
+                              : 'Company Jira'}
+                  </span>
+                  <b>{Math.max(8, 168 - index * 40)}</b>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="preview-detail">
+              <div className="preview-detail-head">
+                {columns.slice(0, 4).map((column) => (
+                  <span key={column}>{columnLabel(column)}</span>
+                ))}
+                <b>Logged</b>
+              </div>
+              {[0, 1, 2, 3].map((row) => (
+                <div key={row} className="preview-detail-row">
+                  {columns.slice(0, 4).map((column) => (
+                    <i key={column} />
+                  ))}
+                  <b>{row % 2 ? '3:00' : '5:00'}</b>
+                </div>
+              ))}
+            </div>
+          )}
+          {(showGeneratedAt || showPageNumbers) && (
+            <div className="preview-footer">
+              <span>{showGeneratedAt ? '2026-06-30 16:20' : ''}</span>
+              <span>{showPageNumbers ? 'Page 1 of 1' : ''}</span>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   )
 }
