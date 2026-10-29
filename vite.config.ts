@@ -2,10 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
-// Builds the existing renderer for the Tauri trial. The root is `src` so the
-// page can reach both the renderer and the Tauri bridge in `src/tauri-web`.
+// The renderer, served to the Tauri window (see src-tauri/tauri.conf.json).
 export default defineConfig({
-  root: resolve(__dirname, 'src'),
+  root: resolve(__dirname, 'src/renderer'),
   base: './',
   plugins: [react()],
   resolve: {
@@ -14,10 +13,11 @@ export default defineConfig({
       '@': resolve(__dirname, 'src/renderer/src')
     }
   },
+  // Tauri expects a fixed port and does its own console output.
+  clearScreen: false,
   server: { port: 5174, strictPort: true },
   build: {
-    outDir: resolve(__dirname, 'out/tauri'),
-    emptyOutDir: true,
-    rollupOptions: { input: resolve(__dirname, 'src/renderer/index.tauri.html') }
+    outDir: resolve(__dirname, 'out/renderer'),
+    emptyOutDir: true
   }
 })

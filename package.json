@@ -2,35 +2,24 @@
   "name": "jira-auto-logger",
   "version": "0.1.0",
   "description": "Desktop app that suggests Jira/Tempo worklogs from git commits using an LLM",
-  "main": "./out/main/index.js",
   "author": "doctorspider42",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "postinstall": "node scripts/ensure-electron.mjs",
-    "dev": "node scripts/ensure-electron.mjs && electron-vite dev",
-    "dev:mock": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 electron-vite dev",
-    "screenshots": "node scripts/ensure-electron.mjs && cross-env JAL_MOCK=1 JAL_SCREENSHOTS=screenshots electron-vite dev",
-    "build": "electron-vite build",
-    "icon": "node scripts/ensure-electron.mjs && electron scripts/render-icon.cjs",
+    "dev": "tauri dev",
+    "dev:mock": "cross-env JAL_MOCK=1 tauri dev",
+    "build": "tauri build",
+    "web:dev": "vite",
+    "web:build": "vite build",
+    "icon": "tauri icon build/icon.svg -o src-tauri/icons",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "start": "node scripts/ensure-electron.mjs && electron-vite preview",
-    "dist:win": "electron-vite build && electron-builder --win",
-    "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:linux": "electron-vite build && electron-builder --linux",
-    "tauri:web:dev": "vite --config vite.tauri.config.ts",
-    "tauri:web:build": "vite build --config vite.tauri.config.ts",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
-    "typecheck:tauri": "tsc --noEmit -p tsconfig.tauri.json"
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
-    "@aptabase/electron": "^0.3.1",
     "@tauri-apps/api": "^2.12.4",
     "@tauri-apps/plugin-dialog": "^2.8.4",
     "@tauri-apps/plugin-opener": "^2.7.2",
     "date-fns": "^3.6.0",
-    "electron-updater": "^6.8.9",
     "i18next": "^23.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -44,42 +33,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^5.2.0",
     "cross-env": "^10.1.0",
-    "electron": "^43.0.0",
-    "electron-builder": "^26.15.3",
-    "electron-vite": "^5.0.0",
     "typescript": "^5.6.3",
     "vite": "^7.3.6"
-  },
-  "build": {
-    "appId": "com.doctorspider42.jira-auto-logger",
-    "productName": "Jira Auto Logger",
-    "artifactName": "${name}-${version}-${arch}.${ext}",
-    "icon": "build/icon.png",
-    "files": [
-      "out/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      "build/icon.png"
-    ],
-    "directories": {
-      "output": "dist"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "doctorspider42",
-      "repo": "jira-auto-logger"
-    },
-    "win": {
-      "target": "nsis"
-    },
-    "mac": {
-      "target": "dmg",
-      "category": "public.app-category.productivity"
-    },
-    "linux": {
-      "target": "AppImage",
-      "category": "Office"
-    }
   }
 }

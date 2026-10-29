@@ -1,6 +1,6 @@
 ---
 name: release
-description: How to release Jira Auto Logger - version bumping, tagging, the GitHub Actions release workflow, built binaries and CI troubleshooting. Use this whenever the user asks to release, publish, ship a version, build installers, check why CI failed, or modify the GitHub workflow.
+description: How to release Jira Auto Logger - version bumping, tagging, the GitHub Actions release workflow, Tauri bundles and update signing, and CI troubleshooting. Use this whenever the user asks to release, publish, ship a version, build installers, check why CI failed, or modify the GitHub workflow.
 ---
 
 # Releasing and CI
@@ -11,14 +11,26 @@ Releases are **automatic**: every push to `main` publishes one. There is no
 manual tag step - just merge to `main`.
 
 The `Release` workflow (`.github/workflows/release.yml`) runs a `version` job
-that computes the next version, then a 3-OS `build` matrix that packages and
-publishes a GitHub release (notes from `CHANGELOG.md`, see below):
-- Windows: NSIS installer `dist/*.exe` + `latest.yml` + `*.blockmap`
-- macOS: `dist/*.dmg` + `latest-mac.yml`
-- Linux: `dist/*.AppImage` + `latest-linux.yml`
+that computes the next version, `create-release` (notes from `CHANGELOG.md`, see
+below), then a 3-OS `build` matrix where `tauri-apps/tauri-action` builds and
+uploads to that release:
+- Windows: NSIS installer `*-setup.exe` (+ `.sig`)
+- macOS: `.dmg` and `.app.tar.gz` (+ `.sig`)
+- Linux: `.AppImage` (+ `.sig`)
+- `latest.json` - merged across platforms; the feed the in-app updater
+  (`tauri-plugin-updater`, `src-tauri/src/updates.rs`) reads.
 
-The `latest*.yml` / blockmap files are what the in-app auto-updater
-(electron-updater) reads - keep them in the uploaded `files:` globs.
+Updater artifacts are signed with `TAURI_SIGNING_PRIVATE_KEY` (+
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, empty) from the repo secrets; the matching
+public key is `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`. Losing
+the private key means installed apps can no longer verify updates - it is kept
+outside the repo (`~/.tauri/jira-auto-logger.key` on the maintainer's machine).
+
+Afterwards `electron-update-feed` writes `latest.yml` / `latest-linux.yml`
+(`.github/scripts/electron-update-feed.js`) pointing at the Tauri installers, so
+installed **Electron** builds update themselves into the Tauri app. The NSIS
+hook `src-tauri/windows/installer-hooks.nsh` then uninstalls the old Electron
+copy; settings stay, both builds share the userData folder.
 
 Repo: `doctorspider42/jira-auto-logger`. Inspect runs with
 `gh run list --repo doctorspider42/jira-auto-logger` / `gh run view <id>`.
@@ -90,7 +102,8 @@ notes, which is fine for releases users don't need to read about.
 `.github/scripts/next-version.js` computes the version: **latest published
 release, patch-bumped** (0.1.4 → 0.1.5). `package.json` is *not* committed back
 - it is only the "floor". The built app still reports the correct version
-because CI runs `npm version <computed>` on the runner before building.
+because CI runs `npm version <computed>` on the runner before building, and
+`tauri.conf.json` takes its version from `../package.json`.
 
 To jump a **minor/major**, bump `"version"` in `package.json` above the latest
 release (e.g. to `0.2.0`) and push - the script honours it because it exceeds
@@ -102,13 +115,17 @@ the same version. `workflow_dispatch` behaves the same as a push (publishes).
 
 ## Facts about the build
 
-- Binaries are **unsigned** (`CSC_IDENTITY_AUTO_DISCOVERY: 'false'`) - SmartScreen/Gatekeeper will warn users. Signing requires certificates added as repo secrets plus electron-builder config; do not pretend builds are signed.
-- Packaging config lives under the `"build"` key in `package.json` (appId `com.doctorspider42.jira-auto-logger`); electron-builder runs via `npx electron-builder --publish never` after `npm run build`.
-- `npm ci` in CI retries twice with pauses - hosted runners occasionally throw `ECONNRESET` from the npm registry. A single red Linux job that died in `npm ci` within seconds is almost certainly that flake: `gh run rerun <id> --failed` first, investigate only if it fails repeatedly.
-- Typecheck runs in CI before the build; a type error fails the release on all three platforms.
+- Installers are **not code-signed** - SmartScreen/Gatekeeper will warn users. (The updater signature above only proves an update came from us; it is not OS code signing.) Do not pretend builds are signed.
+- Packaging config lives in `src-tauri/tauri.conf.json` (identifier `com.doctorspider42.jira-auto-logger`, bundle targets, updater). macOS cannot self-install unsigned updates, so `updates.rs` only links to the release there.
+- Linux builds run on `ubuntu-22.04` and need `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`.
+- `npm ci` in CI retries twice with pauses - hosted runners occasionally throw `ECONNRESET` from the npm registry. A single red job that died in `npm ci` within seconds is almost certainly that flake: `gh run rerun <id> --failed` first, investigate only if it fails repeatedly.
+- Typecheck and `cargo test` run in CI before the build; a failure stops the release on all three platforms.
+- Workflow files can only be pushed over the SSH remote (the `gh` token lacks the `workflow` scope).
 
 ## Local installers
 
-`npm run dist:win` / `dist:mac` / `dist:linux` produce the same artifacts
-locally into `dist/` (you can only build for the OS you are on, mac requires
-macOS). `out/` is the unpackaged app; both are gitignored.
+`npm run build` builds the installer for the OS you are on into
+`src-tauri/target/release/bundle/`. Without `TAURI_SIGNING_PRIVATE_KEY` set the
+build still produces installers but fails at signing the updater artifacts;
+`npx tauri build --no-bundle` skips both. `out/` and `src-tauri/target/` are
+gitignored.

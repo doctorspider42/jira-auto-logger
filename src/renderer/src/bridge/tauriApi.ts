@@ -35,7 +35,7 @@ function subscribe<T>(event: string, callback: (payload: T) => void, onReady?: (
 /**
  * `window.api` backed by Tauri commands. Every method maps 1:1 onto a Rust
  * command named after its IPC channel (`jira:getProjects` -> `jira_get_projects`),
- * which returns the same `Result` envelope the Electron main process did.
+ * which returns the renderer's `Result` envelope.
  */
 export function createTauriApi(): IpcApi {
   return {

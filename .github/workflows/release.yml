@@ -41,6 +41,8 @@ jobs:
   create-release:
     needs: version
     runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +64,7 @@ jobs:
         run: node .github/scripts/release-notes.js ${{ needs.version.outputs.version }}
         shell: bash
       - name: Create release
+        id: release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.version.outputs.version }}
@@ -74,26 +77,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Installers plus the electron-updater metadata (latest*.yml) and
-        # blockmaps that the in-app auto-updater reads from the release.
         include:
           - os: windows-latest
-            artifacts: |
-              dist/*.exe
-              dist/*.blockmap
-              dist/latest.yml
           - os: macos-latest
-            artifacts: |
-              dist/*.dmg
-              dist/latest-mac.yml
-          - os: ubuntu-latest
-            artifacts: |
-              dist/*.AppImage
-              dist/latest-linux.yml
+          # The oldest supported Ubuntu keeps the AppImage running on older distros.
+          - os: ubuntu-22.04
     runs-on: ${{ matrix.os }}
-    env:
-      # No code-signing certificates in CI - produce unsigned builds.
-      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
 
@@ -108,25 +97,56 @@ jobs:
         run: npm ci || (sleep 20 && npm ci) || (sleep 60 && npm ci)
         shell: bash
 
+      - name: Install Linux build libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
       - name: Set version
-        # Runner-only bump: sets the version electron-builder stamps into the
-        # app and the installer name. Not committed back to the repo.
+        # Runner-only bump: tauri.conf.json reads the version from package.json,
+        # so this is what the app and the installer names carry. Not committed.
         run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version --allow-same-version
         shell: bash
 
       - name: Type check
         run: npm run typecheck
 
-      - name: Build
-        run: npm run build
+      - name: Rust tests
+        run: npm run test:rust
 
-      - name: Package
-        run: npx electron-builder --publish never
-
-      - name: Publish release
-        # Uploads this platform's files to the release create-release made.
-        uses: softprops/action-gh-release@v2
+      - name: Build and upload
+        # Builds the installers (unsigned - no code-signing certificates in
+        # CI), signs the updater artifacts with TAURI_SIGNING_PRIVATE_KEY and
+        # uploads them to the release made above, merging this platform into
+        # its latest.json - the feed the in-app updater reads.
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tag_name: v${{ needs.version.outputs.version }}
-          name: v${{ needs.version.outputs.version }}
-          files: ${{ matrix.artifacts }}
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+
+  electron-update-feed:
+    # Installed Electron builds still poll latest.yml / latest-linux.yml.
+    # Pointing those feeds at the Tauri installers moves them over on their own.
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the Electron update feeds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ needs.version.outputs.version }}"
+          gh release download "$tag" --pattern '*-setup.exe' --pattern '*.AppImage' --dir assets
+          node .github/scripts/electron-update-feed.js "${{ needs.version.outputs.version }}" assets
+          gh release upload "$tag" assets/latest.yml assets/latest-linux.yml --clobber
+        shell: bash

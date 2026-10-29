@@ -4,17 +4,17 @@
   "version": "../package.json",
   "identifier": "com.doctorspider42.jira-auto-logger",
   "build": {
-    "frontendDist": "../out/tauri",
+    "frontendDist": "../out/renderer",
     "devUrl": "http://localhost:5174",
-    "beforeDevCommand": "npm run tauri:web:dev",
-    "beforeBuildCommand": "npm run tauri:web:build"
+    "beforeDevCommand": "npm run web:dev",
+    "beforeBuildCommand": "npm run web:build"
   },
   "app": {
     "windows": [
       {
         "label": "main",
         "title": "Jira Auto Logger",
-        "url": "renderer/index.tauri.html",
+        "url": "index.html",
         "width": 1280,
         "height": 840,
         "minWidth": 640,
@@ -41,7 +41,12 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": true
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "nsis": {
+        "installerHooks": "./windows/installer-hooks.nsh"
+      }
+    }
   },
   "plugins": {
     "updater": {

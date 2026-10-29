@@ -521,22 +521,4 @@ export interface AppError {
   details?: string
 }
 
-export class AppException extends Error {
-  constructor(
-    readonly code: AppErrorCode,
-    message: string,
-    readonly details?: string
-  ) {
-    super(message)
-    this.name = 'AppException'
-  }
-
-  toAppError(): AppError {
-    return { code: this.code, message: this.message, details: this.details }
-  }
-}
-
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }
-
-export const ok = <T>(value: T): Result<T> => ({ ok: true, value })
-export const err = <T>(error: AppError): Result<T> => ({ ok: false, error })
