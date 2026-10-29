@@ -39,6 +39,12 @@ Write for users, not for the commit log — see the `release` skill.
   (month, Jiras, projects, grouping, document) beside a large live preview of
   the page, with presets one click away.
 - **Less text on screen.** Long explanations moved behind small "?" tips.
+- **Friendlier settings that save themselves.** Settings are six short
+  sections: Jira accounts as cards with their status, the AI assistant picked
+  from tiles, a gallery of themes, automation written as a sentence. There is
+  no Save button any more - changes are kept as you make them.
+- **Fold the day panel away.** The panel beside the calendar folds into a thin
+  strip (button in its corner, or Ctrl+B) when you want the whole width.
 - **Projects as a list.** Projects sit in a list with an editor beside it, with
   ready-made colours to pick from.
 - **Every theme rebuilt, with its old soul.** Themes fit the new layout and
