@@ -324,7 +324,7 @@ html[data-theme='clairObscur']::after {
 /* ---------- Panels are ink blots in a hand-drawn frame ---------- */
 
 [data-theme='clairObscur'] .card,
-[data-theme='clairObscur'] .connection-card,
+[data-theme='clairObscur'] .settings-card,
 [data-theme='clairObscur'] .modal,
 [data-theme='clairObscur'] .inspector,
 [data-theme='clairObscur'] .month-summary,
@@ -340,8 +340,8 @@ html[data-theme='clairObscur']::after {
  * Corner brackets, top-left and bottom-right: the game frames its tooltips with
  * two painted L-strokes on opposite corners rather than a closed box.
  */
-[data-theme='clairObscur'] :is(.card, .connection-card, .modal, .inspector, .month-summary, .wizard-card)::before,
-[data-theme='clairObscur'] :is(.card, .connection-card, .modal, .inspector, .month-summary, .wizard-card)::after {
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::before,
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::after {
   content: '';
   position: absolute;
   width: 26px;
@@ -350,20 +350,20 @@ html[data-theme='clairObscur']::after {
   background: var(--co-bracket) no-repeat 0 0 / 26px 26px;
 }
 
-[data-theme='clairObscur'] :is(.card, .connection-card, .modal, .inspector, .month-summary, .wizard-card)::before {
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::before {
   top: -1px;
   left: -1px;
 }
 
-[data-theme='clairObscur'] :is(.card, .connection-card, .modal, .inspector, .month-summary, .wizard-card)::after {
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::after {
   right: -1px;
   bottom: -1px;
   transform: rotate(180deg);
 }
 
 /* One frame per panel, not per nesting level: the outermost one wins. */
-[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .connection-card, .wizard-card)::before,
-[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .connection-card, .wizard-card)::after {
+[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .settings-card, .wizard-card)::before,
+[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .settings-card, .wizard-card)::after {
   display: none;
 }
 

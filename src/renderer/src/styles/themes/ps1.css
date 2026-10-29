@@ -154,7 +154,7 @@ html[data-theme='ps1']::after {
 [data-theme='ps1'] .inspector,
 [data-theme='ps1'] .month-summary,
 [data-theme='ps1'] .wizard-card,
-[data-theme='ps1'] .connection-card {
+[data-theme='ps1'] .settings-card {
   position: relative;
   background: linear-gradient(180deg, #1a1a33 0%, #101024 100%);
   border: 1px solid #000000;

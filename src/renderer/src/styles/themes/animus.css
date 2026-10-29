@@ -236,7 +236,6 @@ html[data-theme='animus']::after {
   color: rgba(242, 247, 250, 0.72);
 }
 
-[data-theme='animus'] .settings-nav-item::before,
 [data-theme='animus'] .segmented button::before,
 [data-theme='animus'] .btn-primary::before {
   content: '>';
@@ -292,7 +291,7 @@ html[data-theme='animus']::after {
 /* A touch denser than the label block instead of a backdrop blur: blurring
    what is behind a panel means redoing it every frame the formulas move. */
 [data-theme='animus'] .card,
-[data-theme='animus'] .connection-card,
+[data-theme='animus'] .settings-card,
 [data-theme='animus'] .inspector,
 [data-theme='animus'] .month-summary,
 [data-theme='animus'] .wizard-card,
@@ -302,7 +301,7 @@ html[data-theme='animus']::after {
 }
 
 /* Nested panels would stack their translucency into near-black. */
-[data-theme='animus'] :is(.card, .modal, .inspector, .wizard-card) :is(.card, .connection-card, .row-card) {
+[data-theme='animus'] :is(.card, .modal, .inspector, .wizard-card) :is(.card, .settings-card, .row-card) {
   background: rgba(242, 247, 250, 0.04);
 }
 
