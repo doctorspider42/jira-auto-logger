@@ -1,8 +1,7 @@
 .settings-layout {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  gap: 28px;
+  gap: 40px;
   width: 100%;
 }
 
@@ -11,7 +10,7 @@
   position: sticky;
   top: 0;
   flex-shrink: 0;
-  width: 170px;
+  width: 210px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -20,11 +19,11 @@
 
 .settings-nav-item {
   text-align: left;
-  padding: 7px 12px;
+  padding: 9px 12px;
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--muted);
   cursor: pointer;
   font-size: 13px;
   transition: background 120ms ease, color 120ms ease;
@@ -35,9 +34,9 @@
 }
 
 .settings-nav-item.active {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-weight: 600;
+  background: var(--hover);
+  color: var(--ink);
+  font-weight: 500;
 }
 
 .settings {
@@ -46,8 +45,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Clears the fixed save bar so the last content is not hidden behind it. */
-  padding-bottom: 88px;
 }
 
 /* Breathing room when a section is scrolled to from the side nav. */
@@ -67,7 +64,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: -10px;
+  padding-bottom: 20px;
 }
 
 .settings-paths .hint {
@@ -238,7 +235,6 @@
 .custom-fields-group h4 {
   margin: 0 0 10px;
   font-size: 13.5px;
-  color: var(--color-accent);
 }
 
 .custom-field-instruction {
@@ -352,42 +348,20 @@
 
 .settings-prompt {
   min-height: 220px;
-  font-family: Consolas, 'SF Mono', 'Cascadia Code', monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
 }
 
-/* Docked to the bottom edge of the window, outside the scroll flow, so the
-   save button no longer floats over the content while scrolling. */
+/* Sticks to the bottom of the settings column while there is something to save. */
 .settings-save-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
   z-index: 20;
   display: flex;
-  justify-content: flex-end;
   align-items: center;
   gap: 12px;
-  padding: 12px 20px;
-  background: var(--color-bg-raised);
-  border-top: 1px solid var(--color-border);
+  padding: 14px 0;
+  background: var(--ground);
+  border-top: 1px solid var(--line-soft);
 }
 
-@media (max-width: 1100px) {
-  .settings-save-bar {
-    padding: 12px;
-  }
-}
-
-@media (max-width: 820px) {
-  .settings-save-bar {
-    padding: 10px 8px;
-  }
-}
-
-/* Reason shown next to a blocked save button once the user tries to save. */
-.settings-save-blocked {
-  color: var(--color-danger);
-  font-size: 12.5px;
-  text-align: right;
-}

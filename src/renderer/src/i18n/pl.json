@@ -120,6 +120,7 @@
     "layoutTableHint": "Kompaktowy widok tabeli — gęściej, edycja wielu wpisów naraz."
   },
   "settings": {
+    "unsaved": "Niezapisane zmiany",
     "title": "Ustawienia",
     "sectionConnections": "Połączenia Jira + Tempo",
     "connectionsHint": "Każde połączenie to jedna instancja Jiry z własnym tokenem Tempo. Aktywne połączenia wybierasz na ekranie kalendarza.",
@@ -364,6 +365,15 @@
     "later": "Później"
   },
   "projects": {
+    "author": "Autor",
+    "customColor": "Własny kolor",
+    "generalHint": "Nazwa i kolor w kalendarzu.",
+    "general": "Ogólne",
+    "repoCount_other": "{{count}} repozytorium",
+    "repoCount_many": "{{count}} repozytoriów",
+    "repoCount_few": "{{count}} repozytoria",
+    "repoCount_one": "{{count}} repozytorium",
+    "unnamedTitle": "Projekt bez nazwy",
     "hint": "Projekt łączy nazwę, jeden lub więcej projektów z Jiry (np. Jirę klienta i firmową, każdy z własną stałą instrukcją dla LLM) i opcjonalne repozytoria (z filtrem autora commitów). Przy generowaniu wpisów wybierasz, nad którymi projektami pracowałeś/aś.",
     "color": "Kolor",
     "colorHint": "Tym kolorem będą oznaczone wpisy projektu w kalendarzu",

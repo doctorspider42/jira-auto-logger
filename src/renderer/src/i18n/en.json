@@ -116,6 +116,7 @@
     "layoutTableHint": "Compact table view — denser, edit many entries at once."
   },
   "settings": {
+    "unsaved": "Unsaved changes",
     "title": "Settings",
     "sectionConnections": "Jira + Tempo connections",
     "connectionsHint": "Each connection is one Jira instance with its own Tempo token. Active connections are toggled on the calendar screen.",
@@ -360,6 +361,13 @@
     "later": "Later"
   },
   "projects": {
+    "author": "Author",
+    "customColor": "Custom colour",
+    "generalHint": "Name and colour in the calendar.",
+    "general": "General",
+    "repoCount_other": "{{count}} repos",
+    "repoCount_one": "{{count}} repo",
+    "unnamedTitle": "Untitled project",
     "hint": "A project combines a name, one or more Jira projects (e.g. the client's Jira and the company Jira, each with its own standing LLM instruction) and optional repositories (each with its commit-author filter). When generating entries you pick which projects you worked on.",
     "color": "Color",
     "colorHint": "Calendar entries of this project are tinted with this color",

@@ -1146,30 +1146,37 @@ export function SettingsView(): JSX.Element {
         </div>
       </section>
 
-      <div className="settings-save-bar">
-        {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
-        {saveBlocked && showBlockReason && (
-          <span className="settings-save-blocked">{saveBlockedReason}</span>
-        )}
-        {dirty && (
-          <button className="btn btn-ghost" onClick={discard}>
-            {t('settings.discardChanges')}
-          </button>
-        )}
-        <button
-          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
-          onClick={save}
-          disabled={!dirty && !saveBlocked}
-          title={saveBlockedReason}
-        >
-          {t('app.save')}
-        </button>
-      </div>
-
       <div className="settings-paths">
         {configPath && <p className="hint">{t('settings.configLocation', { path: configPath })}</p>}
         {logPath && <p className="hint">{t('settings.logLocation', { path: logPath })}</p>}
       </div>
+
+      {(dirty || savedFlash || (saveBlocked && showBlockReason)) && (
+        <div className="settings-save-bar">
+          {savedFlash && !dirty && <span className="save-bar-ok">{t('settings.saved')}</span>}
+          {dirty && !(saveBlocked && showBlockReason) && (
+            <span className="save-bar-dirty">
+              <span className="dot dot-warning" />
+              {t('settings.unsaved')}
+            </span>
+          )}
+          {saveBlocked && showBlockReason && <span className="save-bar-blocked">{saveBlockedReason}</span>}
+          <span className="spacer" />
+          {dirty && (
+            <button className="btn btn-lg" onClick={discard}>
+              {t('settings.discardChanges')}
+            </button>
+          )}
+          <button
+            className={`btn btn-primary btn-lg ${saveBlocked ? 'blocked' : ''}`}
+            onClick={save}
+            disabled={!dirty && !saveBlocked}
+            title={saveBlockedReason}
+          >
+            {t('app.save')}
+          </button>
+        </div>
+      )}
       </div>
     </div>
   )

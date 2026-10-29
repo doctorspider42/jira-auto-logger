@@ -915,3 +915,300 @@ textarea {
   color: var(--ink);
   box-shadow: none;
 }
+
+/* ---------- List + editor layout (Projects, Settings) ---------- */
+
+.master-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  margin: -22px -30px -28px;
+}
+
+.md-list {
+  flex: 1 1 260px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 22px 14px;
+  border-right: 1px solid var(--line-soft);
+}
+
+.md-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 14px;
+}
+
+.md-list-head .page-title {
+  font-size: 20px;
+}
+
+.md-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.md-item:hover,
+.md-item.active {
+  background: var(--hover);
+}
+
+.md-item.archived .md-item-text > span:first-child {
+  color: var(--muted);
+}
+
+.md-item-swatch {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: calc(var(--radius-control) - 1px);
+}
+
+.md-item-swatch > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.md-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-item-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-item-text .muted {
+  font-size: 12px;
+}
+
+.md-list-hint {
+  margin: 16px 8px 0;
+}
+
+.md-detail {
+  flex: 999 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 40px 0;
+  overflow: auto;
+}
+
+.md-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 22px;
+}
+
+.md-detail-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* A settings section: title and explanation on the left, fields on the right. */
+.form-section {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  max-width: 900px;
+  padding: 24px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.form-section-intro h3 {
+  margin: 0;
+  font-size: 14px;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.form-section-intro p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.form-section-body > .link {
+  align-self: flex-start;
+}
+
+.form-section-body .field {
+  margin-bottom: 0;
+}
+
+.form-section-body .field > span,
+.form-section-body .field > legend {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form-section-body label.field {
+  display: flex;
+}
+
+@media (max-width: 1000px) {
+  .form-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+/* A boxed sub-item of a section: a Jira target, a repository, a connection. */
+.row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+.row-card-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-card-line .grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.row-card-line .grow > select,
+.row-card-line .grow > input {
+  width: 100%;
+}
+
+.row-card-status {
+  font-size: 12px;
+  color: var(--success);
+}
+
+.row-card-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.inline-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.swatch-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 1px);
+  cursor: pointer;
+}
+
+.swatch.selected {
+  box-shadow: 0 0 0 2px var(--ground), 0 0 0 4px var(--ink);
+}
+
+.swatch-custom {
+  overflow: hidden;
+  background: conic-gradient(#ff8a7a, #f0b85a, #6fd8a0, #5cc8d0, #9db4ff, #b79bff, #f28cc0, #ff8a7a);
+}
+
+.swatch-custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Sticky bottom bar that appears once there is something to save. */
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line-soft);
+  background: var(--ground);
+  font-size: 13px;
+}
+
+.save-bar-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warning);
+}
+
+.save-bar-ok {
+  color: var(--success);
+}
+
+.save-bar-blocked {
+  color: var(--danger);
+}
