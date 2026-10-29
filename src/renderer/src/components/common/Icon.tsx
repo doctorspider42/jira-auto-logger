@@ -19,6 +19,13 @@ const PATHS: Record<string, JSX.Element> = {
   foldLeft: <path d="M14 6l-6 6 6 6M20 6v12" />,
   /** Unfold to the right (show the weekend). */
   foldRight: <path d="M10 6l6 6-6 6M4 6v12" />,
+  /** A window with a side panel: the day panel toggle. */
+  panel: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <path d="M15 4.5v15" />
+    </>
+  ),
   /** Side panel with an arrow pointing out: hide it. */
   panelHide: (
     <>

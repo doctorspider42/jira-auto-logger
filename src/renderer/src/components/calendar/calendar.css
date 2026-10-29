@@ -357,16 +357,11 @@
 
 /* ---------- Selected-day panel ---------- */
 
-.inspector-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.inspector-toggle {
-  margin: -6px -8px -6px 0;
-  color: var(--muted);
+/* The toolbar toggle: lit while the panel is open. */
+.btn.panel-toggle.active {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* The folded panel: a strip with the day written up its side. */
@@ -377,25 +372,22 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  padding: 8px 0 14px;
+  padding: 14px 0;
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
   background: var(--surface);
+  cursor: pointer;
 }
 
-.inspector-strip .btn {
-  color: var(--muted);
+.inspector-strip:hover {
+  background: var(--hover);
 }
 
 .inspector-strip-title {
-  padding: 4px 0;
-  border: 0;
-  background: none;
   writing-mode: vertical-rl;
   transform: rotate(180deg);
   font-size: 13px;
   font-weight: 500;
-  cursor: pointer;
 }
 
 .inspector-strip-total {
@@ -412,6 +404,9 @@
   flex: 1 1 300px;
   max-width: 360px;
   min-height: 0;
+  min-width: 0;
+  /* Never sideways: long labels wrap, wide themes shrink to fit. */
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -424,10 +419,15 @@
 
 .inspector-title-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: 4px 10px;
   margin-top: 2px;
+}
+
+.inspector-total {
+  white-space: nowrap;
 }
 
 .inspector-title {
@@ -569,6 +569,7 @@
 
 .inspector-week-day {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -645,8 +646,6 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 46vh;
-  overflow: auto;
 }
 
 .inspector-entry {
@@ -700,10 +699,14 @@
 
 .inspector-actions-row {
   flex-direction: row;
+  flex-wrap: wrap;
 }
 
 .inspector-actions-row .btn {
-  flex: 1;
+  flex: 1 1 120px;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
 }
 
 /* ---------- Week view: a column per day, every entry as a card ---------- */

@@ -17,8 +17,6 @@ interface Props {
   onOpenDay: (date: Date) => void
   onEditEntry: (entry: CalendarEntry) => void
   onClearSelection: () => void
-  /** Folds the panel into a strip beside the calendar. */
-  onCollapse: () => void
   onSelectDay: (date: Date) => void
   /** Reloads the calendar after the panel logged time itself. */
   onLogged: () => void
@@ -29,23 +27,6 @@ const QUICK_ISSUES = 4
 /** How many of the day's commits the panel lists. */
 const COMMITS_SHOWN = 3
 
-/** The eyebrow line with the button that folds the panel away. */
-function PanelHead({ label, onCollapse }: { label: string; onCollapse: () => void }): JSX.Element {
-  const { t } = useTranslation()
-  return (
-    <div className="inspector-head">
-      <div className="eyebrow">{label}</div>
-      <button
-        className="btn btn-ghost btn-icon btn-sm inspector-toggle"
-        onClick={onCollapse}
-        aria-label={t('calendar.hidePanel')}
-        title={`${t('calendar.hidePanel')} (Ctrl+B)`}
-      >
-        <Icon name="panelHide" />
-      </button>
-    </div>
-  )
-}
 
 interface StripProps {
   /** Short title of what the panel shows: a day or a range. */
@@ -55,22 +36,20 @@ interface StripProps {
   onExpand: () => void
 }
 
-/** The folded panel: a narrow strip with the day, its total and a dot per entry. */
+/**
+ * The folded panel: a narrow strip with the day, its total and a dot per
+ * entry. The whole strip unfolds it; the toolbar toggle does the same.
+ */
 export function DayInspectorStrip({ title, totalSeconds, entries, onExpand }: StripProps): JSX.Element {
   const { t } = useTranslation()
   return (
-    <aside className="inspector-strip" aria-label={t('calendar.selection')}>
-      <button
-        className="btn btn-ghost btn-icon btn-sm"
-        onClick={onExpand}
-        aria-label={t('calendar.showPanel')}
-        title={`${t('calendar.showPanel')} (Ctrl+B)`}
-      >
-        <Icon name="panelShow" />
-      </button>
-      <button className="inspector-strip-title" onClick={onExpand}>
-        {title}
-      </button>
+    <button
+      className="inspector-strip"
+      onClick={onExpand}
+      aria-label={t('calendar.showPanel')}
+      title={`${t('calendar.showPanel')} (Ctrl+B)`}
+    >
+      <span className="inspector-strip-title">{title}</span>
       <span className="mono muted inspector-strip-total">
         {formatHours(totalSeconds)}
         {t('app.hoursShort')}
@@ -83,7 +62,7 @@ export function DayInspectorStrip({ title, totalSeconds, entries, onExpand }: St
           title={`${entry.issueKey} · ${formatHours(entry.timeSpentSeconds)}${t('app.hoursShort')}`}
         />
       ))}
-    </aside>
+    </button>
   )
 }
 
@@ -113,7 +92,6 @@ export function DayInspector({
   onOpenDay,
   onEditEntry,
   onClearSelection,
-  onCollapse,
   onSelectDay,
   onLogged
 }: Props): JSX.Element {
@@ -254,7 +232,7 @@ export function DayInspector({
     return (
       <aside className="inspector" aria-label={t('calendar.selection')}>
         <div>
-          <PanelHead label={t('calendar.selectedDays', { count: dates.length })} onCollapse={onCollapse} />
+          <div className="eyebrow">{t('calendar.selectedDays', { count: dates.length })}</div>
           <div className="inspector-title-row">
             <h2 className="inspector-title">
               {format(first, 'd MMM', { locale })} – {format(last, 'd MMM', { locale })}
@@ -291,10 +269,10 @@ export function DayInspector({
   return (
     <aside className="inspector" aria-label={t('calendar.selection')}>
       <div>
-        <PanelHead
-          label={`${format(day, 'EEEE', { locale })}${isToday(day) ? ` · ${t('calendar.today')}` : ''}`}
-          onCollapse={onCollapse}
-        />
+        <div className="eyebrow">
+          {format(day, 'EEEE', { locale })}
+          {isToday(day) && ` · ${t('calendar.today')}`}
+        </div>
         <div className="inspector-title-row">
           <h2 className="inspector-title">{format(day, 'd MMMM', { locale })}</h2>
           <span className="mono inspector-total">

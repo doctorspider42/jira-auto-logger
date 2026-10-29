@@ -289,6 +289,15 @@ export function CalendarView(): JSX.Element {
           <Icon name="plus" size={15} />
           {t('calendar.newEntries')}
         </button>
+        <button
+          className={`btn btn-icon panel-toggle ${panelCollapsed ? '' : 'active'}`}
+          onClick={togglePanel}
+          aria-pressed={!panelCollapsed}
+          aria-label={t('calendar.dayPanel')}
+          title={`${t(panelCollapsed ? 'calendar.showPanel' : 'calendar.hidePanel')} (Ctrl+B)`}
+        >
+          <Icon name="panel" />
+        </button>
       </header>
 
       {filterActive && (
@@ -530,7 +539,6 @@ export function CalendarView(): JSX.Element {
             onOpenDay={calendar.openDay}
             onEditEntry={setEditing}
             onClearSelection={calendar.clearSelection}
-            onCollapse={togglePanel}
             onSelectDay={calendar.selectDay}
             onLogged={calendar.reload}
           />

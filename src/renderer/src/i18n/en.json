@@ -74,7 +74,8 @@
     "splitByProject": "Split by project",
     "foldWeekend": "Fold the weekend",
     "showWeekend": "Show the weekend",
-    "weekendFold": "Weekend {{from}}–{{to}}: {{hours}} h logged. Show it"
+    "weekendFold": "Weekend {{from}}–{{to}}: {{hours}} h logged. Show it",
+    "dayPanel": "Day panel"
   },
   "wizard": {
     "moreHours": "More time",
