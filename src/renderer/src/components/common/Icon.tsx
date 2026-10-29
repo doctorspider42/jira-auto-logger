@@ -86,6 +86,13 @@ const PATHS: Record<string, JSX.Element> = {
   chevronRight: <path d="M9 6l6 6-6 6" />,
   chevronDown: <path d="M6 9l6 6 6-6" />,
   plus: <path d="M12 5v14M5 12h14" />,
+  /** A new Jira issue: a card with a plus. */
+  issueNew: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </>
+  ),
   search: (
     <>
       <circle cx="11" cy="11" r="6.5" />

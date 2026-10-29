@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { addDays, format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
@@ -56,6 +56,38 @@ export function CalendarView(): JSX.Element {
   // toolbar; Ctrl+K opens and focuses it at any width.
   const [filterOpen, setFilterOpen] = useState(false)
   const filterInputs = useRef<HTMLInputElement[]>([])
+
+  // How far the toolbar has to shrink to stay on one line (see calendar.css).
+  // Measured on every resize: try each step on the live element, keep the
+  // first that fits.
+  const headerRef = useRef<HTMLElement>(null)
+  const [compact, setCompact] = useState(0)
+  useLayoutEffect(() => {
+    const header = headerRef.current
+    if (!header) return
+    const fitsOnOneLine = (): boolean => {
+      const items = [...header.children].filter((c) => (c as HTMLElement).offsetParent !== null)
+      const rects = items.map((c) => c.getBoundingClientRect())
+      const top = Math.min(...rects.map((r) => r.top))
+      const bottom = Math.max(...rects.map((r) => r.bottom))
+      const tallest = Math.max(...rects.map((r) => r.height))
+      return bottom - top <= tallest + 2
+    }
+    const measure = (): void => {
+      let level = 0
+      for (; level < 3; level++) {
+        if (level) header.dataset.compact = String(level)
+        else delete header.dataset.compact
+        if (fitsOnOneLine()) break
+      }
+      header.dataset.compact = String(level)
+      if (!level) delete header.dataset.compact
+      setCompact(level)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [language])
   /** Focuses whichever filter field is on screen at this width, once it has rendered. */
   const focusFilter = (): void => {
     setTimeout(() => filterInputs.current.find((input) => input?.offsetParent)?.focus(), 0)
@@ -257,7 +289,7 @@ export function CalendarView(): JSX.Element {
 
   return (
     <div className="calendar">
-      <header className="page-header">
+      <header className="page-header" ref={headerRef} data-compact={compact || undefined}>
         <div className="calendar-nav">
           <button
             className="btn btn-ghost btn-icon"
@@ -339,16 +371,17 @@ export function CalendarView(): JSX.Element {
         )}
         {issueTargets.length > 0 && (
           <button className="btn calendar-new-issue" onClick={() => setNewIssueOpen(true)} title={t('issues.newButton')}>
-            <Icon name="plus" size={15} />
+            <Icon name="issueNew" size={15} />
             <span className="label-full">{t('issues.newButton')}</span>
           </button>
         )}
         <button
-          className="btn btn-primary"
+          className="btn btn-primary calendar-new-entries"
           onClick={() => openWizard(isDayView ? [focusedIso] : inspectedDates)}
+          title={t('calendar.newEntries')}
         >
           <Icon name="plus" size={15} />
-          {t('calendar.newEntries')}
+          <span className="label-full">{t('calendar.newEntries')}</span>
         </button>
         <button
           className={`btn btn-icon panel-toggle ${panelCollapsed ? '' : 'active'}`}
@@ -362,7 +395,7 @@ export function CalendarView(): JSX.Element {
       </header>
 
       {taskOptions.length > 0 && (filterOpen || filterActive) && (
-        <div className="calendar-search-row">{filterField('', 1)}</div>
+        <div className={`calendar-search-row ${compact > 0 ? 'shown' : ''}`}>{filterField('', 1)}</div>
       )}
 
       {filterActive && (
