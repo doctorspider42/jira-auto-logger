@@ -1,94 +1,94 @@
 // Release builds run without a console window on Windows.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod commands;
 mod config;
+mod desktop;
+mod domain;
+mod error;
+mod llm;
+mod logger;
+mod mock;
+mod paths;
+mod report_filename;
+mod secrets;
+mod services;
+mod telemetry;
 
-use serde_json::Value;
-use std::sync::Mutex;
+use commands::AppState;
+use config::ConfigService;
+use serde_json::{json, Value};
+use services::connections::ConnectionManager;
+use services::git::{CommitSource, GitService};
+use std::sync::Arc;
 use tauri::{Manager, State};
-
-/// Config saved during this session. The trial never writes the real config
-/// file: Electron would lose the tokens it stores there, encrypted.
-struct SavedConfig(Mutex<Option<Value>>);
 
 /// Which window background effect was applied, for the renderer to style itself.
 struct Backdrop(&'static str);
 
-fn is_mock() -> bool {
-    std::env::var("JAL_MOCK").as_deref() == Ok("1") || std::env::args().any(|a| a == "--mock")
-}
-
-#[tauri::command]
-fn config_get(saved: State<SavedConfig>) -> Value {
-    if let Some(config) = saved.0.lock().unwrap().clone() {
-        return config;
-    }
-    config::load()
-}
-
-#[tauri::command]
-fn config_set(config: Value, saved: State<SavedConfig>) {
-    *saved.0.lock().unwrap() = Some(config);
-}
-
-#[tauri::command]
-fn config_file_path() -> String {
-    config::file_path().map(|p| p.display().to_string()).unwrap_or_default()
-}
-
 #[tauri::command]
 fn runtime_info(app: tauri::AppHandle, backdrop: State<Backdrop>) -> Value {
-    serde_json::json!({
+    json!({
         "version": app.package_info().version.to_string(),
-        "mock": is_mock(),
+        "mock": paths::is_mock_mode(),
         "backdrop": backdrop.0,
     })
 }
 
-/// Applies the background effect named by `JAL_BACKDROP` (mica, acrylic, blur,
-/// none), or the best one the system supports. Mica needs Windows 11; Windows
-/// 10 falls back to acrylic, which is known to lag while the window is resized.
-#[cfg(target_os = "windows")]
-fn apply_backdrop(window: &tauri::WebviewWindow) -> &'static str {
-    use window_vibrancy::{apply_acrylic, apply_blur, apply_mica};
-    let tint = Some((16, 17, 20, 140));
-    match std::env::var("JAL_BACKDROP").as_deref() {
-        Ok("none") => "none",
-        Ok("blur") => apply_blur(window, tint).map(|_| "blur").unwrap_or("none"),
-        Ok("acrylic") => apply_acrylic(window, tint).map(|_| "acrylic").unwrap_or("none"),
-        _ => apply_mica(window, None)
-            .map(|_| "mica")
-            .or_else(|_| apply_acrylic(window, tint).map(|_| "acrylic"))
-            .unwrap_or("none"),
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn apply_backdrop(window: &tauri::WebviewWindow) -> &'static str {
-    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
-    apply_vibrancy(window, NSVisualEffectMaterial::Sidebar, None, None)
-        .map(|_| "vibrancy")
-        .unwrap_or("none")
-}
-
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
-fn apply_backdrop(_window: &tauri::WebviewWindow) -> &'static str {
-    "none"
-}
-
 fn main() {
+    let config = Arc::new(ConfigService::new());
+    let http = reqwest::Client::builder()
+        .user_agent(concat!("jira-auto-logger/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .expect("HTTP client");
+    let connections = Arc::new(ConnectionManager::new(config.clone(), http.clone()));
+    let git: Arc<dyn CommitSource> = if paths::is_mock_mode() {
+        Arc::new(mock::clients::MockGit)
+    } else {
+        let folders = config.clone();
+        Arc::new(GitService::new(Arc::new(move || {
+            folders.get().projects.into_iter().flat_map(|p| p.git_folders).collect()
+        })))
+    };
+
+    let llm = Arc::new(llm::LlmService::new(config.clone(), git.clone(), connections.clone(), http.clone()));
+
     tauri::Builder::default()
-        .manage(SavedConfig(Mutex::new(None)))
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .manage(AppState { config, connections, git, llm })
         .setup(|app| {
             let window = app.get_webview_window("main").expect("main window");
-            app.manage(Backdrop(apply_backdrop(&window)));
+            app.manage(Backdrop(desktop::apply_backdrop(&window)));
+            logger::info(
+                "app",
+                "backend started",
+                Some(json!({ "logFile": logger::file_path(), "mockMode": paths::is_mock_mode() })),
+            );
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            config_get,
-            config_set,
-            config_file_path,
-            runtime_info
+            runtime_info,
+            commands::config_get,
+            commands::config_set,
+            commands::config_get_file_path,
+            commands::config_get_log_file_path,
+            commands::dialog_pick_folder,
+            commands::jira_test_connection,
+            commands::jira_get_projects,
+            commands::jira_search_issues,
+            commands::jira_get_project_issues,
+            commands::tempo_test_connection,
+            commands::tempo_get_worklogs,
+            commands::tempo_create_worklogs,
+            commands::tempo_update_worklog,
+            commands::tempo_delete_worklog,
+            commands::tempo_get_work_attributes,
+            commands::git_get_commits,
+            commands::llm_generate_suggestions,
+            commands::llm_preview_prompt,
+            commands::llm_regenerate_description,
+            commands::llm_start_claude_login,
         ])
         .run(tauri::generate_context!())
         .expect("error while running the app");

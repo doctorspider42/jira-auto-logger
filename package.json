@@ -27,6 +27,8 @@
   "dependencies": {
     "@aptabase/electron": "^0.3.1",
     "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-opener": "^2.7.2",
     "date-fns": "^3.6.0",
     "electron-updater": "^6.8.9",
     "i18next": "^23.16.0",

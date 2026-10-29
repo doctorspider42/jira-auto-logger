@@ -10,11 +10,21 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 aes-gcm = "0.10"
+async-trait = "0.1.92"
 base64 = "0.22"
+chrono = "0.4.45"
 dirs = "7.0.0"
+rand = "0.8"
+regex = "1.13.1"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "charset", "http2", "system-proxy"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
 tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-opener = "2"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "process", "time", "sync", "fs"] }
+uuid = { version = "1.29.0", features = ["v4"] }
+which = "8.0.6"
 window-vibrancy = "0.8.1"
 
 [profile.release]
