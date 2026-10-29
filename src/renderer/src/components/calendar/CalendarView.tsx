@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { addDays, format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
@@ -52,6 +52,25 @@ export function CalendarView(): JSX.Element {
   )
   const calendar = useCalendar()
   const [newIssueOpen, setNewIssueOpen] = useState(false)
+  // In a narrow window the task filter is an icon that opens a row under the
+  // toolbar; Ctrl+K opens and focuses it at any width.
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterInputs = useRef<HTMLInputElement[]>([])
+  /** Focuses whichever filter field is on screen at this width, once it has rendered. */
+  const focusFilter = (): void => {
+    setTimeout(() => filterInputs.current.find((input) => input?.offsetParent)?.focus(), 0)
+  }
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setFilterOpen(true)
+        focusFilter()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
   // The day panel can fold into a strip, like a side bar; remembered per machine.
   const [panelCollapsed, setPanelCollapsed] = useState(() => {
     try {
@@ -137,6 +156,43 @@ export function CalendarView(): JSX.Element {
     : 0
   /** Predicate handed to the day/month renderers; undefined = no active filter. */
   const entryMatcher = filterActive ? matchEntry : undefined
+
+  /**
+   * The task filter field. It is rendered twice - inline in a wide toolbar
+   * and as its own row in a narrow one - and CSS shows the one that fits.
+   */
+  const filterField = (className: string, index: number): JSX.Element => (
+    <label className={`search-field ${className}`}>
+      <Icon name="search" size={15} />
+      <span className="visually-hidden">{t('calendar.filterPlaceholder')}</span>
+      <input
+        ref={(input) => {
+          if (input) filterInputs.current[index] = input
+        }}
+        list="calendar-task-filter"
+        value={taskFilter}
+        placeholder={t('calendar.filterPlaceholder')}
+        spellCheck={false}
+        onChange={(e) => setTaskFilter(e.target.value.split('—')[0].trim())}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setTaskFilter('')
+            setFilterOpen(false)
+          }
+        }}
+      />
+      {index === 0 && <kbd className="search-field-kbd">Ctrl K</kbd>}
+      {index === 0 && (
+        <datalist id="calendar-task-filter">
+          {taskOptions.map((option) => (
+            <option key={option.key} value={option.key}>
+              {`${option.key} — ${option.summary}`}
+            </option>
+          ))}
+        </datalist>
+      )}
+    </label>
+  )
 
   const toggleConnection = (id: string): void => {
     const active = config.activeConnectionIds.includes(id)
@@ -236,18 +292,26 @@ export function CalendarView(): JSX.Element {
             )}
           </h1>
         </div>
-        <div className="segmented" role="group" aria-label={t('calendar.view')}>
-          <button className={calendar.view === 'month' ? 'active' : ''} onClick={() => calendar.setView('month')}>
-            {t('calendar.viewMonth')}
+        <div className="segmented calendar-views" role="group" aria-label={t('calendar.view')}>
+          <button
+            className={calendar.view === 'month' ? 'active' : ''}
+            onClick={() => calendar.setView('month')}
+            title={t('calendar.viewMonth')}
+          >
+            <span className="label-full">{t('calendar.viewMonth')}</span>
+            <span className="label-short">{t('calendar.viewMonth').charAt(0)}</span>
           </button>
           <button
             className={isWeekView ? 'active' : ''}
             onClick={() => calendar.openWeek(new Date(`${inspectedDates[0]}T00:00:00`))}
+            title={t('calendar.viewWeek')}
           >
-            {t('calendar.viewWeek')}
+            <span className="label-full">{t('calendar.viewWeek')}</span>
+            <span className="label-short">{t('calendar.viewWeek').charAt(0)}</span>
           </button>
-          <button className={isDayView ? 'active' : ''} onClick={() => calendar.setView('day')}>
-            {t('calendar.viewDay')}
+          <button className={isDayView ? 'active' : ''} onClick={() => calendar.setView('day')} title={t('calendar.viewDay')}>
+            <span className="label-full">{t('calendar.viewDay')}</span>
+            <span className="label-short">{t('calendar.viewDay').charAt(0)}</span>
           </button>
         </div>
         <button className="btn" onClick={calendar.goToToday}>
@@ -257,29 +321,26 @@ export function CalendarView(): JSX.Element {
         {calendar.loading && <span className="spinner" />}
         <div className="spacer" />
         {taskOptions.length > 0 && (
-          <label className="search-field">
-            <Icon name="search" size={15} />
-            <span className="visually-hidden">{t('calendar.filterPlaceholder')}</span>
-            <input
-              list="calendar-task-filter"
-              value={taskFilter}
-              placeholder={t('calendar.filterPlaceholder')}
-              spellCheck={false}
-              onChange={(e) => setTaskFilter(e.target.value.split('—')[0].trim())}
-            />
-            <datalist id="calendar-task-filter">
-              {taskOptions.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {`${option.key} — ${option.summary}`}
-                </option>
-              ))}
-            </datalist>
-          </label>
+          <>
+            {filterField('calendar-search-inline', 0)}
+            <button
+              className={`btn btn-icon calendar-search-toggle ${filterOpen || filterActive ? 'active' : ''}`}
+              onClick={() => {
+                setFilterOpen((open) => !open)
+                focusFilter()
+              }}
+              aria-expanded={filterOpen}
+              aria-label={t('calendar.filterPlaceholder')}
+              title={`${t('calendar.filterPlaceholder')} (Ctrl+K)`}
+            >
+              <Icon name="search" size={15} />
+            </button>
+          </>
         )}
         {issueTargets.length > 0 && (
-          <button className="btn" onClick={() => setNewIssueOpen(true)}>
+          <button className="btn calendar-new-issue" onClick={() => setNewIssueOpen(true)} title={t('issues.newButton')}>
             <Icon name="plus" size={15} />
-            {t('issues.newButton')}
+            <span className="label-full">{t('issues.newButton')}</span>
           </button>
         )}
         <button
@@ -299,6 +360,10 @@ export function CalendarView(): JSX.Element {
           <Icon name="panel" />
         </button>
       </header>
+
+      {taskOptions.length > 0 && (filterOpen || filterActive) && (
+        <div className="calendar-search-row">{filterField('', 1)}</div>
+      )}
 
       {filterActive && (
         <div className="calendar-filter-row">

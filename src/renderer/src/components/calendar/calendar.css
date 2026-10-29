@@ -16,6 +16,68 @@
   min-width: 0;
 }
 
+/* ---------- Toolbar in narrow windows ---------- */
+
+.search-field-kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius-control) - 4px);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Doubled classes: global.css loads after this file and sets `display` on
+   .btn and .search-field, which would otherwise win. */
+.btn.calendar-search-toggle,
+.label-short,
+.calendar-search-row {
+  display: none;
+}
+
+.btn.calendar-search-toggle.active {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* The filter becomes an icon; it opens as a full-width row under the toolbar. */
+@media (max-width: 1360px) {
+  .search-field.calendar-search-inline {
+    display: none;
+  }
+
+  .btn.calendar-search-toggle {
+    display: inline-flex;
+  }
+
+  .calendar-search-row {
+    display: flex;
+    margin: -6px 0 16px;
+  }
+
+  .calendar-search-row .search-field {
+    flex: 1;
+  }
+}
+
+/* "New issue" keeps its icon and the views shorten to one letter. */
+@media (max-width: 1100px) {
+  .calendar-new-issue .label-full,
+  .calendar-views .label-full {
+    display: none;
+  }
+
+  .calendar-views .label-short {
+    display: inline;
+  }
+
+  .btn.calendar-new-issue {
+    width: 34px;
+    padding: 0;
+  }
+}
+
 .calendar-filter-row {
   display: flex;
   align-items: center;

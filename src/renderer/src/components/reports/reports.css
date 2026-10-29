@@ -185,11 +185,20 @@
 
 .report-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
+/* Long labels and wide theme type wrap inside the button, never out of it. */
+.report-actions .btn {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+  text-align: center;
+}
+
 .report-generate {
-  flex: 1;
+  flex-grow: 2;
 }
 
 /* ---------- Live preview ---------- */

@@ -337,7 +337,8 @@
     "openLogFile": "Pokaż log",
     "saving": "Zapisywanie…",
     "saveFailed": "Nie zapisano",
-    "autosaved": "Zmiany zapisują się same"
+    "autosaved": "Zmiany zapisują się same",
+    "sectionGeneral": "Ogólne"
   },
   "reports": {
     "title": "Raporty PDF",

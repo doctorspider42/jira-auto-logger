@@ -333,7 +333,8 @@
     "openLogFile": "Show log",
     "saving": "Saving…",
     "saveFailed": "Not saved",
-    "autosaved": "Changes save automatically"
+    "autosaved": "Changes save automatically",
+    "sectionGeneral": "General"
   },
   "reports": {
     "title": "PDF reports",

@@ -14,7 +14,7 @@ import {
 } from '@shared/reportFilename'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
-import { Icon } from '@/components/common/Icon'
+import { Icon, type IconName } from '@/components/common/Icon'
 import { UpdateCheckButton } from '@/components/common/UpdateCheckButton'
 import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
 import { UPDATE_NOTIFYING_STATUSES, useAppStore } from '@/store/appStore'
@@ -50,16 +50,17 @@ const CALENDAR_ICONS = ['⭐', '🔥', '🏠', '💰', '🌙', '🚨', '📞', '
 /** Edits wait this long for the next keystroke before they are saved. */
 const AUTOSAVE_DELAY_MS = 600
 
-type SectionId = 'accounts' | 'ai' | 'appearance' | 'automation' | 'reports' | 'about'
+type SectionId = 'general' | 'accounts' | 'ai' | 'appearance' | 'automation' | 'reports' | 'about'
 
-/** The sections, each with the tile it carries in the list. */
-const SECTIONS: Array<{ id: SectionId; labelKey: string; glyph: string; tile: string }> = [
-  { id: 'accounts', labelKey: 'settings.sectionConnections', glyph: 'J', tile: '#9db4ff' },
-  { id: 'ai', labelKey: 'settings.sectionLlm', glyph: 'AI', tile: '#b79bff' },
-  { id: 'appearance', labelKey: 'settings.sectionAppearance', glyph: 'A', tile: '#f28cc0' },
-  { id: 'automation', labelKey: 'settings.sectionAutomation', glyph: 'R', tile: '#6fd8a0' },
-  { id: 'reports', labelKey: 'settings.sectionReports', glyph: 'P', tile: '#f0b85a' },
-  { id: 'about', labelKey: 'settings.sectionAbout', glyph: 'U', tile: '#5cc8d0' }
+/** The sections, each with the icon tile it carries in the list. */
+const SECTIONS: Array<{ id: SectionId; labelKey: string; icon: IconName; tile: string }> = [
+  { id: 'general', labelKey: 'settings.sectionGeneral', icon: 'sliders', tile: '#a9aeb8' },
+  { id: 'accounts', labelKey: 'settings.sectionConnections', icon: 'link', tile: '#9db4ff' },
+  { id: 'ai', labelKey: 'settings.sectionLlm', icon: 'sparkle', tile: '#b79bff' },
+  { id: 'appearance', labelKey: 'settings.sectionAppearance', icon: 'palette', tile: '#f28cc0' },
+  { id: 'automation', labelKey: 'settings.sectionAutomation', icon: 'clock', tile: '#6fd8a0' },
+  { id: 'reports', labelKey: 'settings.sectionReports', icon: 'document', tile: '#f0b85a' },
+  { id: 'about', labelKey: 'settings.sectionAbout', icon: 'shield', tile: '#5cc8d0' }
 ]
 
 /** Tiles for the accounts, in order. */
@@ -100,7 +101,7 @@ export function SettingsView(): JSX.Element {
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
 
-  const [section, setSection] = useState<SectionId>('accounts')
+  const [section, setSection] = useState<SectionId>('general')
   const [revealHiddenThemes, setRevealHiddenThemes] = useState(false)
   // Account cards start open when there is just one, or one needs attention.
   const [openAccounts, setOpenAccounts] = useState<Set<string>>(
@@ -898,6 +899,14 @@ export function SettingsView(): JSX.Element {
         })}
       </div>
 
+    </>
+  )
+
+  const renderGeneral = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionGeneral')}</h2>
+      </header>
       <div className="settings-card">
         <div className="settings-row">
           <span className="settings-row-label">{t('settings.language')}</span>
@@ -1199,12 +1208,12 @@ export function SettingsView(): JSX.Element {
             onClick={() => setSection(item.id)}
           >
             <span className="settings-tile settings-tile-sm" style={{ background: item.tile }} aria-hidden>
-              {item.glyph}
+              <Icon name={item.icon} size={16} />
             </span>
             <span className="settings-nav-label">{t(item.labelKey)}</span>
             {item.id === 'accounts' && accountsNeedAttention && <span className="dot dot-warning" />}
             {item.id === 'about' && updateAvailable && (
-              <span className="release-tag release-tag-new">{update?.availableVersion}</span>
+              <span className="dot settings-nav-update" title={update?.availableVersion} />
             )}
           </button>
         ))}
@@ -1223,6 +1232,7 @@ export function SettingsView(): JSX.Element {
       <main className="md-detail settings-detail">
         <div className="settings-content">
           {error && <ErrorBanner error={error} />}
+          {section === 'general' && renderGeneral()}
           {section === 'accounts' && renderAccounts()}
           {section === 'ai' && renderAi()}
           {section === 'appearance' && renderAppearance()}

@@ -39,6 +39,9 @@ Write for users, not for the commit log — see the `release` skill.
   (month, Jiras, projects, grouping, document) beside a large live preview of
   the page, with presets one click away.
 - **Less text on screen.** Long explanations moved behind small "?" tips.
+- **Fits narrow windows.** In a narrower window the calendar toolbar stays on
+  one line: the task filter becomes a search icon (Ctrl+K opens it at any
+  width), "New issue" keeps only its icon and the views shorten to one letter.
 - **Friendlier settings that save themselves.** Settings are six short
   sections: Jira accounts as cards with their status, the AI assistant picked
   from tiles, a gallery of themes, automation written as a sentence. There is
