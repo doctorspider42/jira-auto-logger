@@ -45,6 +45,13 @@ Write for users, not for the commit log — see the `release` skill.
   no Save button any more - changes are kept as you make them.
 - **Fold the day panel away.** The panel beside the calendar folds into a thin
   strip (button in its corner, or Ctrl+B) when you want the whole width.
+- **A day panel that helps fill the day.** On an empty day it shows your
+  commits from that day, offers to copy the same weekday from last week in one
+  click and has quick "+1 h" buttons for your recent issues. A full day shows
+  how it splits across projects, and every day shows a small chart of its week.
+- **Fold the weekend.** The arrow next to "Sun" folds Saturday and Sunday into
+  a narrow strip (with a dot when something is logged there); click it to
+  bring them back.
 - **Projects as a list.** Projects sit in a list with an editor beside it, with
   ready-made colours to pick from.
 - **Every theme rebuilt, with its old soul.** Themes fit the new layout and

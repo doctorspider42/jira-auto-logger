@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format, isSameMonth, isToday, startOfMonth } from 'date-fns'
+import { addDays, format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
 import { NewIssuePanel, type IssueTarget } from '@/components/issues/NewIssuePanel'
@@ -170,6 +170,7 @@ export function CalendarView(): JSX.Element {
 
   const showWeekends = config.showWeekends
   const isWeekendDay = (d: Date): boolean => d.getDay() === 0 || d.getDay() === 6
+  const toggleWeekends = (): void => void saveConfig({ ...config, showWeekends: !config.showWeekends })
   const allWeekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
   // Weekday labels run Mon..Sun; dropping the last two hides Sat/Sun.
   const weekdays = showWeekends ? allWeekdays : allWeekdays.slice(0, 5)
@@ -380,14 +381,63 @@ export function CalendarView(): JSX.Element {
         ) : (
           <div className="calendar-month">
             <div className={`calendar-weekdays ${showWeekends ? '' : 'no-weekends'}`}>
-              {weekdays.map((day) => (
-                <span key={day}>{day}</span>
-              ))}
+              {weekdays.map((day, index) =>
+                showWeekends && index === 6 ? (
+                  <span key={day} className="calendar-weekday-last">
+                    {day}
+                    <button
+                      className="calendar-weekend-toggle"
+                      onClick={toggleWeekends}
+                      aria-label={t('calendar.foldWeekend')}
+                      title={t('calendar.foldWeekend')}
+                    >
+                      <Icon name="foldLeft" size={13} />
+                    </button>
+                  </span>
+                ) : (
+                  <span key={day}>{day}</span>
+                )
+              )}
+              {!showWeekends && (
+                <button
+                  className="calendar-weekend-toggle"
+                  onClick={toggleWeekends}
+                  aria-label={t('calendar.showWeekend')}
+                  title={t('calendar.showWeekend')}
+                >
+                  <Icon name="foldRight" size={13} />
+                </button>
+              )}
             </div>
             <div className={`calendar-grid ${showWeekends ? '' : 'no-weekends'}`} role="grid">
-              {calendar.days
-                .filter((day) => showWeekends || !isWeekendDay(day))
-                .map((day) => {
+              {calendar.days.map((day) => {
+                  // A hidden weekend folds into one narrow cell per week.
+                  if (!showWeekends && isWeekendDay(day)) {
+                    if (day.getDay() !== 6) return null
+                    const sunday = addDays(day, 1)
+                    const weekendSeconds = [day, sunday]
+                      .flatMap((d) => calendar.worklogsByDate.get(toIsoDate(d)) ?? [])
+                      .reduce((sum, w) => sum + w.timeSpentSeconds, 0)
+                    const label = t('calendar.weekendFold', {
+                      from: day.getDate(),
+                      to: sunday.getDate(),
+                      hours: formatHours(weekendSeconds)
+                    })
+                    return (
+                      <button
+                        key={toIsoDate(day)}
+                        className={`calendar-weekend-fold ${isSameMonth(day, calendar.month) ? '' : 'outside'}`}
+                        onClick={toggleWeekends}
+                        title={weekendSeconds > 0 ? label : t('calendar.showWeekend')}
+                        aria-label={weekendSeconds > 0 ? label : t('calendar.showWeekend')}
+                      >
+                        <span className="calendar-weekend-fold-label">
+                          {day.getDate()}–{sunday.getDate()}
+                        </span>
+                        {weekendSeconds > 0 && <span className="calendar-weekend-fold-dot" />}
+                      </button>
+                    )
+                  }
                   const iso = toIsoDate(day)
                   const worklogs = calendar.worklogsByDate.get(iso) ?? []
                   const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
@@ -481,6 +531,8 @@ export function CalendarView(): JSX.Element {
             onEditEntry={setEditing}
             onClearSelection={calendar.clearSelection}
             onCollapse={togglePanel}
+            onSelectDay={calendar.selectDay}
+            onLogged={calendar.reload}
           />
         )}
       </div>

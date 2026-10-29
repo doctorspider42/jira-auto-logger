@@ -1,8 +1,10 @@
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format, isToday, parseISO } from 'date-fns'
-import type { AppConfig } from '@shared/domain'
+import { addDays, format, isToday, parseISO, startOfWeek } from 'date-fns'
+import type { AppConfig, AppError, CommitInfo, NewWorklog } from '@shared/domain'
+import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { Icon } from '@/components/common/Icon'
-import { dateLocale, formatHours } from '@/utils/format'
+import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
 import type { CalendarEntry } from './useCalendar'
 
 interface Props {
@@ -17,7 +19,15 @@ interface Props {
   onClearSelection: () => void
   /** Folds the panel into a strip beside the calendar. */
   onCollapse: () => void
+  onSelectDay: (date: Date) => void
+  /** Reloads the calendar after the panel logged time itself. */
+  onLogged: () => void
 }
+
+/** How many recent issues the quick-add row offers. */
+const QUICK_ISSUES = 4
+/** How many of the day's commits the panel lists. */
+const COMMITS_SHOWN = 3
 
 /** The eyebrow line with the button that folds the panel away. */
 function PanelHead({ label, onCollapse }: { label: string; onCollapse: () => void }): JSX.Element {
@@ -77,10 +87,22 @@ export function DayInspectorStrip({ title, totalSeconds, entries, onExpand }: St
   )
 }
 
+/** A worklog to recreate on another day, keeping its issue, text and fields. */
+function copyOf(entry: CalendarEntry, date: string, seconds = entry.timeSpentSeconds): NewWorklog {
+  return {
+    issueKey: entry.issueKey,
+    description: entry.description,
+    timeSpentSeconds: seconds,
+    startDate: date,
+    attributes: entry.attributes
+  }
+}
+
 /**
- * The panel beside the calendar: what the selected day holds - hours per Jira
- * against the working day, every entry - and the way to add more. With a
- * dragged range it sums the days and offers suggestions for all of them.
+ * The panel beside the calendar. For a day with entries: what it holds and how
+ * it splits across projects. For an empty day: what could fill it - the day's
+ * commits, last week's same day to copy, recent issues to add an hour to.
+ * Always: the week around it. A dragged range sums the days instead.
  */
 export function DayInspector({
   config,
@@ -91,7 +113,9 @@ export function DayInspector({
   onOpenDay,
   onEditEntry,
   onClearSelection,
-  onCollapse
+  onCollapse,
+  onSelectDay,
+  onLogged
 }: Props): JSX.Element {
   const { t } = useTranslation()
   const locale = dateLocale(config.language)
@@ -99,8 +123,132 @@ export function DayInspector({
   const total = entries.reduce((sum, e) => sum + e.timeSpentSeconds, 0)
   const hasDraft = dates.some((d) => draftDates.has(d))
   const suggestLabel = hasDraft ? t('calendar.openDraft') : t('calendar.generateSuggestions')
+  const single = dates.length === 1
+  const iso = dates[0]
+  const day = parseISO(iso)
+  const workday = config.workingHoursPerDay * 3600
+  /**
+   * A day's target: the working day once per Jira it is logged to, since a
+   * project mirrored into two Jiras logs a full day in each.
+   */
+  const targetOf = (dayIso: string): number =>
+    workday * Math.max(1, new Set((worklogsByDate.get(dayIso) ?? []).map((e) => e.connectionId)).size)
+  const target = targetOf(iso)
+  const empty = single && entries.length === 0
 
-  if (dates.length > 1) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<AppError | null>(null)
+  const [commits, setCommits] = useState<CommitInfo[] | null>(null)
+
+  // The day's commits, only for an empty day - that is when they help decide.
+  const folders = useMemo(
+    () => [
+      ...new Set(config.projects.filter((p) => !p.archived).flatMap((p) => p.gitFolders.map((f) => f.path)))
+    ],
+    [config.projects]
+  )
+  useEffect(() => {
+    setCommits(null)
+    setError(null)
+    if (!empty || folders.length === 0) return
+    let cancelled = false
+    void window.api.git.getCommits(folders, [iso]).then((result) => {
+      if (!cancelled) setCommits(result.ok ? result.value : [])
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [empty, iso, folders])
+
+  /** Logs worklogs grouped per Jira, then refreshes the calendar. */
+  const log = async (key: string, worklogs: Array<{ connectionId: string; worklog: NewWorklog }>): Promise<void> => {
+    setBusy(key)
+    setError(null)
+    const byConnection = new Map<string, NewWorklog[]>()
+    for (const { connectionId, worklog } of worklogs) {
+      byConnection.set(connectionId, [...(byConnection.get(connectionId) ?? []), worklog])
+    }
+    for (const [connectionId, list] of byConnection) {
+      const result = await window.api.tempo.createWorklogs(connectionId, list)
+      if (!result.ok) {
+        setError(result.error)
+        setBusy(null)
+        return
+      }
+    }
+    setBusy(null)
+    onLogged()
+  }
+
+  const lastWeekIso = toIsoDate(addDays(day, -7))
+  const lastWeek = worklogsByDate.get(lastWeekIso) ?? []
+
+  /** Issues logged most recently, newest first, one per issue and Jira. */
+  const recentIssues = useMemo(() => {
+    const all = [...worklogsByDate.values()].flat().sort((a, b) => b.startDate.localeCompare(a.startDate))
+    const seen = new Set<string>()
+    const recent: CalendarEntry[] = []
+    for (const entry of all) {
+      const key = `${entry.connectionId}|${entry.issueKey}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      recent.push(entry)
+      if (recent.length === QUICK_ISSUES) break
+    }
+    return recent
+  }, [worklogsByDate])
+
+  // The week around the day, as small bars against the working day.
+  const weekStart = startOfWeek(day, { weekStartsOn: 1 })
+  const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter(
+    (d) => config.showWeekends || (d.getDay() !== 0 && d.getDay() !== 6)
+  )
+  const weekTotal = week.reduce(
+    (sum, d) => sum + (worklogsByDate.get(toIsoDate(d)) ?? []).reduce((s, e) => s + e.timeSpentSeconds, 0),
+    0
+  )
+  const weekTarget = week
+    .filter((d) => d.getDay() !== 0 && d.getDay() !== 6)
+    .reduce((sum, d) => sum + targetOf(toIsoDate(d)), 0)
+
+  const weekBlock = (
+    <section className="inspector-section inspector-week">
+      <div className="inspector-section-head">
+        <h3>{t('calendar.thisWeek')}</h3>
+        <span className="mono">
+          {formatHours(weekTotal)}
+          {t('app.hoursShort')}{' '}
+          <span className="muted">
+            / {formatHours(weekTarget)}
+            {t('app.hoursShort')}
+          </span>
+        </span>
+      </div>
+      <div className="inspector-week-bars">
+        {week.map((d) => {
+          const dIso = toIsoDate(d)
+          const seconds = (worklogsByDate.get(dIso) ?? []).reduce((s, e) => s + e.timeSpentSeconds, 0)
+          const dayTarget = targetOf(dIso)
+          const state = seconds >= dayTarget ? 'full' : seconds > 0 ? 'partial' : 'none'
+          return (
+            <button
+              key={dIso}
+              className={`inspector-week-day ${dates.includes(dIso) ? 'selected' : ''} ${isToday(d) ? 'today' : ''}`}
+              onClick={() => onSelectDay(d)}
+              title={`${format(d, 'EEEE d MMM', { locale })}: ${formatHours(seconds)}${t('app.hoursShort')}`}
+            >
+              <span className="inspector-week-track">
+                <span className={state} style={{ height: `${Math.max(4, Math.min(100, (seconds / dayTarget) * 100))}%` }} />
+              </span>
+              <span className="inspector-week-label">{format(d, 'EEEEEE', { locale })}</span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+
+  if (!single) {
     const first = parseISO(dates[0])
     const last = parseISO(dates[dates.length - 1])
     return (
@@ -129,14 +277,16 @@ export function DayInspector({
     )
   }
 
-  const day = parseISO(dates[0])
-  const connections = config.connections
-    .map((connection) => ({
-      connection,
-      seconds: entries.filter((e) => e.connectionId === connection.id).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
-    }))
-    .filter((c) => c.seconds > 0)
-  const target = config.workingHoursPerDay * 3600
+  // Hours per project, for the split bar.
+  const byProject = new Map<string, { name: string; color: string; seconds: number }>()
+  for (const entry of entries) {
+    const name = entry.projectName || entry.connectionName
+    const current = byProject.get(name) ?? { name, color: entry.projectColor || 'var(--muted)', seconds: 0 }
+    current.seconds += entry.timeSpentSeconds
+    byProject.set(name, current)
+  }
+  const split = [...byProject.values()].sort((a, b) => b.seconds - a.seconds)
+  const shownCommits = (commits ?? []).slice(0, COMMITS_SHOWN)
 
   return (
     <aside className="inspector" aria-label={t('calendar.selection')}>
@@ -150,35 +300,117 @@ export function DayInspector({
           <span className="mono inspector-total">
             {formatHours(total)}
             {t('app.hoursShort')}
+            <span className="muted">
+              {' '}
+              / {formatHours(target)}
+              {t('app.hoursShort')}
+            </span>
           </span>
         </div>
+        <span className="meter inspector-progress" aria-hidden>
+          <span
+            className={total >= target ? '' : 'partial'}
+            style={{ width: `${Math.min(100, (total / target) * 100)}%` }}
+          />
+        </span>
       </div>
 
-      {entries.length === 0 ? (
-        <div className="inspector-empty">
-          <p className="muted">{t('calendar.inspectorEmpty')}</p>
-          <button className="btn btn-primary btn-lg" onClick={() => onSuggest(dates)}>
-            {suggestLabel}
-          </button>
-        </div>
+      {error && <ErrorBanner error={error} />}
+
+      {empty ? (
+        <>
+          <section className="inspector-section">
+            {shownCommits.length > 0 && (
+              <>
+                <h3>
+                  <Icon name="branch" size={14} />
+                  {t('calendar.commitsThatDay')}
+                </h3>
+                <ul className="inspector-commits">
+                  {shownCommits.map((commit) => (
+                    <li key={commit.hash} title={commit.message}>
+                      <span className="mono inspector-commit-repo">{commit.repoLabel}</span>
+                      <span className="inspector-commit-text">{commit.message.split('\n')[0]}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {commits && commits.length === 0 && folders.length > 0 && (
+              <p className="muted inspector-note">{t('calendar.noCommits')}</p>
+            )}
+            <button className="btn btn-primary btn-lg" onClick={() => onSuggest(dates)}>
+              {shownCommits.length > 0 && !hasDraft ? t('calendar.suggestFromCommits') : suggestLabel}
+            </button>
+          </section>
+
+          {lastWeek.length > 0 && (
+            <section className="inspector-section">
+              <h3>
+                <Icon name="history" size={14} />
+                {t('calendar.sameAsLastWeek', { weekday: format(day, 'EEEE', { locale }) })}
+              </h3>
+              <ul className="inspector-mini-list">
+                {lastWeek.map((entry) => (
+                  <li key={`${entry.connectionId}-${entry.tempoWorklogId}`} title={entry.description}>
+                    <span className="chip-dot" style={{ background: entry.projectColor || 'var(--muted)' }} />
+                    <span className="mono">{entry.issueKey}</span>
+                    <span className="muted inspector-mini-text">{entry.description || entry.issueSummary}</span>
+                    <span className="mono">
+                      {formatHours(entry.timeSpentSeconds)}
+                      {t('app.hoursShort')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                className="btn"
+                disabled={busy !== null}
+                onClick={() =>
+                  void log(
+                    'copy',
+                    lastWeek.map((entry) => ({ connectionId: entry.connectionId, worklog: copyOf(entry, iso) }))
+                  )
+                }
+              >
+                {busy === 'copy' && <span className="spinner" />}
+                {t('calendar.copyToDay', { day: format(day, 'd MMMM', { locale }) })}
+              </button>
+            </section>
+          )}
+
+          {recentIssues.length > 0 && (
+            <section className="inspector-section">
+              <h3>{t('calendar.quickAdd')}</h3>
+              <div className="chip-list">
+                {recentIssues.map((entry) => {
+                  const key = `${entry.connectionId}|${entry.issueKey}`
+                  return (
+                    <button
+                      key={key}
+                      className="chip"
+                      disabled={busy !== null}
+                      title={t('calendar.quickAddHint', { issue: entry.issueSummary || entry.issueKey })}
+                      onClick={() =>
+                        void log(key, [{ connectionId: entry.connectionId, worklog: copyOf(entry, iso, 3600) }])
+                      }
+                    >
+                      {busy === key ? (
+                        <span className="spinner" />
+                      ) : (
+                        <span className="chip-dot" style={{ background: entry.projectColor || 'var(--muted)' }} />
+                      )}
+                      <span className="mono">{entry.issueKey}</span>
+                      <span className="muted">+1{t('app.hoursShort')}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+        </>
       ) : (
         <>
-          {connections.length > 1 && (
-            <div className="inspector-split">
-              {connections.map(({ connection, seconds }) => (
-                <div key={connection.id} className="inspector-split-row">
-                  <span className="inspector-split-name">{connection.name || connection.jira.baseUrl}</span>
-                  <span className="meter" aria-hidden>
-                    <span style={{ width: `${Math.min(100, (seconds / target) * 100)}%` }} />
-                  </span>
-                  <span className="mono">
-                    {formatHours(seconds)}
-                    {t('app.hoursShort')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
           <ul className="inspector-entries">
             {entries.map((entry) => (
               <li key={`${entry.connectionId}-${entry.tempoWorklogId}`}>
@@ -200,6 +432,28 @@ export function DayInspector({
               </li>
             ))}
           </ul>
+          {split.length > 1 && (
+            <section className="inspector-section">
+              <h3>{t('calendar.splitByProject')}</h3>
+              <div className="inspector-split-bar" aria-hidden>
+                {split.map((part) => (
+                  <span key={part.name} style={{ flex: part.seconds, background: part.color }} />
+                ))}
+              </div>
+              <div className="inspector-split-legend">
+                {split.map((part) => (
+                  <span key={part.name}>
+                    <span className="chip-dot" style={{ background: part.color }} />
+                    {part.name}{' '}
+                    <span className="mono">
+                      {formatHours(part.seconds)}
+                      {t('app.hoursShort')}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
           <div className="inspector-actions inspector-actions-row">
             <button className="btn" onClick={() => onOpenDay(day)}>
               {t('calendar.openDayShort')}
@@ -210,6 +464,8 @@ export function DayInspector({
           </div>
         </>
       )}
+
+      {weekBlock}
     </aside>
   )
 }

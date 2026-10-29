@@ -62,7 +62,19 @@
     "filterTotalWeek": "{{hours}} h w tym tygodniu",
     "addShort": "Dodaj",
     "hidePanel": "Ukryj panel dnia",
-    "showPanel": "Pokaż panel dnia"
+    "showPanel": "Pokaż panel dnia",
+    "thisWeek": "Ten tydzień",
+    "commitsThatDay": "Twoje commity z tego dnia",
+    "noCommits": "Brak commitów tego dnia.",
+    "suggestFromCommits": "Zaproponuj wpisy na ich podstawie",
+    "sameAsLastWeek": "Tak samo jak w zeszły {{weekday}}?",
+    "copyToDay": "Skopiuj na {{day}}",
+    "quickAdd": "Szybkie dodawanie",
+    "quickAddHint": "Zaloguj 1 h na {{issue}} z ostatnim opisem",
+    "splitByProject": "Podział na projekty",
+    "foldWeekend": "Zwiń weekend",
+    "showWeekend": "Pokaż weekend",
+    "weekendFold": "Weekend {{from}}–{{to}}: zalogowano {{hours}} h. Pokaż"
   },
   "wizard": {
     "moreHours": "Więcej czasu",

@@ -62,7 +62,19 @@
     "filterTotalWeek": "{{hours}} h this week",
     "addShort": "Add",
     "hidePanel": "Hide day panel",
-    "showPanel": "Show day panel"
+    "showPanel": "Show day panel",
+    "thisWeek": "This week",
+    "commitsThatDay": "Your commits that day",
+    "noCommits": "No commits that day.",
+    "suggestFromCommits": "Suggest entries from these",
+    "sameAsLastWeek": "Same as last {{weekday}}?",
+    "copyToDay": "Copy to {{day}}",
+    "quickAdd": "Quick add",
+    "quickAddHint": "Log 1 h on {{issue}} with its last description",
+    "splitByProject": "Split by project",
+    "foldWeekend": "Fold the weekend",
+    "showWeekend": "Show the weekend",
+    "weekendFold": "Weekend {{from}}–{{to}}: {{hours}} h logged. Show it"
   },
   "wizard": {
     "moreHours": "More time",

@@ -80,9 +80,75 @@
   grid-template-columns: repeat(5, minmax(0, 1fr)) repeat(2, minmax(0, 0.7fr));
 }
 
+/* A hidden weekend stays as a narrow column the week can unfold into. */
 .calendar-weekdays.no-weekends,
 .calendar-grid.no-weekends {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr)) 28px;
+}
+
+.calendar-weekday-last {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
+.calendar-weekend-toggle {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.calendar-weekdays.no-weekends .calendar-weekend-toggle {
+  justify-self: center;
+}
+
+.calendar-weekend-toggle:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.calendar-weekend-fold {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 0;
+  border: 0;
+  background: color-mix(in srgb, var(--ground) 55%, var(--surface));
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.calendar-weekend-fold:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.calendar-weekend-fold.outside {
+  opacity: 0.55;
+}
+
+.calendar-weekend-fold-label {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.04em;
+}
+
+.calendar-weekend-fold-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--warning);
 }
 
 .calendar-weekdays {
@@ -345,6 +411,8 @@
 .inspector {
   flex: 1 1 300px;
   max-width: 360px;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -379,6 +447,177 @@
 
 .inspector-empty p {
   margin: 0;
+}
+
+/* The day against the working day, under the title. */
+.inspector-progress {
+  display: block;
+  margin-top: 10px;
+}
+
+.inspector-progress > .partial {
+  background: var(--warning);
+}
+
+.inspector-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.inspector-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.inspector-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.inspector-note {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.inspector-commits,
+.inspector-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.inspector-commits li,
+.inspector-mini-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inspector-commit-repo {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: calc(var(--radius-control) - 3px);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.inspector-commit-text,
+.inspector-mini-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-split-bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.inspector-split-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.inspector-split-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-split-legend .mono {
+  color: var(--ink);
+}
+
+/* The week around the day: one bar per day, clicking selects it. */
+.inspector-week {
+  margin-top: auto;
+}
+
+.inspector-week-bars {
+  display: flex;
+  gap: 6px;
+  height: 70px;
+}
+
+.inspector-week-day {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.inspector-week-track {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--line-soft) 50%, transparent);
+}
+
+.inspector-week-track > span {
+  width: 100%;
+  border-radius: 4px;
+}
+
+.inspector-week-track .full {
+  background: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.inspector-week-track .partial {
+  background: var(--warning);
+}
+
+.inspector-week-track .none {
+  background: var(--line);
+}
+
+.inspector-week-day.selected .inspector-week-track {
+  box-shadow: 0 0 0 1.5px var(--accent);
+}
+
+.inspector-week-label {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.inspector-week-day.today .inspector-week-label {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .inspector-split {
@@ -716,6 +955,16 @@
   height: 0;
   border-top: 1.5px solid var(--danger);
   z-index: 2;
+}
+
+/* Beside the grid the panel is exactly as tall as the month and scrolls
+   inside: `contain: size` keeps its content from stretching the row. Once it
+   wraps under the grid (narrow windows) it takes its natural height again. */
+@media (min-width: 1100px) {
+  .calendar-body > .inspector {
+    align-self: stretch;
+    contain: size;
+  }
 }
 
 /* ---------- Narrow windows ---------- */

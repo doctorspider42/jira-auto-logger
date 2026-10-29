@@ -59,6 +59,8 @@ export interface CalendarState {
   onDayMouseDown(date: Date): void
   onDayMouseEnter(date: Date): void
   clearSelection(): void
+  /** Selects exactly this day, as a click on it does. */
+  selectDay(date: Date): void
   reload(): void
 }
 
@@ -265,6 +267,7 @@ export function useCalendar(): CalendarState {
     onDayMouseDown,
     onDayMouseEnter,
     clearSelection: () => setSelected(new Set()),
+    selectDay: (date) => setSelected(new Set([toIsoDate(date)])),
     reload: () => setReloadCounter((c) => c + 1)
   }
 }
