@@ -291,8 +291,8 @@
   },
   "reports": {
     "title": "Raporty PDF",
-    "presetTempo": "Preset: Tempo Summary",
-    "presetDetailed": "Preset: Szczegółowy",
+    "presetTempo": "Podsumowanie Tempo",
+    "presetDetailed": "Szczegółowy",
     "defaultDetailedTitle": "Szczegółowy raport czasu pracy",
     "sectionScope": "Zakres i filtry",
     "month": "Miesiąc raportu",
@@ -554,5 +554,28 @@
     "new": "Nowa",
     "prerelease": "Wersja wstępna",
     "viewOnGithub": "Zobacz na GitHubie"
+  },
+  "issues": {
+    "newTitle": "Nowe zadanie",
+    "newButton": "Nowe zadanie",
+    "newBadge": "Nowe zadanie",
+    "project": "Projekt",
+    "type": "Typ zadania",
+    "summary": "Tytuł",
+    "description": "Opis",
+    "assignToMe": "Przypisz do mnie",
+    "save": "Zapisz zadanie",
+    "create": "Utwórz zadanie",
+    "createdOnLog": "Zostanie utworzone w Jirze przy logowaniu czasu.",
+    "created": "Utworzono {{key}}",
+    "createQuick": "Utwórz „{{summary}}” jako nowe zadanie w {{project}}",
+    "createWithDetails": "Utwórz ze szczegółami…",
+    "willCreate": "Żadne istniejące zadanie nie pasuje. Przy logowaniu powstanie {{type}} w {{project}} i na nie pójdzie czas.",
+    "edit": "Edytuj zadanie…",
+    "useExisting": "Wybierz istniejące",
+    "allowNew": "Pozwól na nowe zadania",
+    "allowNewOn": "Jeśli nic w {{keys}} nie pasuje, model może zaproponować nowe zadanie. Zatwierdzasz je w przeglądzie.",
+    "allowNewOff": "Proponowane będą tylko istniejące zadania z {{keys}}.",
+    "submitWithCreate": "Utwórz zadania ({{issues}}) i zaloguj ({{count}})"
   }
 }

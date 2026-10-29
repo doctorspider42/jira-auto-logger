@@ -1,0 +1,141 @@
+/* Side sheet: slides in from the right over the screen it belongs to. */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  justify-content: flex-end;
+  background: color-mix(in srgb, #000 45%, transparent);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100vw);
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: var(--shadow-popup);
+  animation: sheet-in 160ms ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+.sheet-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 26px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.sheet-heading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.sheet-heading h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.sheet-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 26px;
+  overflow: auto;
+}
+
+.sheet-body .field {
+  margin: 0;
+}
+
+.sheet-body .field > span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sheet-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+
+.new-issue-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.new-issue-where .field {
+  flex: 1 1 240px;
+}
+
+.new-issue-where .segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.new-issue-summary {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ---------- A suggestion that will create its issue ---------- */
+
+.new-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 70%, var(--line));
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.new-issue-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  font-size: 13px;
+}
+
+.new-issue-note > span {
+  flex: 1 1 260px;
+}
+
+/* ---------- Create options at the bottom of the issue picker ---------- */
+
+.issue-create-option {
+  border-top: 1px solid var(--line-soft);
+}
+
+.issue-create-option button {
+  color: var(--accent);
+}

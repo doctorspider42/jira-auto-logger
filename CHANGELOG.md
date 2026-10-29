@@ -28,6 +28,17 @@ Write for users, not for the commit log — see the `release` skill.
 - **New entries, step by step.** Adding entries is now a full-screen flow:
   pick projects and write notes, then review compact rows with an hours
   stepper and descriptions you edit in place.
+- **Week view.** A third calendar view shows the week as columns, with every
+  entry as a card - a whole week at a glance without opening each day.
+- **Create Jira issues.** "New issue" on the calendar creates one straight
+  away. When adding entries you can let the model propose a new issue where
+  no existing one fits; it shows as "New issue" in the review, you can edit or
+  swap it for an existing one, and it is created in Jira right before its time
+  is logged. The issue picker can also create one from what you typed.
+- **Reports as a builder.** The report screen is a single column of choices
+  (month, Jiras, projects, grouping, document) beside a large live preview of
+  the page, with presets one click away.
+- **Less text on screen.** Long explanations moved behind small "?" tips.
 - **Projects as a list.** Projects sit in a list with an editor beside it, with
   ready-made colours to pick from.
 - **Every theme rebuilt, with its old soul.** Themes fit the new layout and

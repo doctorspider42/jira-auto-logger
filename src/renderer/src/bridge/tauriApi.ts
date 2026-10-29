@@ -54,7 +54,9 @@ export function createTauriApi(): IpcApi {
       searchIssues: (connectionId, query, projectKeys) =>
         invoke('jira_search_issues', { connectionId, query, projectKeys }),
       getProjectIssues: (connectionId, projectKey) =>
-        invoke('jira_get_project_issues', { connectionId, projectKey })
+        invoke('jira_get_project_issues', { connectionId, projectKey }),
+      getIssueTypes: (connectionId, projectKey) => invoke('jira_get_issue_types', { connectionId, projectKey }),
+      createIssue: (request) => invoke('jira_create_issue', { request })
     },
     tempo: {
       testConnection: (connectionId) => invoke('tempo_test_connection', { connectionId }),

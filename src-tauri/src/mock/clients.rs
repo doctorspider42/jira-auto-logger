@@ -2,10 +2,10 @@
 //! `src/main/services/mock/clients.ts`.
 
 use super::data::{generate_worklogs, mock_issues, mulberry32, projects_by_connection, work_attributes};
-use crate::domain::{CommitInfo, JiraIssue, JiraProject, JiraUser, NewWorklog, TempoWorkAttribute, Worklog};
+use crate::domain::{CommitInfo, CreateIssueRequest, JiraIssue, JiraIssueType, JiraProject, JiraUser, NewWorklog, TempoWorkAttribute, Worklog};
 use crate::error::{AppError, AppResult};
 use crate::services::git::{folder_label, CommitSource};
-use crate::services::jira::JiraApi;
+use crate::services::jira::{default_issue_type, JiraApi};
 use crate::services::tempo::TempoApi;
 use async_trait::async_trait;
 use std::collections::{HashMap, HashSet};
@@ -16,8 +16,37 @@ async fn sleep(ms: u64) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
+/// Issues created during the session, per connection; they live as long as
+/// the app, like the worklogs mock Tempo keeps.
+fn created_issues() -> &'static Mutex<Vec<(String, JiraIssue)>> {
+    static CREATED: OnceLock<Mutex<Vec<(String, JiraIssue)>>> = OnceLock::new();
+    CREATED.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+/// The static issues of a project plus the ones created in it, newest first.
+fn project_issues(connection_id: &str, project_key: &str) -> Vec<JiraIssue> {
+    let prefix = format!("{project_key}-");
+    let mut issues: Vec<JiraIssue> = created_issues()
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|(c, i)| c == connection_id && i.key.starts_with(&prefix))
+        .map(|(_, i)| i.clone())
+        .collect();
+    issues.reverse();
+    issues.extend(mock_issues(project_key));
+    issues
+}
+
 fn connection_issues(connection_id: &str) -> Vec<JiraIssue> {
-    projects_by_connection(connection_id).iter().flat_map(|(key, _)| mock_issues(key)).collect()
+    projects_by_connection(connection_id).iter().flat_map(|(key, _)| project_issues(connection_id, key)).collect()
+}
+
+fn mock_issue_types() -> Vec<JiraIssueType> {
+    [("10001", "Task", false), ("10002", "Bug", false), ("10003", "Story", false), ("10004", "Sub-task", true)]
+        .iter()
+        .map(|(id, name, subtask)| JiraIssueType { id: id.to_string(), name: name.to_string(), subtask: *subtask })
+        .collect()
 }
 
 /// In-memory Jira backed by the static mock data of one connection.
@@ -50,11 +79,41 @@ impl JiraApi for MockJira {
     }
 
     async fn get_project_issues(&self, project_key: &str) -> AppResult<Vec<JiraIssue>> {
-        Ok(mock_issues(project_key))
+        Ok(project_issues(&self.connection_id, project_key))
     }
 
     async fn get_recent_issues(&self, project_keys: &[String], _lookback: f64, _max: f64) -> AppResult<Vec<JiraIssue>> {
-        Ok(project_keys.iter().flat_map(|k| mock_issues(k)).collect())
+        Ok(project_keys.iter().flat_map(|k| project_issues(&self.connection_id, k)).collect())
+    }
+
+    async fn get_issue_types(&self, _project_key: &str) -> AppResult<Vec<JiraIssueType>> {
+        Ok(mock_issue_types())
+    }
+
+    async fn create_issue(&self, request: &CreateIssueRequest) -> AppResult<JiraIssue> {
+        sleep(400).await;
+        let types = mock_issue_types();
+        let issue_type = types
+            .iter()
+            .find(|t| t.id == request.issue_type_id)
+            .or_else(|| default_issue_type(&types))
+            .cloned()
+            .expect("mock types include Task");
+        let next = project_issues(&self.connection_id, &request.project_key)
+            .iter()
+            .filter_map(|i| i.key.rsplit('-').next()?.parse::<u32>().ok())
+            .max()
+            .unwrap_or(0)
+            + 1;
+        let issue = JiraIssue {
+            id: format!("mock-new-{}-{next}", request.project_key),
+            key: format!("{}-{next}", request.project_key),
+            summary: request.summary.trim().to_string(),
+            type_name: issue_type.name,
+            is_subtask: issue_type.subtask,
+        };
+        created_issues().lock().unwrap().push((self.connection_id.clone(), issue.clone()));
+        Ok(issue)
     }
 
     async fn get_issue(&self, key: &str) -> AppResult<JiraIssue> {

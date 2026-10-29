@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { useTranslation } from 'react-i18next'
-import type { CustomFieldConfig, WorklogSuggestion } from '@shared/domain'
-import { IssueAutocomplete } from './IssueAutocomplete'
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useTranslation } from "react-i18next";
+import type { CustomFieldConfig, WorklogSuggestion } from "@shared/domain";
+import { IssueAutocomplete } from "./IssueAutocomplete";
 
 interface DescriptionCellProps {
-  value: string
-  placeholder: string
-  onChange(value: string): void
+  value: string;
+  placeholder: string;
+  onChange(value: string): void;
 }
 
 /**
@@ -16,14 +16,27 @@ interface DescriptionCellProps {
  * row a tall cell. The popover is portalled to the body to escape the table's
  * horizontal scroll container.
  */
-function DescriptionCell({ value, placeholder, onChange }: DescriptionCellProps): JSX.Element {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [box, setBox] = useState<{ top: number; left: number; width: number } | null>(null)
+function DescriptionCell({
+  value,
+  placeholder,
+  onChange,
+}: DescriptionCellProps): JSX.Element {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [box, setBox] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
 
   const open = (): void => {
-    const rect = inputRef.current?.getBoundingClientRect()
-    if (rect) setBox({ top: rect.bottom + 4, left: rect.left, width: Math.max(rect.width, 380) })
-  }
+    const rect = inputRef.current?.getBoundingClientRect();
+    if (rect)
+      setBox({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: Math.max(rect.width, 380),
+      });
+  };
 
   return (
     <div className="table-desc">
@@ -38,7 +51,10 @@ function DescriptionCell({ value, placeholder, onChange }: DescriptionCellProps)
       {box &&
         createPortal(
           <>
-            <div className="table-desc-backdrop" onMouseDown={() => setBox(null)} />
+            <div
+              className="table-desc-backdrop"
+              onMouseDown={() => setBox(null)}
+            />
             <textarea
               className="table-desc-pop"
               autoFocus
@@ -47,26 +63,26 @@ function DescriptionCell({ value, placeholder, onChange }: DescriptionCellProps)
               style={{ top: box.top, left: box.left, width: box.width }}
               onChange={(e) => onChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Escape') setBox(null)
+                if (e.key === "Escape") setBox(null);
               }}
             />
           </>,
-          document.body
+          document.body,
         )}
     </div>
-  )
+  );
 }
 
 interface SuggestionTableProps {
-  suggestions: WorklogSuggestion[]
+  suggestions: WorklogSuggestion[];
   /** Connection the rows belong to - scopes issue search and Jira links. */
-  connectionId: string
-  jiraBaseUrl: string
+  connectionId: string;
+  jiraBaseUrl: string;
   /** Jira project of the group; the issue picker is scoped to it. */
-  projectKey: string
-  customFields: CustomFieldConfig[]
-  onChange(next: WorklogSuggestion): void
-  onRemove(id: string): void
+  projectKey: string;
+  customFields: CustomFieldConfig[];
+  onChange(next: WorklogSuggestion): void;
+  onRemove(id: string): void;
 }
 
 /**
@@ -81,19 +97,19 @@ export function SuggestionTable({
   projectKey,
   customFields,
   onChange,
-  onRemove
+  onRemove,
 }: SuggestionTableProps): JSX.Element {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <div className="suggestion-table-wrap">
       <table className="suggestion-table">
         <thead>
           <tr>
-            <th className="col-issue">{t('wizard.issue')}</th>
-            <th className="col-date">{t('wizard.date')}</th>
-            <th className="col-hours">{t('wizard.hours')}</th>
-            <th className="col-desc">{t('wizard.description')}</th>
+            <th className="col-issue">{t("wizard.issue")}</th>
+            <th className="col-date">{t("wizard.date")}</th>
+            <th className="col-hours">{t("wizard.hours")}</th>
+            <th className="col-desc">{t("wizard.description")}</th>
             {customFields.map((field) => (
               <th key={field.id} className="col-field" title={field.key}>
                 {field.label}
@@ -104,31 +120,60 @@ export function SuggestionTable({
         </thead>
         <tbody>
           {suggestions.map((suggestion) => (
-            <tr key={suggestion.id} className={suggestion.issueKey ? '' : 'invalid'}>
+            <tr
+              key={suggestion.id}
+              className={
+                suggestion.issueKey || suggestion.newIssue ? "" : "invalid"
+              }
+            >
               <td className="col-issue">
-                <IssueAutocomplete
-                  value={suggestion.issueKey}
-                  valueTypeName={suggestion.issueTypeName}
-                  valueIsSubtask={suggestion.issueIsSubtask}
-                  connectionId={connectionId}
-                  jiraBaseUrl={jiraBaseUrl}
-                  projectKeys={projectKey ? [projectKey] : []}
-                  onChange={(issue) =>
-                    onChange({
-                      ...suggestion,
-                      issueKey: issue.key,
-                      issueSummary: issue.summary,
-                      issueTypeName: issue.typeName,
-                      issueIsSubtask: issue.isSubtask
-                    })
-                  }
-                />
+                {suggestion.newIssue ? (
+                  <span
+                    className="new-issue-badge"
+                    title={suggestion.newIssue.summary}
+                  >
+                    + {suggestion.newIssue.summary}
+                  </span>
+                ) : (
+                  <IssueAutocomplete
+                    value={suggestion.issueKey}
+                    valueTypeName={suggestion.issueTypeName}
+                    valueIsSubtask={suggestion.issueIsSubtask}
+                    connectionId={connectionId}
+                    jiraBaseUrl={jiraBaseUrl}
+                    projectKeys={projectKey ? [projectKey] : []}
+                    onChange={(issue) =>
+                      onChange({
+                        ...suggestion,
+                        issueKey: issue.key,
+                        issueSummary: issue.summary,
+                        issueTypeName: issue.typeName,
+                        issueIsSubtask: issue.isSubtask,
+                      })
+                    }
+                    onCreate={(summary) =>
+                      onChange({
+                        ...suggestion,
+                        issueKey: "",
+                        issueSummary: "",
+                        newIssue: {
+                          summary,
+                          description: suggestion.description,
+                          issueTypeId: "",
+                          issueTypeName: "",
+                        },
+                      })
+                    }
+                  />
+                )}
               </td>
               <td className="col-date">
                 <input
                   type="date"
                   value={suggestion.date}
-                  onChange={(e) => onChange({ ...suggestion, date: e.target.value })}
+                  onChange={(e) =>
+                    onChange({ ...suggestion, date: e.target.value })
+                  }
                 />
               </td>
               <td className="col-hours">
@@ -138,26 +183,33 @@ export function SuggestionTable({
                   max={24}
                   step={0.25}
                   value={suggestion.hours}
-                  onChange={(e) => onChange({ ...suggestion, hours: Number(e.target.value) })}
+                  onChange={(e) =>
+                    onChange({ ...suggestion, hours: Number(e.target.value) })
+                  }
                 />
               </td>
               <td className="col-desc">
                 <DescriptionCell
                   value={suggestion.description}
-                  placeholder={t('wizard.description')}
-                  onChange={(description) => onChange({ ...suggestion, description })}
+                  placeholder={t("wizard.description")}
+                  onChange={(description) =>
+                    onChange({ ...suggestion, description })
+                  }
                 />
               </td>
               {customFields.map((field) => {
-                const value = suggestion.customFields[field.key]
+                const value = suggestion.customFields[field.key];
                 const setValue = (next: string | boolean): void =>
                   onChange({
                     ...suggestion,
-                    customFields: { ...suggestion.customFields, [field.key]: next }
-                  })
+                    customFields: {
+                      ...suggestion.customFields,
+                      [field.key]: next,
+                    },
+                  });
                 return (
                   <td key={field.id} className="col-field">
-                    {field.type === 'boolean' ? (
+                    {field.type === "boolean" ? (
                       <input
                         type="checkbox"
                         checked={value === true}
@@ -166,19 +218,19 @@ export function SuggestionTable({
                       />
                     ) : (
                       <input
-                        value={typeof value === 'string' ? value : ''}
+                        value={typeof value === "string" ? value : ""}
                         aria-label={field.label}
                         onChange={(e) => setValue(e.target.value)}
                       />
                     )}
                   </td>
-                )
+                );
               })}
               <td className="col-remove">
                 <button
                   className="btn btn-ghost btn-sm btn-danger"
                   onClick={() => onRemove(suggestion.id)}
-                  title={t('wizard.removeEntry')}
+                  title={t("wizard.removeEntry")}
                 >
                   ✕
                 </button>
@@ -188,5 +240,5 @@ export function SuggestionTable({
         </tbody>
       </table>
     </div>
-  )
+  );
 }

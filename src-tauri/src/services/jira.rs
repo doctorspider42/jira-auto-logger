@@ -1,6 +1,6 @@
 //! Thin client for the Jira Cloud REST API v3 (Basic auth: email + API token).
 
-use crate::domain::{JiraConfig, JiraIssue, JiraProject, JiraUser};
+use crate::domain::{CreateIssueRequest, JiraConfig, JiraIssue, JiraIssueType, JiraProject, JiraUser};
 use crate::error::{AppError, AppResult, ErrorCode};
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
@@ -20,6 +20,35 @@ pub trait JiraApi: Send + Sync {
     async fn get_recent_issues(&self, project_keys: &[String], lookback_days: f64, max_issues: f64) -> AppResult<Vec<JiraIssue>>;
     async fn get_issue(&self, key: &str) -> AppResult<JiraIssue>;
     async fn get_issues_by_ids(&self, ids: &[String]) -> AppResult<Vec<JiraIssue>>;
+    /// Issue types a new issue in this project can have.
+    async fn get_issue_types(&self, project_key: &str) -> AppResult<Vec<JiraIssueType>>;
+    async fn create_issue(&self, request: &CreateIssueRequest) -> AppResult<JiraIssue>;
+}
+
+/// The type a new issue gets when none was picked: Task, else the first type
+/// that isn't a subtask (a subtask needs a parent).
+pub fn default_issue_type(types: &[JiraIssueType]) -> Option<&JiraIssueType> {
+    let regular: Vec<&JiraIssueType> = types.iter().filter(|t| !t.subtask).collect();
+    regular
+        .iter()
+        .find(|t| t.name.eq_ignore_ascii_case("task") || t.name.eq_ignore_ascii_case("zadanie"))
+        .or_else(|| regular.first())
+        .copied()
+}
+
+/// Plain text as an Atlassian Document: one paragraph per line.
+fn to_adf(text: &str) -> Value {
+    let paragraphs: Vec<Value> = text
+        .lines()
+        .map(|line| {
+            if line.trim().is_empty() {
+                json!({ "type": "paragraph", "content": [] })
+            } else {
+                json!({ "type": "paragraph", "content": [{ "type": "text", "text": line }] })
+            }
+        })
+        .collect();
+    json!({ "type": "doc", "version": 1, "content": paragraphs })
 }
 
 #[derive(Deserialize)]
@@ -217,6 +246,54 @@ impl JiraApi for JiraClient {
         let dto: IssueDto = serde_json::from_value(dto)
             .map_err(|e| AppError::with_details(ErrorCode::JiraUnreachable, "Jira sent an unreadable response", e.to_string()))?;
         Ok(to_issue(dto))
+    }
+
+    async fn get_issue_types(&self, project_key: &str) -> AppResult<Vec<JiraIssueType>> {
+        let page = self
+            .request(&format!("/rest/api/3/issue/createmeta/{}/issuetypes?maxResults=100", url_encode(project_key)), None)
+            .await?;
+        // Newer sites answer with `issueTypes`, older ones with `values`.
+        let list = page["issueTypes"].as_array().or_else(|| page["values"].as_array()).cloned().unwrap_or_default();
+        Ok(list
+            .iter()
+            .map(|t| JiraIssueType {
+                id: t["id"].as_str().unwrap_or_default().to_string(),
+                name: t["name"].as_str().unwrap_or_default().to_string(),
+                subtask: t["subtask"].as_bool().unwrap_or(false),
+            })
+            .filter(|t| !t.id.is_empty())
+            .collect())
+    }
+
+    async fn create_issue(&self, request: &CreateIssueRequest) -> AppResult<JiraIssue> {
+        let types = self.get_issue_types(&request.project_key).await?;
+        let issue_type = if request.issue_type_id.is_empty() {
+            default_issue_type(&types)
+        } else {
+            types.iter().find(|t| t.id == request.issue_type_id)
+        }
+        .cloned()
+        .ok_or_else(|| AppError::new(ErrorCode::JiraUnreachable, format!("No issue type to create issues in {}", request.project_key)))?;
+        let mut fields = json!({
+            "project": { "key": request.project_key },
+            "issuetype": { "id": issue_type.id },
+            "summary": request.summary.trim(),
+        });
+        if !request.description.trim().is_empty() {
+            fields["description"] = to_adf(request.description.trim());
+        }
+        if request.assign_to_me {
+            let me = self.get_myself().await?;
+            fields["assignee"] = json!({ "accountId": me.account_id });
+        }
+        let created = self.request("/rest/api/3/issue", Some(json!({ "fields": fields }))).await?;
+        Ok(JiraIssue {
+            id: created["id"].as_str().unwrap_or_default().to_string(),
+            key: created["key"].as_str().unwrap_or_default().to_string(),
+            summary: request.summary.trim().to_string(),
+            type_name: issue_type.name,
+            is_subtask: issue_type.subtask,
+        })
     }
 
     async fn get_issues_by_ids(&self, ids: &[String]) -> AppResult<Vec<JiraIssue>> {

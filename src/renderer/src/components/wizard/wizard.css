@@ -296,6 +296,21 @@
   margin: 0;
 }
 
+.wizard-allow-new {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: -4px;
+  font-size: 12px;
+}
+
+.suggestion-new-summary {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
 .wizard-note textarea {
   min-height: 76px;
 }

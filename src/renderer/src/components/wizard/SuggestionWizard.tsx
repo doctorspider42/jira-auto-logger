@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import type {
   AppError,
   CommitInfo,
+  JiraIssue,
   ProjectConfig,
   ProjectSelection,
   ProjectSuggestions,
@@ -281,8 +282,60 @@ export function SuggestionWizard({
     ? targetByDate(dateFilter)
     : tabDates.reduce((sum, date) => sum + targetByDate(date), 0)
 
+  /** New issues the log step will create; rows sharing a summary share one issue. */
+  const newIssueCount = new Set(
+    groups.flatMap((group) =>
+      group.suggestions.flatMap((s) => (s.newIssue ? [`${group.targetId}|${s.newIssue.summary.trim()}`] : []))
+    )
+  ).size
+
+  /**
+   * Creates the group's new issues and points their rows at them. The rows are
+   * updated as each issue is created, so a retry after a failure never creates
+   * the same issue twice.
+   */
+  const createNewIssues = async (group: ProjectSuggestions): Promise<WorklogSuggestion[] | null> => {
+    const created = new Map<string, JiraIssue>()
+    const done: WorklogSuggestion[] = []
+    for (const s of group.suggestions) {
+      if (!s.newIssue) {
+        done.push(s)
+        continue
+      }
+      const summary = s.newIssue.summary.trim()
+      let issue = created.get(summary)
+      if (!issue) {
+        const result = await window.api.jira.createIssue({
+          connectionId: group.connectionId,
+          projectKey: group.jiraProjectKey,
+          issueTypeId: s.newIssue.issueTypeId,
+          summary,
+          description: s.newIssue.description,
+          assignToMe: true
+        })
+        if (!result.ok) {
+          patchGroup(group.targetId, () => [...done, ...group.suggestions.slice(done.length)])
+          setError({ ...result.error, message: `[${group.projectName}] ${result.error.message}` })
+          return null
+        }
+        issue = result.value
+        created.set(summary, issue)
+      }
+      done.push({
+        ...s,
+        newIssue: undefined,
+        issueKey: issue.key,
+        issueSummary: issue.summary,
+        issueTypeName: issue.typeName,
+        issueIsSubtask: issue.isSubtask
+      })
+    }
+    if (created.size > 0) patchGroup(group.targetId, () => done)
+    return done
+  }
+
   const submit = async (): Promise<void> => {
-    if (allSuggestions.some((s) => !s.issueKey.trim())) {
+    if (allSuggestions.some((s) => !s.issueKey.trim() && !s.newIssue?.summary.trim())) {
       setError({ code: 'CONFIG_INVALID', message: t('wizard.missingIssue') })
       return
     }
@@ -290,10 +343,15 @@ export function SuggestionWizard({
     setError(null)
     for (const group of groups) {
       if (group.suggestions.length === 0) continue
+      const suggestions = await createNewIssues(group)
+      if (!suggestions) {
+        setBusy(false)
+        return
+      }
       const fields = fieldsForConnection(group.connectionId)
       const result = await window.api.tempo.createWorklogs(
         group.connectionId,
-        group.suggestions.map((s) => ({
+        suggestions.map((s) => ({
           issueKey: s.issueKey.trim().toUpperCase(),
           description: s.description.trim(),
           timeSpentSeconds: Math.round(s.hours * 3600),
@@ -383,6 +441,21 @@ export function SuggestionWizard({
             onChange={(e) => patchSelection(project.id, { note: e.target.value })}
           />
         </label>
+        <div className="wizard-allow-new">
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={Boolean(selection.allowNewIssues)}
+              onChange={(e) => patchSelection(project.id, { allowNewIssues: e.target.checked })}
+            />
+            {t('issues.allowNew')}
+          </label>
+          <span className="muted">
+            {t(selection.allowNewIssues ? 'issues.allowNewOn' : 'issues.allowNewOff', {
+              keys: project.targets.map((target) => target.jiraProjectKey).join(', ')
+            })}
+          </span>
+        </div>
       </section>
     )
   }
@@ -430,6 +503,8 @@ export function SuggestionWizard({
               connectionId={group.connectionId}
               jiraBaseUrl={connection?.jira.baseUrl ?? ''}
               projectKey={group.jiraProjectKey}
+              projectName={group.projectName}
+              connectionName={group.connectionName}
               customFields={fieldsForConnection(group.connectionId)}
               freeText={
                 selection?.note ??
@@ -659,7 +734,11 @@ export function SuggestionWizard({
               onClick={submit}
             >
               {busy && <span className="spinner" />}
-              {busy ? t('wizard.submitting') : tt('wizard.submit', { count: allSuggestions.length })}
+              {busy
+                ? t('wizard.submitting')
+                : newIssueCount > 0
+                  ? t('issues.submitWithCreate', { issues: newIssueCount, count: allSuggestions.length })
+                  : tt('wizard.submit', { count: allSuggestions.length })}
             </button>
           </>
         )}

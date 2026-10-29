@@ -17,6 +17,7 @@ Your task: for every date, suggest zero or more worklog entries for THIS project
 4. "recentWorklogs" is your PRIMARY style guide - imitate the developer's own logging habits closely. Hours: mirror how they typically split a day (one full block vs several smaller entries, typical entry sizes and granularity). Descriptions: mirror their wording, tone, length and level of detail - a suggestion should read as if the developer wrote it themselves. They are examples of STYLE only - never copy their content or reuse their dates.
 5. Follow "project.instructions" and "notes" - they override the defaults above when they conflict.
 6. If the input defines "customFields", add to EVERY entry a "customFields" object with a value for each listed field key, matching its declared type: booleans true/false (false when unsure), strings short text in {{language}} (empty string when nothing applies). When a field carries an "instruction", follow it when deciding the value. Base the values only on the commits and notes.
+7. Only when the input has "allowNewIssues": true - if a piece of work clearly fits NONE of the listed "issues" (a separate task, not just a detail of an existing one), you may propose a new issue for it instead: leave "issueKey" empty and add "newIssue": { "summary": "...", "description": "..." }. The summary is a short Jira-style title in {{language}} (imperative, at most 10 words); the description is 1-3 sentences on what the task is. Prefer existing issues - propose a new one rarely. Without "allowNewIssues", never add "newIssue".
 {{additionalInstructions}}
 INPUT (compact JSON):
 {{input}}
@@ -29,4 +30,4 @@ Respond with ONLY a JSON array, no markdown fences, no commentary. Each element:
   "hours": 4,
   "customFields": { "fieldKey": "value" }
 }
-Omit "customFields" when the input defines none.
+Omit "customFields" when the input defines none. Add "newIssue" (and leave "issueKey" empty) only as rule 7 allows.

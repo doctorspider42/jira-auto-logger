@@ -3,10 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
+import { NewIssuePanel, type IssueTarget } from '@/components/issues/NewIssuePanel'
 import { Icon } from '@/components/common/Icon'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { findDraft, useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
+import { jiraIssueUrl, openExternal } from '@/utils/external'
 import { DayInspector } from './DayInspector'
 import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
@@ -47,6 +49,8 @@ export function CalendarView(): JSX.Element {
     [drafts]
   )
   const calendar = useCalendar()
+  const [newIssueOpen, setNewIssueOpen] = useState(false)
+  const [createdIssue, setCreatedIssue] = useState<{ key: string; summary: string; url: string } | null>(null)
 
   // Confirmation mode generates straight away; notify-only opens the wizard
   // untouched, exactly as asking for suggestions for that day does.
@@ -110,6 +114,29 @@ export function CalendarView(): JSX.Element {
       : [...config.activeConnectionIds, id]
     void saveConfig({ ...config, activeConnectionIds: active })
   }
+
+  /** Jira projects of the configured (not archived) projects, for "New issue". */
+  const issueTargets = useMemo<IssueTarget[]>(() => {
+    const seen = new Set<string>()
+    return config.projects
+      .filter((project) => !project.archived)
+      .flatMap((project) =>
+        project.targets.flatMap((target) => {
+          const connection = config.connections.find((c) => c.id === target.connectionId)
+          const id = `${target.connectionId}|${target.jiraProjectKey}`
+          if (!connection || !target.jiraProjectKey || seen.has(id)) return []
+          seen.add(id)
+          return [
+            {
+              connectionId: connection.id,
+              connectionName: connection.name || connection.jira.baseUrl,
+              projectKey: target.jiraProjectKey,
+              projectName: project.name
+            }
+          ]
+        })
+      )
+  }, [config.projects, config.connections])
 
   const showWeekends = config.showWeekends
   const isWeekendDay = (d: Date): boolean => d.getDay() === 0 || d.getDay() === 6
@@ -215,6 +242,12 @@ export function CalendarView(): JSX.Element {
             </datalist>
           </label>
         )}
+        {issueTargets.length > 0 && (
+          <button className="btn" onClick={() => setNewIssueOpen(true)}>
+            <Icon name="plus" size={15} />
+            {t('issues.newButton')}
+          </button>
+        )}
         <button
           className="btn btn-primary"
           onClick={() => openWizard(isDayView ? [focusedIso] : inspectedDates)}
@@ -241,6 +274,39 @@ export function CalendarView(): JSX.Element {
       )}
 
       {calendar.error && <ErrorBanner error={calendar.error} onRetry={calendar.reload} />}
+
+      {createdIssue && (
+        <div className="banner banner-success">
+          <Icon name="check" size={16} />
+          <span className="spacer">
+            {t('issues.created', { key: createdIssue.key })} <span className="muted">{createdIssue.summary}</span>
+          </span>
+          {createdIssue.url && (
+            <button className="btn btn-sm" onClick={() => openExternal(createdIssue.url)}>
+              {t('wizard.openInJira')} ↗
+            </button>
+          )}
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setCreatedIssue(null)} aria-label={t('app.close')}>
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+      )}
+
+      {newIssueOpen && (
+        <NewIssuePanel
+          mode="create"
+          targets={issueTargets}
+          onCreated={(issue, target) => {
+            const connection = config.connections.find((c) => c.id === target.connectionId)
+            setCreatedIssue({
+              key: issue.key,
+              summary: issue.summary,
+              url: jiraIssueUrl(connection?.jira.baseUrl ?? '', issue.key)
+            })
+          }}
+          onClose={() => setNewIssueOpen(false)}
+        />
+      )}
 
       {calendar.view === 'month' && (
         <MonthSummary

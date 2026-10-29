@@ -176,6 +176,8 @@ pub struct ProjectSelection {
     pub project_id: String,
     pub note: String,
     pub use_commits: bool,
+    /// The model may propose a new issue when no existing one fits.
+    pub allow_new_issues: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -246,6 +248,29 @@ pub struct JiraIssue {
     pub summary: String,
     pub type_name: String,
     pub is_subtask: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JiraIssueType {
+    pub id: String,
+    pub name: String,
+    pub subtask: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateIssueRequest {
+    pub connection_id: String,
+    pub project_key: String,
+    /// Empty = the project's Task type (or its first non-subtask type).
+    #[serde(default)]
+    pub issue_type_id: String,
+    pub summary: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub assign_to_me: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -380,6 +405,19 @@ pub struct WorklogSuggestion {
     pub description: String,
     pub hours: f64,
     pub custom_fields: BTreeMap<String, AttrValue>,
+    /// An issue to create when the time is logged, instead of `issue_key`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_issue: Option<NewIssueDraft>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct NewIssueDraft {
+    pub summary: String,
+    pub description: String,
+    /// Empty = the project's default (Task) type.
+    pub issue_type_id: String,
+    pub issue_type_name: String,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

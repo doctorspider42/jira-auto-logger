@@ -15,6 +15,11 @@ interface IssueAutocompleteProps {
   projectKeys: string[]
   /** Called with the full issue on pick; null fields when typed manually. */
   onChange(issue: Pick<JiraIssue, 'key' | 'summary' | 'typeName' | 'isSubtask'>): void
+  /**
+   * When set, the list ends with "create a new issue" options for the typed
+   * text: the quick one, and one that opens the full form.
+   */
+  onCreate?(summary: string, withDetails: boolean): void
 }
 
 const MAX_VISIBLE = 30
@@ -31,6 +36,11 @@ async function loadPool(connectionId: string, projectKey: string): Promise<JiraI
   const issues = result.ok ? result.value : []
   poolCache.set(cacheKey, { fetchedAt: Date.now(), issues })
   return issues
+}
+
+/** Drops a cached pool, so an issue created in that project shows up at once. */
+export function forgetIssuePool(connectionId: string, projectKey: string): void {
+  poolCache.delete(`${connectionId}|${projectKey}`)
 }
 
 /** Every query word must appear somewhere in "KEY summary" (substring, case-insensitive). */
@@ -56,7 +66,8 @@ export function IssueAutocomplete({
   connectionId,
   jiraBaseUrl,
   projectKeys,
-  onChange
+  onChange,
+  onCreate
 }: IssueAutocompleteProps): JSX.Element {
   const { t } = useTranslation()
   const [text, setText] = useState(value)
@@ -123,6 +134,14 @@ export function IssueAutocomplete({
     setOpen(false)
   }
 
+  // Offer creating only for text that isn't already the picked issue's key.
+  const createText = text.trim()
+  const canCreate = Boolean(onCreate) && createText.length > 1 && createText !== value
+  const create = (withDetails: boolean): void => {
+    setOpen(false)
+    onCreate?.(createText.charAt(0).toUpperCase() + createText.slice(1), withDetails)
+  }
+
   const selectedUrl = jiraIssueUrl(jiraBaseUrl, value)
   // Type info for the input badge: prefer what the parent supplies, but fall
   // back to the loaded pool so the badge also shows for issues that arrive
@@ -171,7 +190,7 @@ export function IssueAutocomplete({
           </button>
         )}
       </div>
-      {open && visible.length > 0 && (
+      {open && (visible.length > 0 || canCreate) && (
         <ul className="issue-autocomplete-list">
           {visible.map((issue) => {
             const url = jiraIssueUrl(jiraBaseUrl, issue.key)
@@ -200,6 +219,22 @@ export function IssueAutocomplete({
               </li>
             )
           })}
+          {canCreate && (
+            <>
+              <li className="issue-create-option">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => create(false)}>
+                  <span className="issue-result-text">
+                    + {t('issues.createQuick', { summary: createText, project: projectKey })}
+                  </span>
+                </button>
+              </li>
+              <li>
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => create(true)}>
+                  <span className="issue-result-text muted">{t('issues.createWithDetails')}</span>
+                </button>
+              </li>
+            </>
+          )}
         </ul>
       )}
     </div>

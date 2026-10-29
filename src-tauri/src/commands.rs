@@ -111,6 +111,22 @@ pub async fn jira_get_project_issues(
     Ok(to_result("jira:getProjectIssues", async move { jira.get_project_issues(&project_key).await }).await)
 }
 
+#[tauri::command]
+pub async fn jira_get_issue_types(
+    connection_id: String,
+    project_key: String,
+    state: State<'_, AppState>,
+) -> Result<Envelope<Vec<JiraIssueType>>, ()> {
+    let jira = state.connections.jira(&connection_id);
+    Ok(to_result("jira:getIssueTypes", async move { jira.get_issue_types(&project_key).await }).await)
+}
+
+#[tauri::command]
+pub async fn jira_create_issue(request: CreateIssueRequest, state: State<'_, AppState>) -> Result<Envelope<JiraIssue>, ()> {
+    let jira = state.connections.jira(&request.connection_id);
+    Ok(to_result("jira:createIssue", async move { jira.create_issue(&request).await }).await)
+}
+
 // ---------- tempo ----------
 
 #[tauri::command]

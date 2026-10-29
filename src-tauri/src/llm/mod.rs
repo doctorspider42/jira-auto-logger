@@ -100,7 +100,7 @@ impl LlmService {
                     })),
                 );
                 let LlmCompletion { text, model } = self.complete_for(&label, &built.prompt).await?;
-                let suggestions = self.parse_suggestions(&text, &request.dates, &built.candidates, target)?;
+                let suggestions = self.parse_suggestions(&text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
                 logger::info("llm", &format!("\"{label}\": {} suggestions parsed", suggestions.len()), Some(json!({ "model": model })));
                 results.push(ProjectSuggestions {
                     project_id: project.id.clone(),
@@ -302,6 +302,9 @@ impl LlmService {
                 .collect::<Vec<_>>()),
         );
         input.insert("notes".into(), json!(selection.note));
+        if selection.allow_new_issues {
+            input.insert("allowNewIssues".into(), json!(true));
+        }
 
         // The user's extra guidance overrides the built-in defaults; a blank
         // field leaves the placeholder empty so the base prompt is unchanged.
@@ -429,7 +432,14 @@ impl LlmService {
         }
     }
 
-    fn parse_suggestions(&self, text: &str, allowed_dates: &[String], candidates: &[JiraIssue], target: &ProjectTarget) -> AppResult<Vec<WorklogSuggestion>> {
+    fn parse_suggestions(
+        &self,
+        text: &str,
+        allowed_dates: &[String],
+        candidates: &[JiraIssue],
+        target: &ProjectTarget,
+        allow_new_issues: bool,
+    ) -> AppResult<Vec<WorklogSuggestion>> {
         let raw = extract_json_array(text)?;
         let dates: HashSet<&String> = allowed_dates.iter().collect();
         let by_key: HashMap<&str, &JiraIssue> = candidates.iter().map(|i| (i.key.as_str(), i)).collect();
@@ -441,6 +451,16 @@ impl LlmService {
                 // Ground the suggestion in reality: only existing issues survive.
                 let raw_key = s["issueKey"].as_str().map(|k| k.trim().to_uppercase()).unwrap_or_default();
                 let issue = by_key.get(raw_key.as_str());
+                // A proposed new issue only counts when the user allowed them
+                // and no existing issue was matched.
+                let new_issue = match (issue, allow_new_issues, s["newIssue"]["summary"].as_str()) {
+                    (None, true, Some(summary)) if !summary.trim().is_empty() => Some(NewIssueDraft {
+                        summary: clip(summary.trim(), 255),
+                        description: s["newIssue"]["description"].as_str().map(|d| d.trim().to_string()).unwrap_or_default(),
+                        ..Default::default()
+                    }),
+                    _ => None,
+                };
                 WorklogSuggestion {
                     id: uuid::Uuid::new_v4().to_string(),
                     date: s["date"].as_str().unwrap_or_default().to_string(),
@@ -453,6 +473,7 @@ impl LlmService {
                     description: s["description"].as_str().map(|d| d.trim().to_string()).unwrap_or_default(),
                     hours: normalize_hours(&s["hours"]),
                     custom_fields: normalize_custom_fields(&fields, &s["customFields"]),
+                    new_issue,
                 }
             })
             .filter(|s| dates.contains(&s.date) && !s.description.is_empty())

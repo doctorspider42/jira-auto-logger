@@ -287,8 +287,8 @@
   },
   "reports": {
     "title": "PDF reports",
-    "presetTempo": "Preset: Tempo Summary",
-    "presetDetailed": "Preset: Detailed",
+    "presetTempo": "Tempo summary",
+    "presetDetailed": "Detailed",
     "defaultDetailedTitle": "Detailed timesheet report",
     "sectionScope": "Scope and filters",
     "month": "Report month",
@@ -548,5 +548,28 @@
     "new": "New",
     "prerelease": "Pre-release",
     "viewOnGithub": "View on GitHub"
+  },
+  "issues": {
+    "newTitle": "New issue",
+    "newButton": "New issue",
+    "newBadge": "New issue",
+    "project": "Project",
+    "type": "Issue type",
+    "summary": "Summary",
+    "description": "Description",
+    "assignToMe": "Assign to me",
+    "save": "Save issue",
+    "create": "Create issue",
+    "createdOnLog": "Created in Jira when you log the time.",
+    "created": "Created {{key}}",
+    "createQuick": "Create “{{summary}}” as a new issue in {{project}}",
+    "createWithDetails": "Create with details…",
+    "willCreate": "No existing issue fits. A {{type}} is created in {{project}} when you log, and the time goes to it.",
+    "edit": "Edit issue…",
+    "useExisting": "Pick an existing issue",
+    "allowNew": "Allow new issues",
+    "allowNewOn": "If nothing in {{keys}} fits, the model may propose a new issue. You confirm it in the review.",
+    "allowNewOff": "Only existing {{keys}} issues are suggested.",
+    "submitWithCreate": "Create issues ({{issues}}) and log ({{count}})"
   }
 }

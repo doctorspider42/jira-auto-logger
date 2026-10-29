@@ -81,5 +81,17 @@ fn respond(prompt: &str) -> String {
             entries.push(entry);
         }
     }
+    // With new issues allowed, the last entry of the first day becomes work no
+    // existing issue covers - enough to exercise the whole create flow.
+    if input["allowNewIssues"].as_bool().unwrap_or(false) {
+        if let Some(entry) = dates.first().and_then(|first| entries.iter_mut().rev().find(|e| &e["date"] == first)) {
+            entry["issueKey"] = json!("");
+            entry["description"] = json!("Tracked down the flaky login e2e test and added retries around the mock server start");
+            entry["newIssue"] = json!({
+                "summary": "Fix flaky end-to-end tests on CI",
+                "description": "The login e2e test fails intermittently because the mock server is not ready when the suite starts."
+            });
+        }
+    }
     Value::Array(entries).to_string()
 }

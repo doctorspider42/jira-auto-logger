@@ -107,6 +107,8 @@ fn main() {
             commands::jira_get_projects,
             commands::jira_search_issues,
             commands::jira_get_project_issues,
+            commands::jira_get_issue_types,
+            commands::jira_create_issue,
             commands::tempo_test_connection,
             commands::tempo_get_worklogs,
             commands::tempo_create_worklogs,

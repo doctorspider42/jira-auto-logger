@@ -3,7 +3,9 @@ import type {
   AutoLoggerPrompt,
   AutoLoggerRunResult,
   CommitInfo,
+  CreateIssueRequest,
   JiraIssue,
+  JiraIssueType,
   JiraProject,
   JiraUser,
   NewWorklog,
@@ -44,6 +46,9 @@ export interface IpcApi {
     searchIssues(connectionId: string, query: string, projectKeys: string[]): Promise<Result<JiraIssue[]>>
     /** Recently updated issues of a project, for local autocomplete filtering. */
     getProjectIssues(connectionId: string, projectKey: string): Promise<Result<JiraIssue[]>>
+    /** Issue types a new issue in this project can have. */
+    getIssueTypes(connectionId: string, projectKey: string): Promise<Result<JiraIssueType[]>>
+    createIssue(request: CreateIssueRequest): Promise<Result<JiraIssue>>
   }
   tempo: {
     /** Verifies the Tempo token by fetching a minimal worklog page. */
@@ -116,6 +121,8 @@ export const IPC_CHANNELS = {
   jiraGetProjects: 'jira:getProjects',
   jiraSearchIssues: 'jira:searchIssues',
   jiraGetProjectIssues: 'jira:getProjectIssues',
+  jiraGetIssueTypes: 'jira:getIssueTypes',
+  jiraCreateIssue: 'jira:createIssue',
   tempoTestConnection: 'tempo:testConnection',
   tempoGetWorklogs: 'tempo:getWorklogs',
   tempoCreateWorklogs: 'tempo:createWorklogs',
