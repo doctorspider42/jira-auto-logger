@@ -25,7 +25,7 @@ export interface CalendarEntry extends Worklog {
 }
 
 /** A field marks an entry when its stored value is meaningfully set. */
-function isTruthyAttribute(type: 'string' | 'boolean', value: string | boolean | undefined): boolean {
+export function isTruthyAttribute(type: 'string' | 'boolean', value: string | boolean | undefined): boolean {
   if (value === undefined) return false
   if (type === 'boolean') return value === true || value === 'true'
   return typeof value === 'string' && value.trim() !== '' && value !== 'false'
@@ -64,11 +64,10 @@ function isoRange(a: string, b: string): string[] {
 }
 
 /**
- * Calendar data + selection behaviour: a plain click opens the wizard for
- * that single day (via onQuickOpen), click-and-drag selects a range.
- * Worklogs are fetched from every active connection and merged.
+ * Calendar data + selection behaviour: a click selects a day, click-and-drag
+ * selects a range. Worklogs are fetched from every active connection and merged.
  */
-export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarState {
+export function useCalendar(): CalendarState {
   const config = useAppStore((s) => s.config)
   const [view, setView] = useState<CalendarView>('month')
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -167,19 +166,17 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     return map
   }, [entries])
 
-  // Finish the drag on mouseup anywhere: one day -> open the wizard
-  // immediately, a dragged range -> keep it selected for the toolbar action.
+  // Finish the drag on mouseup anywhere: the day or range stays selected and
+  // the panel beside the calendar offers what to do with it.
   useEffect(() => {
     if (!drag) return
     const onMouseUp = (): void => {
-      const range = isoRange(drag.anchor, drag.current)
       setDrag(null)
-      setSelected(new Set(range))
-      if (range.length === 1) onQuickOpen(range)
+      setSelected(new Set(isoRange(drag.anchor, drag.current)))
     }
     window.addEventListener('mouseup', onMouseUp)
     return () => window.removeEventListener('mouseup', onMouseUp)
-  }, [drag, onQuickOpen])
+  }, [drag])
 
   const onDayMouseDown = useCallback((date: Date): void => {
     const iso = toIsoDate(date)

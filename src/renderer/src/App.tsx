@@ -7,6 +7,8 @@ import { ReportsView } from './components/reports/ReportsView'
 import { UpdateBanner } from './components/common/UpdateBanner'
 import { useAppStore, UPDATE_NOTIFYING_STATUSES } from './store/appStore'
 import type { AppView } from './store/appStore'
+import { Icon } from './components/common/Icon'
+import type { IconName } from './components/common/Icon'
 
 export default function App(): JSX.Element {
   const { t } = useTranslation()
@@ -19,40 +21,39 @@ export default function App(): JSX.Element {
   // though update *checks* are disabled there.
   const currentVersion = useAppStore((s) => s.update?.currentVersion)
 
-  const tabs: Array<{ id: AppView; label: string; badge?: boolean }> = [
-    { id: 'calendar', label: t('app.calendar') },
-    { id: 'projects', label: t('app.projects') },
-    { id: 'reports', label: t('app.reports') },
-    { id: 'settings', label: t('app.settings'), badge: updateAvailable }
+  const tabs: Array<{ id: AppView; label: string; icon: IconName; badge?: boolean }> = [
+    { id: 'calendar', label: t('app.calendar'), icon: 'calendar' },
+    { id: 'projects', label: t('app.projects'), icon: 'projects' },
+    { id: 'reports', label: t('app.reports'), icon: 'reports' },
+    { id: 'settings', label: t('app.settings'), icon: 'settings', badge: updateAvailable }
   ]
 
   return (
     <div className="app-shell">
-      <header className="app-header">
-        {/* The version sits next to the title but outside the <h1>: themes
-            paint the heading itself (y2k clips a gradient to the text, ps1 adds
-            an ::after glyph row), and a nested span would inherit that. */}
-        <div className="app-title">
-          <h1>{t('app.title')}</h1>
-          {currentVersion && (
-            <span className="app-version" title={t('app.versionTitle')}>
-              v{currentVersion}
-            </span>
-          )}
+      <aside className="app-rail">
+        <div className="app-mark" role="img" aria-label={t('app.title')}>
+          jl
         </div>
-        <nav className="nav-tabs">
+        <nav className="app-nav" aria-label={t('app.title')}>
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`nav-tab ${view === tab.id ? 'active' : ''}`}
+              className={`app-nav-item ${view === tab.id ? 'active' : ''}`}
+              aria-current={view === tab.id ? 'page' : undefined}
               onClick={() => setView(tab.id)}
             >
+              <Icon name={tab.icon} size={18} />
               {tab.label}
-              {tab.badge && <span className="nav-tab-badge" title={t('updates.badgeTitle')} />}
+              {tab.badge && <span className="app-nav-badge" title={t('updates.badgeTitle')} />}
             </button>
           ))}
         </nav>
-      </header>
+        {currentVersion && (
+          <span className="app-version" title={t('app.versionTitle')}>
+            {currentVersion}
+          </span>
+        )}
+      </aside>
       <main className="app-main">
         <UpdateBanner />
         <ReportReminderBanner />

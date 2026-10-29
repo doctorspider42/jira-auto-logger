@@ -4,12 +4,8 @@ import App from './App'
 import { initI18n } from './i18n'
 import { useAppStore } from './store/appStore'
 import { applyTheme } from './theme/themes'
+import './theme/fonts'
 import './styles/global.css'
-import './styles/y2k.css'
-import './styles/ps1.css'
-import './styles/maa-sn-ek.css'
-import './styles/clair-obscur.css'
-import './styles/animus.css'
 
 async function bootstrap(): Promise<void> {
   // Subscribe before the first await: a scheduler that fires while the app is

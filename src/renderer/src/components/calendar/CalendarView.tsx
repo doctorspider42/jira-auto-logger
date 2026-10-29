@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { format, isSameMonth, isToday } from 'date-fns'
+import { format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { Icon } from '@/components/common/Icon'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { findDraft, useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
+import { DayInspector } from './DayInspector'
 import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
 import { MonthDayEntries } from './MonthDayEntries'
+import { MonthSummary } from './MonthSummary'
 import { useCalendar, type CalendarEntry } from './useCalendar'
 import './calendar.css'
 
@@ -18,6 +21,7 @@ export function CalendarView(): JSX.Element {
   const autoLoggerPrompt = useAppStore((s) => s.autoLoggerPrompt)
   const consumeAutoLoggerPrompt = useAppStore((s) => s.consumeAutoLoggerPrompt)
   const language = config.language
+  const locale = dateLocale(language)
   const [wizardDates, setWizardDates] = useState<string[] | null>(null)
   const [wizardAutoStart, setWizardAutoStart] = useState(false)
   const [editing, setEditing] = useState<CalendarEntry | null>(null)
@@ -40,10 +44,10 @@ export function CalendarView(): JSX.Element {
       ),
     [drafts]
   )
-  const calendar = useCalendar(openWizard)
+  const calendar = useCalendar()
 
   // Confirmation mode generates straight away; notify-only opens the wizard
-  // untouched, exactly as clicking that day in the calendar does.
+  // untouched, exactly as asking for suggestions for that day does.
   useEffect(() => {
     if (!autoLoggerPrompt) return
     const date = autoLoggerPrompt.date
@@ -61,14 +65,9 @@ export function CalendarView(): JSX.Element {
   )
 
   const taskOptions = useMemo(() => {
-    const byKey = new Map<string, { key: string; summary: string; seconds: number }>()
+    const byKey = new Map<string, { key: string; summary: string }>()
     for (const entry of loadedEntries) {
-      const current = byKey.get(entry.issueKey) ?? {
-        key: entry.issueKey,
-        summary: entry.issueSummary,
-        seconds: 0
-      }
-      current.seconds += entry.timeSpentSeconds
+      const current = byKey.get(entry.issueKey) ?? { key: entry.issueKey, summary: entry.issueSummary }
       if (!current.summary && entry.issueSummary) current.summary = entry.issueSummary
       byKey.set(entry.issueKey, current)
     }
@@ -83,15 +82,15 @@ export function CalendarView(): JSX.Element {
   )
   // The total is scoped to what's on screen: the focused day in the day view,
   // the whole month in the month view.
-  const dayViewActive = calendar.view === 'day'
+  const isDayView = calendar.view === 'day'
   const scopedEntries = useMemo(() => {
-    if (dayViewActive) {
+    if (isDayView) {
       const iso = toIsoDate(calendar.focusedDay)
       return loadedEntries.filter((e) => e.startDate === iso)
     }
     const monthPrefix = format(calendar.month, 'yyyy-MM')
     return loadedEntries.filter((e) => e.startDate.startsWith(monthPrefix))
-  }, [loadedEntries, dayViewActive, calendar.focusedDay, calendar.month])
+  }, [loadedEntries, isDayView, calendar.focusedDay, calendar.month])
   const filteredSeconds = filterActive
     ? scopedEntries.filter(matchEntry).reduce((sum, e) => sum + e.timeSpentSeconds, 0)
     : 0
@@ -105,18 +104,19 @@ export function CalendarView(): JSX.Element {
     void saveConfig({ ...config, activeConnectionIds: active })
   }
 
-  const multipleActive = config.activeConnectionIds.length > 1
-  const isDayView = calendar.view === 'day'
-
   const showWeekends = config.showWeekends
   const isWeekendDay = (d: Date): boolean => d.getDay() === 0 || d.getDay() === 6
   const allWeekdays = t('calendar.weekdays', { returnObjects: true }) as string[]
   // Weekday labels run Mon..Sun; dropping the last two hides Sat/Sun.
   const weekdays = showWeekends ? allWeekdays : allWeekdays.slice(0, 5)
-  const monthLabel = format(calendar.month, 'LLLL yyyy', { locale: dateLocale(language) })
-  const dayLabel = format(calendar.focusedDay, 'EEEE, d LLLL yyyy', { locale: dateLocale(language) })
   const focusedIso = toIsoDate(calendar.focusedDay)
   const selectedDates = [...calendar.selected].sort()
+  // Nothing selected: the panel shows today, or the 1st of a month that isn't this one.
+  const inspectedDates =
+    selectedDates.length > 0
+      ? selectedDates
+      : [toIsoDate(isSameMonth(new Date(), calendar.month) ? new Date() : startOfMonth(calendar.month))]
+  const dayTarget = config.workingHoursPerDay * 3600
 
   const onWizardDone = (): void => {
     setWizardDates(null)
@@ -127,206 +127,209 @@ export function CalendarView(): JSX.Element {
 
   return (
     <div className="calendar">
-      <div className="calendar-toolbar">
+      <header className="page-header">
         <div className="calendar-nav">
           <button
-            className="btn btn-sm"
+            className="btn btn-ghost btn-icon"
             onClick={() => (isDayView ? calendar.goToDay(-1) : calendar.goToMonth(-1))}
-            aria-label={isDayView ? 'previous day' : 'previous month'}
+            aria-label={t(isDayView ? 'calendar.previousDay' : 'calendar.previousMonth')}
           >
-            ‹
+            <Icon name="chevronLeft" />
           </button>
-          <span className="calendar-month-label">{isDayView ? dayLabel : monthLabel}</span>
           <button
-            className="btn btn-sm"
+            className="btn btn-ghost btn-icon"
             onClick={() => (isDayView ? calendar.goToDay(1) : calendar.goToMonth(1))}
-            aria-label={isDayView ? 'next day' : 'next month'}
+            aria-label={t(isDayView ? 'calendar.nextDay' : 'calendar.nextMonth')}
           >
-            ›
+            <Icon name="chevronRight" />
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={calendar.goToToday}>
-            {t('calendar.today')}
-          </button>
-          <div className="calendar-view-toggle">
-            <button
-              className={`btn btn-sm ${!isDayView ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => calendar.setView('month')}
-            >
-              {t('calendar.viewMonth')}
-            </button>
-            <button
-              className={`btn btn-sm ${isDayView ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => calendar.setView('day')}
-            >
-              {t('calendar.viewDay')}
-            </button>
-          </div>
-          {calendar.loading && <span className="spinner" />}
-        </div>
-        {config.connections.length > 1 && (
-          <div className="chip-list" title={t('calendar.activeConnections')}>
-            {config.connections.map((connection) => (
-              <button
-                key={connection.id}
-                className={`chip ${config.activeConnectionIds.includes(connection.id) ? 'selected' : ''}`}
-                onClick={() => toggleConnection(connection.id)}
-              >
-                {connection.name || connection.jira.baseUrl}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="calendar-actions">
-          {isDayView ? (
-            <button className="btn btn-primary" onClick={() => openWizard([focusedIso])}>
-              {draftDates.has(focusedIso)
-                ? t('calendar.openDraft')
-                : t('calendar.generateSuggestions')}
-            </button>
-          ) : (
-            calendar.selected.size > 1 && (
+          <h1 className="page-title calendar-title">
+            {isDayView ? (
               <>
-                <span className="hint">{t('calendar.selectedDays', { count: calendar.selected.size })}</span>
-                <button className="btn btn-ghost btn-sm" onClick={calendar.clearSelection}>
-                  {t('calendar.clearSelection')}
-                </button>
-                <button className="btn btn-primary" onClick={() => openWizard(selectedDates)}>
-                  {t('calendar.generateSuggestions')}
-                </button>
+                {format(calendar.focusedDay, 'EEEE', { locale })}{' '}
+                <span className="soft">{format(calendar.focusedDay, 'd MMMM', { locale })}</span>
               </>
-            )
-          )}
+            ) : (
+              <>
+                {format(calendar.month, 'LLLL', { locale })}{' '}
+                <span className="soft">{format(calendar.month, 'yyyy')}</span>
+              </>
+            )}
+          </h1>
         </div>
-      </div>
+        <div className="segmented" role="group" aria-label={t('calendar.view')}>
+          <button className={!isDayView ? 'active' : ''} onClick={() => calendar.setView('month')}>
+            {t('calendar.viewMonth')}
+          </button>
+          <button className={isDayView ? 'active' : ''} onClick={() => calendar.setView('day')}>
+            {t('calendar.viewDay')}
+          </button>
+        </div>
+        <button className="btn" onClick={calendar.goToToday}>
+          {t('calendar.today')}
+        </button>
+        {calendar.loading && <span className="spinner" />}
+        <div className="spacer" />
+        {taskOptions.length > 0 && (
+          <label className="search-field">
+            <Icon name="search" size={15} />
+            <span className="visually-hidden">{t('calendar.filterPlaceholder')}</span>
+            <input
+              list="calendar-task-filter"
+              value={taskFilter}
+              placeholder={t('calendar.filterPlaceholder')}
+              spellCheck={false}
+              onChange={(e) => setTaskFilter(e.target.value.split('—')[0].trim())}
+            />
+            <datalist id="calendar-task-filter">
+              {taskOptions.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {`${option.key} — ${option.summary}`}
+                </option>
+              ))}
+            </datalist>
+          </label>
+        )}
+        <button
+          className="btn btn-primary"
+          onClick={() => openWizard(isDayView ? [focusedIso] : inspectedDates)}
+        >
+          <Icon name="plus" size={15} />
+          {t('calendar.newEntries')}
+        </button>
+      </header>
 
-      {taskOptions.length > 0 && (
-        <div className="calendar-filter">
-          <span className="calendar-filter-icon" aria-hidden>
-            🔍
+      {filterActive && (
+        <div className="calendar-filter-row">
+          <span>
+            <b className="mono">{filterKey}</b>{' '}
+            <span className="muted">
+              {t(isDayView ? 'calendar.filterTotalDay' : 'calendar.filterTotalMonth', {
+                hours: formatHours(filteredSeconds)
+              })}
+            </span>
           </span>
-          <input
-            className="calendar-filter-input"
-            list="calendar-task-filter"
-            value={taskFilter}
-            placeholder={t('calendar.filterPlaceholder')}
-            spellCheck={false}
-            onChange={(e) => setTaskFilter(e.target.value.split('—')[0].trim())}
-          />
-          <datalist id="calendar-task-filter">
-            {taskOptions.map((option) => (
-              <option key={option.key} value={option.key}>
-                {`${option.key} — ${option.summary}`}
-              </option>
-            ))}
-          </datalist>
-          {filterActive && (
-            <>
-              <span className="calendar-filter-total">
-                {t(dayViewActive ? 'calendar.filterTotalDay' : 'calendar.filterTotalMonth', {
-                  hours: formatHours(filteredSeconds)
-                })}
-              </span>
-              <button className="btn btn-ghost btn-sm" onClick={() => setTaskFilter('')}>
-                {t('calendar.clearFilter')}
-              </button>
-            </>
-          )}
+          <button className="link" onClick={() => setTaskFilter('')}>
+            {t('calendar.clearFilter')}
+          </button>
         </div>
       )}
 
       {calendar.error && <ErrorBanner error={calendar.error} onRetry={calendar.reload} />}
-      {!isDayView && calendar.selected.size <= 1 && (
-        <p className="hint calendar-hint">{t('calendar.selectHint')}</p>
+
+      {!isDayView && (
+        <MonthSummary
+          config={config}
+          month={calendar.month}
+          days={calendar.days}
+          worklogsByDate={calendar.worklogsByDate}
+          onToggleConnection={toggleConnection}
+          onFillMissing={openWizard}
+        />
       )}
 
-      {isDayView ? (
-        (() => {
-          const dayEntries = calendar.worklogsByDate.get(focusedIso) ?? []
-          const daySeconds = dayEntries.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
-          return dayEntries.length === 0 ? (
-            <p className="hint calendar-hint">{t('calendar.noWorklogs')}</p>
-          ) : (
-            <>
-              <p className="hint calendar-hint">
-                {t('calendar.totalForDay', { hours: formatHours(daySeconds) })}
-              </p>
-              <DayView
-                day={calendar.focusedDay}
-                entries={dayEntries}
-                multipleActive={multipleActive}
-                onEditEntry={setEditing}
-                matchEntry={entryMatcher}
-              />
-            </>
-          )
-        })()
-      ) : (
-        <div className={`calendar-grid ${showWeekends ? '' : 'no-weekends'}`} role="grid">
-        {weekdays.map((day) => (
-          <div key={day} className="calendar-weekday">
-            {day}
-          </div>
-        ))}
-        {calendar.days
-          .filter((day) => showWeekends || !isWeekendDay(day))
-          .map((day) => {
-          const iso = toIsoDate(day)
-          const worklogs = calendar.worklogsByDate.get(iso) ?? []
-          const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
-          const isWeekend = day.getDay() === 0 || day.getDay() === 6
-          const classes = [
-            'calendar-day',
-            !isSameMonth(day, calendar.month) && 'outside',
-            isWeekend && 'weekend',
-            isToday(day) && 'today',
-            calendar.selected.has(iso) && 'selected'
-          ]
-            .filter(Boolean)
-            .join(' ')
-
-          return (
-            <div
-              key={iso}
-              className={classes}
-              role="gridcell"
-              onMouseDown={(e) => e.button === 0 && calendar.onDayMouseDown(day)}
-              onMouseEnter={() => calendar.onDayMouseEnter(day)}
-            >
-              <div className="calendar-day-head">
-                <span
-                  className="calendar-day-number"
-                  role="button"
-                  title={t('calendar.openDay')}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => calendar.openDay(day)}
-                >
-                  {day.getDate()}
-                </span>
-                <span className="calendar-day-meta">
-                  {draftDates.has(iso) && (
-                    <span className="calendar-day-draft" title={t('calendar.draftPending')}>
-                      ✎
-                    </span>
-                  )}
-                  {totalSeconds > 0 && (
-                    <span className="calendar-day-total">
-                      {formatHours(totalSeconds)}{t('app.hoursShort')}
-                    </span>
-                  )}
-                </span>
-              </div>
-              <MonthDayEntries
-                entries={worklogs}
-                multipleActive={multipleActive}
-                onEditEntry={setEditing}
-                onShowMore={() => calendar.openDay(day)}
-                matchEntry={entryMatcher}
-              />
+      <div className="calendar-body">
+        {isDayView ? (
+          <DayView
+            day={calendar.focusedDay}
+            entries={calendar.worklogsByDate.get(focusedIso) ?? []}
+            connections={config.connections.filter((c) => config.activeConnectionIds.includes(c.id))}
+            workingHoursPerDay={config.workingHoursPerDay}
+            onEditEntry={setEditing}
+            matchEntry={entryMatcher}
+          />
+        ) : (
+          <div className="calendar-month">
+            <div className={`calendar-weekdays ${showWeekends ? '' : 'no-weekends'}`}>
+              {weekdays.map((day) => (
+                <span key={day}>{day}</span>
+              ))}
             </div>
-          )
-        })}
-        </div>
-      )}
+            <div className={`calendar-grid ${showWeekends ? '' : 'no-weekends'}`} role="grid">
+              {calendar.days
+                .filter((day) => showWeekends || !isWeekendDay(day))
+                .map((day) => {
+                  const iso = toIsoDate(day)
+                  const worklogs = calendar.worklogsByDate.get(iso) ?? []
+                  const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
+                  const weekend = isWeekendDay(day)
+                  const past = day < new Date() && !isToday(day)
+                  const missing = isSameMonth(day, calendar.month) && !weekend && past && worklogs.length === 0
+                  // A day logged to two Jiras is two full days of work, not an overrun.
+                  const jiras = new Set(worklogs.map((w) => w.connectionId)).size
+                  const target = dayTarget * Math.max(1, jiras)
+                  const complete = totalSeconds >= target
+                  const classes = [
+                    'calendar-day',
+                    !isSameMonth(day, calendar.month) && 'outside',
+                    weekend && 'weekend',
+                    isToday(day) && 'today',
+                    calendar.selected.has(iso) && 'selected'
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+
+                  return (
+                    <div
+                      key={iso}
+                      className={classes}
+                      role="gridcell"
+                      aria-selected={calendar.selected.has(iso)}
+                      aria-label={`${format(day, 'PPPP', { locale })}, ${formatHours(totalSeconds)} ${t('app.hoursShort')}`}
+                      onMouseDown={(e) => e.button === 0 && calendar.onDayMouseDown(day)}
+                      onMouseEnter={() => calendar.onDayMouseEnter(day)}
+                      onDoubleClick={() => openWizard([iso])}
+                    >
+                      <div className="calendar-day-head">
+                        <span className="calendar-day-number">{day.getDate()}</span>
+                        <span className="calendar-day-meta">
+                          {draftDates.has(iso) && (
+                            <span className="calendar-day-draft" title={t('calendar.draftPending')}>
+                              ✎
+                            </span>
+                          )}
+                          {totalSeconds > 0 && (
+                            <span className={`calendar-day-total mono ${complete ? '' : 'partial'}`}>
+                              {formatHours(totalSeconds)}
+                              {t('app.hoursShort')}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <MonthDayEntries
+                        entries={worklogs}
+                        onEditEntry={setEditing}
+                        onShowMore={() => calendar.openDay(day)}
+                        matchEntry={entryMatcher}
+                      />
+                      {missing && <span className="calendar-day-missing">{t('calendar.nothingLogged')}</span>}
+                      {(totalSeconds > 0 || missing) && (
+                        <span className="calendar-day-bar" aria-hidden>
+                          <span
+                            className={complete ? 'complete' : 'partial'}
+                            style={{ width: `${Math.min(100, (totalSeconds / target) * 100)}%` }}
+                          />
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+            </div>
+            <p className="hint calendar-hint">{t('calendar.selectHint')}</p>
+          </div>
+        )}
+
+        <DayInspector
+          config={config}
+          dates={isDayView ? [focusedIso] : inspectedDates}
+          worklogsByDate={calendar.worklogsByDate}
+          draftDates={draftDates}
+          onSuggest={openWizard}
+          onOpenDay={calendar.openDay}
+          onEditEntry={setEditing}
+          onClearSelection={calendar.clearSelection}
+        />
+      </div>
 
       {wizardDates && (
         <SuggestionWizard
