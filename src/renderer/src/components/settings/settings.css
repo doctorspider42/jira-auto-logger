@@ -12,6 +12,16 @@
   line-height: 1.25;
 }
 
+.settings-nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.settings-nav-item.active .settings-nav-icon {
+  color: var(--ink);
+}
+
 .settings-nav-update {
   background: var(--accent);
 }

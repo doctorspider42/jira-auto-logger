@@ -52,15 +52,15 @@ const AUTOSAVE_DELAY_MS = 600
 
 type SectionId = 'general' | 'accounts' | 'ai' | 'appearance' | 'automation' | 'reports' | 'about'
 
-/** The sections, each with the icon tile it carries in the list. */
-const SECTIONS: Array<{ id: SectionId; labelKey: string; icon: IconName; tile: string }> = [
-  { id: 'general', labelKey: 'settings.sectionGeneral', icon: 'sliders', tile: '#a9aeb8' },
-  { id: 'accounts', labelKey: 'settings.sectionConnections', icon: 'link', tile: '#9db4ff' },
-  { id: 'ai', labelKey: 'settings.sectionLlm', icon: 'sparkle', tile: '#b79bff' },
-  { id: 'appearance', labelKey: 'settings.sectionAppearance', icon: 'palette', tile: '#f28cc0' },
-  { id: 'automation', labelKey: 'settings.sectionAutomation', icon: 'clock', tile: '#6fd8a0' },
-  { id: 'reports', labelKey: 'settings.sectionReports', icon: 'document', tile: '#f0b85a' },
-  { id: 'about', labelKey: 'settings.sectionAbout', icon: 'shield', tile: '#5cc8d0' }
+/** The sections, each with the icon it carries in the list. */
+const SECTIONS: Array<{ id: SectionId; labelKey: string; icon: IconName }> = [
+  { id: 'general', labelKey: 'settings.sectionGeneral', icon: 'sliders' },
+  { id: 'accounts', labelKey: 'settings.sectionConnections', icon: 'link' },
+  { id: 'ai', labelKey: 'settings.sectionLlm', icon: 'sparkle' },
+  { id: 'appearance', labelKey: 'settings.sectionAppearance', icon: 'palette' },
+  { id: 'automation', labelKey: 'settings.sectionAutomation', icon: 'clock' },
+  { id: 'reports', labelKey: 'settings.sectionReports', icon: 'document' },
+  { id: 'about', labelKey: 'settings.sectionAbout', icon: 'shield' }
 ]
 
 /** Tiles for the accounts, in order. */
@@ -1207,8 +1207,8 @@ export function SettingsView(): JSX.Element {
             aria-current={section === item.id ? 'page' : undefined}
             onClick={() => setSection(item.id)}
           >
-            <span className="settings-tile settings-tile-sm" style={{ background: item.tile }} aria-hidden>
-              <Icon name={item.icon} size={16} />
+            <span className="settings-nav-icon" aria-hidden>
+              <Icon name={item.icon} size={18} />
             </span>
             <span className="settings-nav-label">{t(item.labelKey)}</span>
             {item.id === 'accounts' && accountsNeedAttention && <span className="dot dot-warning" />}
