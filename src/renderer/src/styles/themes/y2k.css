@@ -59,15 +59,6 @@
   box-shadow: 4px 0 14px rgba(0, 40, 120, 0.3), inset -1px 0 0 #ffffff;
 }
 
-[data-theme='y2k'] .app-mark {
-  background: linear-gradient(180deg, #ffffff 0%, #9fd6ff 42%, #2f6bff 55%, #b7e3ff 70%, #ffffff 100%);
-  color: #0b1a52;
-  border: 1px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(0, 40, 120, 0.45), inset 0 1px 0 #ffffff;
-  font-family: var(--font-display);
-  font-size: 11px;
-}
-
 [data-theme='y2k'] .app-nav-item {
   color: #1d3a7a;
   font-weight: 700;

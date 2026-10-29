@@ -191,27 +191,11 @@ html[data-theme='animus']::after {
   border-right: 2px solid var(--an-rule);
 }
 
-/* The Abstergo triangle in place of the monogram. */
-[data-theme='animus'] .app-mark {
-  background: var(--an-block);
-  color: transparent;
-  font-size: 0;
-}
-
-[data-theme='animus'] .app-mark::before {
-  content: '';
-  width: 15px;
-  height: 14px;
-  background: var(--an-white);
-  /* A triangle with a notch cut out of its base, near enough to the logo. */
-  clip-path: polygon(50% 0, 100% 100%, 62% 100%, 50% 72%, 38% 100%, 0 100%);
-}
-
 [data-theme='animus'] .app-nav-item {
   background: var(--an-block-soft);
   color: rgba(242, 247, 250, 0.62);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   font-size: 9.5px;
 }
 
@@ -345,8 +329,26 @@ html[data-theme='animus']::after {
   border-top: 2px solid var(--an-rule);
 }
 
-[data-theme='animus'] .md-list {
-  background: rgba(27, 38, 48, 0.5);
+/* The list + editor screens have forms straight on the page, with no card
+   around them; on the bright sky their labels and hints were unreadable, so
+   both columns become slate blocks like every other surface here. */
+[data-theme='animus'] .md-list,
+[data-theme='animus'] .md-detail {
+  background: rgba(27, 38, 48, 0.86);
+}
+
+[data-theme='animus'] .md-detail {
+  border-left: 2px solid var(--an-rule);
+}
+
+[data-theme='animus'] .md-detail .page-title,
+[data-theme='animus'] .md-list .page-title {
+  padding: 0;
+  background: transparent;
+}
+
+[data-theme='animus'] .md-detail .save-bar {
+  background: #1d2832;
 }
 
 /* ---------- Controls ---------- */

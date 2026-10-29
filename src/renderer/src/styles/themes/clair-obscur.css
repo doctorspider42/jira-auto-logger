@@ -191,39 +191,8 @@ html[data-theme='clairObscur']::after {
   border-right: 1px solid var(--co-bone-dim);
 }
 
-/* The mark is a rhombus, the shape the game hangs on everything from skill
-   nodes to the currency icon: a gold one with a plum one 1px inside it, so the
-   lettering stays upright. */
-[data-theme='clairObscur'] .app-mark {
-  position: relative;
-  z-index: 0;
-  width: 40px;
-  height: 40px;
-  background: transparent;
-  color: var(--co-gold-pale);
-  font-variant: small-caps;
-  font-weight: 400;
-  font-size: 15px;
-}
-
-[data-theme='clairObscur'] .app-mark::before,
-[data-theme='clairObscur'] .app-mark::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -2;
-  background: var(--co-gold);
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-}
-
-[data-theme='clairObscur'] .app-mark::after {
-  inset: 1.5px;
-  z-index: -1;
-  background: var(--co-plum);
-}
-
 /*
- * The elongated hexagon the game uses for every tab and list row. Drawn as two
+ * The elongated hexagon the game uses for its tabs, on the segmented controls. Drawn as two
  * stacked clipped layers - a bone one at full size and an ink one exactly 1px
  * inside it - because a clip-path cuts a border off along the diagonals, so the
  * outline has to BE a shape. The inner polygon is the outer one offset 1px
@@ -234,7 +203,6 @@ html[data-theme='clairObscur']::after {
  * The layers sit at negative z-index so the label paints over them; the item
  * gets `z-index: 0` to become their stacking context.
  */
-[data-theme='clairObscur'] .app-nav-item,
 [data-theme='clairObscur'] .segmented button {
   position: relative;
   z-index: 0;
@@ -243,31 +211,12 @@ html[data-theme='clairObscur']::after {
   box-shadow: none;
 }
 
-[data-theme='clairObscur'] .app-nav-item::before,
-[data-theme='clairObscur'] .app-nav-item::after,
 [data-theme='clairObscur'] .segmented button::before,
 [data-theme='clairObscur'] .segmented button::after {
   content: '';
   position: absolute;
   inset: 0;
   opacity: 0;
-}
-
-[data-theme='clairObscur'] .app-nav-item::before,
-[data-theme='clairObscur'] .app-nav-item::after {
-  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
-}
-
-/* s = 9, h = 26 */
-[data-theme='clairObscur'] .app-nav-item::after {
-  clip-path: polygon(
-    9.7px 1px,
-    calc(100% - 9.7px) 1px,
-    calc(100% - 1.06px) 50%,
-    calc(100% - 9.7px) calc(100% - 1px),
-    9.7px calc(100% - 1px),
-    1.06px 50%
-  );
 }
 
 [data-theme='clairObscur'] .segmented button {
@@ -290,48 +239,38 @@ html[data-theme='clairObscur']::after {
   );
 }
 
-[data-theme='clairObscur'] .app-nav-item::before,
 [data-theme='clairObscur'] .segmented button::before {
   z-index: -2;
   background: var(--co-bone-dim);
 }
 
-[data-theme='clairObscur'] .app-nav-item::after,
 [data-theme='clairObscur'] .segmented button::after {
   z-index: -1;
   background: var(--co-ink);
 }
 
-[data-theme='clairObscur'] .app-nav-item:hover,
 [data-theme='clairObscur'] .segmented button:hover {
   background: transparent;
   color: var(--co-bone);
 }
 
-[data-theme='clairObscur'] .app-nav-item:hover::before,
-[data-theme='clairObscur'] .app-nav-item:hover::after,
 [data-theme='clairObscur'] .segmented button:hover::before,
 [data-theme='clairObscur'] .segmented button:hover::after,
-[data-theme='clairObscur'] .app-nav-item.active::before,
-[data-theme='clairObscur'] .app-nav-item.active::after,
 [data-theme='clairObscur'] .segmented button.active::before,
 [data-theme='clairObscur'] .segmented button.active::after {
   opacity: 1;
 }
 
-[data-theme='clairObscur'] .app-nav-item.active,
 [data-theme='clairObscur'] .segmented button.active {
   background: transparent;
   color: var(--co-gold-pale);
   font-weight: 400;
 }
 
-[data-theme='clairObscur'] .app-nav-item.active::before,
 [data-theme='clairObscur'] .segmented button.active::before {
   background: var(--co-gold);
 }
 
-[data-theme='clairObscur'] .app-nav-item.active::after,
 [data-theme='clairObscur'] .segmented button.active::after {
   background: var(--co-plum);
 }
@@ -341,6 +280,39 @@ html[data-theme='clairObscur']::after {
   background: transparent;
   padding: 0;
   gap: 4px;
+}
+
+/*
+ * The rail is a list, not a row of tabs: plain small caps, and the current item
+ * lit gold with the game's gauge under it - a thin rule with pointed caps.
+ */
+[data-theme='clairObscur'] .app-nav-item {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  letter-spacing: 0.02em;
+}
+
+[data-theme='clairObscur'] .app-nav-item:hover {
+  background: rgba(58, 33, 50, 0.42);
+  color: var(--co-bone);
+}
+
+[data-theme='clairObscur'] .app-nav-item.active {
+  background: radial-gradient(70% 60% at 50% 55%, rgba(58, 33, 50, 0.9), transparent 75%);
+  color: var(--co-gold-pale);
+  font-weight: 400;
+}
+
+[data-theme='clairObscur'] .app-nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 3px;
+  clip-path: polygon(0 50%, 5px 0, calc(100% - 5px) 0, 100% 50%, calc(100% - 5px) 100%, 5px 100%);
+  background: linear-gradient(90deg, rgba(246, 192, 55, 0.35), var(--co-gold) 50%, rgba(246, 192, 55, 0.35));
 }
 
 [data-theme='clairObscur'] .app-nav-badge {

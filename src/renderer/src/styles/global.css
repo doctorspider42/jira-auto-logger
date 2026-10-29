@@ -134,7 +134,9 @@ input[type='radio'] {
   background: color-mix(in srgb, var(--danger) 8%, var(--surface));
 }
 
+/* Multi-line boxes never become pills, even in themes with pill controls. */
 textarea {
+  border-radius: min(var(--radius-control), 14px);
   resize: vertical;
   min-height: 72px;
   line-height: 1.5;
@@ -347,19 +349,6 @@ textarea {
   border-right: 1px solid var(--line-soft);
 }
 
-.app-mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: calc(var(--radius-control) + 1px);
-  background: var(--primary);
-  color: var(--primary-ink);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: -0.02em;
-}
-
 .app-nav {
   display: flex;
   flex-direction: column;
@@ -373,7 +362,8 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  width: 58px;
+  /* Wide enough for "Ustawienia" in the themes that set labels in caps. */
+  width: 68px;
   height: 52px;
   border: 0;
   border-radius: calc(var(--radius-control) + 3px);
@@ -398,7 +388,7 @@ textarea {
 .app-nav-badge {
   position: absolute;
   top: 9px;
-  right: 15px;
+  right: 20px;
   width: 7px;
   height: 7px;
   border-radius: 50%;
@@ -1092,7 +1082,7 @@ textarea {
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--line-soft);
-  border-radius: var(--radius-control);
+  border-radius: min(var(--radius-control), 14px);
   background: var(--surface);
 }
 

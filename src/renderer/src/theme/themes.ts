@@ -309,16 +309,19 @@ export const THEMES: Theme[] = [
     }
   },
   {
-    // Hello Kitty - round everything: pill buttons, Fredoka, a quiet polka backdrop.
+    // Hello Kitty - round everything: pill buttons, Comic Sans headings over
+    // Fredoka body copy, a quiet polka backdrop. Opaque: over the window
+    // backdrop the pale pinks lost all their contrast.
     id: 'helloKitty',
     nameKey: 'settings.themeHelloKitty',
+    canvas: true,
     tokens: {
       scheme: 'light',
       ground: '#ffe9f1',
       surface: '#ffffff',
-      line: '#ffc2da',
-      ink: '#4a2c3a',
-      muted: '#80506a',
+      line: '#f5a8c8',
+      ink: '#38202c',
+      muted: '#6e3d56',
       accent: '#d92c74',
       accentInk: '#ffffff',
       primary: '#d92c74',
@@ -326,12 +329,12 @@ export const THEMES: Theme[] = [
       danger: '#c0263a',
       success: '#2f8a5a',
       warning: '#9a6200',
-      fontBody: "'Comic Sans MS', Fredoka, 'Segoe UI', sans-serif",
+      fontBody: "Fredoka, 'Segoe UI', sans-serif",
       fontDisplay: "'Comic Sans MS', Fredoka, 'Segoe UI', sans-serif",
       fontMono: MONO,
       radius: '18px',
       radiusControl: '999px',
-      texture: 'radial-gradient(#ffd3e4 1.5px, transparent 1.6px) 0 0 / 14px 14px'
+      texture: 'radial-gradient(#ffdbe8 1.3px, transparent 1.4px) 0 0 / 16px 16px'
     }
   },
   {

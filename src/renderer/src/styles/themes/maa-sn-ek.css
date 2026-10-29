@@ -241,37 +241,16 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 13 140'%3E%3Cg fill='%23000'%3E%3Crect width='4' height='140'/%3E%3Crect x='3' y='16' width='5' height='5'/%3E%3Ccircle cx='8' cy='18.5' r='2.5'/%3E%3Crect x='3' y='48' width='8' height='4'/%3E%3Ccircle cx='11' cy='50' r='2'/%3E%3Crect x='3' y='84' width='4' height='6'/%3E%3Ccircle cx='7' cy='87' r='3'/%3E%3Crect x='3' y='112' width='6' height='4'/%3E%3Ccircle cx='9' cy='114' r='2'/%3E%3C/g%3E%3C/svg%3E");
 }
 
-/* The monogram daubed on in red, misregistered like a screen print. */
-[data-theme='maaSnEk'] .app-mark {
-  position: relative;
-  width: auto;
-  height: auto;
-  background: transparent;
-  color: #f2efe8;
-  font-family: var(--maa-paint);
-  font-size: 20px;
-  font-weight: 700;
-  text-transform: uppercase;
-  text-shadow: -2px 0 var(--maa-red);
-  animation: maa-jitter 5s steps(1) infinite;
-}
-
-/* Two picket signs under it. Drawn rather than typed: no font ships a placard,
+/* Two picket signs at the top of the rail. Drawn rather than typed: no font ships a placard,
    and as geometry the sticks can lean the way real ones do in a crowd. */
-[data-theme='maaSnEk'] .app-mark::after {
+[data-theme='maaSnEk'] .app-rail::before {
   content: '';
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
+  flex: 0 0 auto;
   width: 46px;
   height: 20px;
-  transform: translateX(-50%);
+  margin-bottom: -6px;
   background: no-repeat 0 0 / 46px 20px
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 20'%3E%3Cpath d='M8 19 L12 7' stroke='%23c9a06a' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M38 19 L34 7' stroke='%23c9a06a' stroke-width='2.2' stroke-linecap='round'/%3E%3Cg transform='rotate(-9 12 7)'%3E%3Crect x='3.5' y='1' width='17' height='11.5' fill='%23d3b184' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M12 3.4 V7.8' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='12' cy='10' r='1.1' fill='%23000'/%3E%3C/g%3E%3Cg transform='rotate(9 34 7)'%3E%3Crect x='25.5' y='1' width='17' height='11.5' fill='%23d3b184' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M34 3.4 V7.8' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Ccircle cx='34' cy='10' r='1.1' fill='%23000'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-[data-theme='maaSnEk'] .app-nav {
-  margin-top: 14px;
 }
 
 /* Spray-painted menu. */
@@ -653,7 +632,6 @@
 
 /* The placard would otherwise never stop moving. */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme='maaSnEk'] .app-mark,
   [data-theme='maaSnEk'] .page-title,
   [data-theme='maaSnEk'] .wizard-heading h1,
   [data-theme='maaSnEk'] .app-main::before {

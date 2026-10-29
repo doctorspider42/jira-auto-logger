@@ -31,9 +31,6 @@ export default function App(): JSX.Element {
   return (
     <div className="app-shell">
       <aside className="app-rail">
-        <div className="app-mark" role="img" aria-label={t('app.title')}>
-          jl
-        </div>
         <nav className="app-nav" aria-label={t('app.title')}>
           {tabs.map((tab) => (
             <button

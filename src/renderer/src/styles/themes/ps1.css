@@ -91,30 +91,18 @@ html[data-theme='ps1']::after {
   box-shadow: 1px 0 0 #4a4a86, 8px 0 20px rgba(0, 0, 0, 0.6);
 }
 
-[data-theme='ps1'] .app-mark {
-  position: relative;
-  border: 1px solid #000000;
-  background: linear-gradient(180deg, #8098ff 0%, #4a6bdc 48%, #2f4ec0 100%);
-  box-shadow:
-    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
-    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
-    3px 3px 0 rgba(0, 0, 0, 0.5);
-}
-
 /*
- * Triangle, circle, cross, square under the logo. Drawn rather than typed: the
+ * Triangle, circle, cross, square at the top of the rail. Drawn rather than typed: the
  * Unicode glyphs come from different blocks, so their sizes and baselines never
  * line up. As geometry they get the optical corrections the real buttons have -
  * the triangle a bit wider, the square a bit smaller than the circle.
  */
-[data-theme='ps1'] .app-mark::after {
+[data-theme='ps1'] .app-rail::before {
   content: '';
-  position: absolute;
-  top: calc(100% + 9px);
-  left: 50%;
+  flex: 0 0 auto;
   width: 57px;
   height: 12px;
-  transform: translateX(-50%);
+  margin: 2px 0 -8px;
   background: no-repeat center / 57px 12px
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 16'%3E%3Cg fill='none' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.4 L13.3 11.7 L2.7 11.7 Z' stroke='%233dbf7a'/%3E%3Ccircle cx='28' cy='8' r='4.8' stroke='%23e4344a'/%3E%3Cpath d='M44.3 4.3 L51.7 11.7 M51.7 4.3 L44.3 11.7' stroke='%236c8cff'/%3E%3Crect x='63.9' y='3.9' width='8.2' height='8.2' stroke='%23ff7ad9'/%3E%3C/g%3E%3C/svg%3E");
 }
