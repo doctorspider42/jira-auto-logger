@@ -223,6 +223,7 @@ export function CalendarView(): JSX.Element {
           month={calendar.month}
           days={calendar.days}
           worklogsByDate={calendar.worklogsByDate}
+          loading={calendar.loading}
           onToggleConnection={toggleConnection}
           onFillMissing={openWizard}
         />
@@ -254,7 +255,9 @@ export function CalendarView(): JSX.Element {
                   const totalSeconds = worklogs.reduce((sum, w) => sum + w.timeSpentSeconds, 0)
                   const weekend = isWeekendDay(day)
                   const past = day < new Date() && !isToday(day)
-                  const missing = isSameMonth(day, calendar.month) && !weekend && past && worklogs.length === 0
+                  // Unknown until the month has loaded - an empty day is not a missing one yet.
+                  const missing =
+                    !calendar.loading && isSameMonth(day, calendar.month) && !weekend && past && worklogs.length === 0
                   // A day logged to two Jiras is two full days of work, not an overrun.
                   const jiras = new Set(worklogs.map((w) => w.connectionId)).size
                   const target = dayTarget * Math.max(1, jiras)

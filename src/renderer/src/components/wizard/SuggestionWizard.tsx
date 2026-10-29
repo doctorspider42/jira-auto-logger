@@ -12,7 +12,8 @@ import type {
 } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { FunnyLoader } from '@/components/common/FunnyLoader'
-import { Modal } from '@/components/common/Modal'
+import { Icon } from '@/components/common/Icon'
+import { Modal, useDialogEscape } from '@/components/common/Modal'
 import { findDraft, useAppStore, type WizardDraft } from '@/store/appStore'
 import { useThemeText } from '@/theme/useThemeCopy'
 import { dateLocale, formatHours } from '@/utils/format'
@@ -252,6 +253,21 @@ export function SuggestionWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups])
 
+  /**
+   * A day's target: the working day once per Jira it is logged to, since a
+   * project mirrored into two Jiras logs a full day in each.
+   */
+  const targetByDate = useMemo(() => {
+    const jiras = new Map<string, Set<string>>()
+    for (const group of groups) {
+      for (const s of group.suggestions) {
+        jiras.set(s.date, (jiras.get(s.date) ?? new Set()).add(group.connectionId))
+      }
+    }
+    return (date: string): number => targetHours * Math.max(1, jiras.get(date)?.size ?? 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groups, targetHours])
+
   const hoursStatus = (hours: number, target: number): string =>
     hours === target ? 'ok' : hours < target ? 'under' : 'over'
 
@@ -260,48 +276,9 @@ export function SuggestionWizard({
     ? allSuggestions.filter((s) => s.date === dateFilter)
     : allSuggestions
   const visibleTotal = visibleSuggestions.reduce((sum, s) => sum + s.hours, 0)
-  const visibleTarget = targetHours * (dateFilter ? 1 : tabDates.length)
-
-  const renderDayTabs = (): JSX.Element | null => {
-    if (tabDates.length < 2) return null
-    const locale = dateLocale(config.language)
-    const totalAll = allSuggestions.reduce((sum, s) => sum + s.hours, 0)
-    return (
-      <div className="day-tabs" role="tablist">
-        <button
-          role="tab"
-          aria-selected={dateFilter === null}
-          className={`day-tab ${dateFilter === null ? 'selected' : ''}`}
-          onClick={() => setDateFilter(null)}
-        >
-          <span className="day-tab-weekday">{t('wizard.allDays')}</span>
-          <span className="day-tab-date">{tabDates.length} × {formatHours(targetHours * 3600)}h</span>
-          <span className={`day-tab-hours ${hoursStatus(totalAll, targetHours * tabDates.length)}`}>
-            {formatHours(totalAll * 3600)}h
-          </span>
-        </button>
-        {tabDates.map((date) => {
-          const day = new Date(date)
-          const hours = totalsByDate.get(date) ?? 0
-          return (
-            <button
-              key={date}
-              role="tab"
-              aria-selected={dateFilter === date}
-              className={`day-tab ${dateFilter === date ? 'selected' : ''}`}
-              onClick={() => setDateFilter(date)}
-            >
-              <span className="day-tab-weekday">{format(day, 'EEEE', { locale })}</span>
-              <span className="day-tab-date">{format(day, 'd MMM', { locale })}</span>
-              <span className={`day-tab-hours ${hoursStatus(hours, targetHours)}`}>
-                {formatHours(hours * 3600)}/{formatHours(targetHours * 3600)}h
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    )
-  }
+  const visibleTarget = dateFilter
+    ? targetByDate(dateFilter)
+    : tabDates.reduce((sum, date) => sum + targetByDate(date), 0)
 
   const submit = async (): Promise<void> => {
     if (allSuggestions.some((s) => !s.issueKey.trim())) {
@@ -343,48 +320,27 @@ export function SuggestionWizard({
   }
 
   const canGenerate = selections.length > 0
+  useDialogEscape(onClose)
 
-  const inputFooter = (
-    <>
-      <button
-        className="btn btn-ghost"
-        disabled={previewLoading || busy || !canGenerate}
-        onClick={showPreview}
-        title={t('wizard.previewContextHint')}
-      >
-        {previewLoading ? <span className="spinner" /> : '{ }'} {t('wizard.previewContext')}
-      </button>
-      <span style={{ flex: 1 }} />
-      <button className="btn btn-ghost" onClick={discard}>
-        {t('app.cancel')}
-      </button>
-      <button className="btn btn-primary" disabled={busy || !canGenerate} onClick={generate}>
-        {busy ? t('wizard.generating') : t('wizard.generate')}
-      </button>
-    </>
-  )
+  const locale = dateLocale(config.language)
+  const sortedDates = [...dates].sort()
+  const rangeLabel =
+    sortedDates.length === 1
+      ? format(new Date(sortedDates[0]), 'EEEE, d MMMM', { locale })
+      : `${format(new Date(sortedDates[0]), 'd MMM', { locale })} – ${format(new Date(sortedDates[sortedDates.length - 1]), 'd MMM', { locale })}`
 
-  const suggestionsFooter = (
-    <>
-      <button className="btn btn-ghost" onClick={() => setStep('input')} disabled={busy}>
-        {t('app.back')}
-      </button>
-      <button className="btn btn-ghost" onClick={discard} disabled={busy}>
-        {t('wizard.discard')}
-      </button>
-      <span style={{ flex: 1 }} />
-      <button
-        className="btn btn-primary"
-        disabled={busy || allSuggestions.length === 0}
-        onClick={submit}
-      >
-        {busy && <span className="spinner" />}
-        {busy ? t('wizard.submitting') : tt('wizard.submit', { count: allSuggestions.length })}
-      </button>
-    </>
-  )
+  // Every pass reports its own model; normally they match, but a config change
+  // between a restored draft and a regeneration can mix them.
+  const usedModels = [...new Set(groups.flatMap((g) => (g.model ? [g.model] : [])))]
 
-  const renderSelectionSection = (selection: ProjectSelection): JSX.Element | null => {
+  const steps = [
+    { id: 'input', label: t('wizard.stepContext') },
+    { id: 'suggestions', label: t('wizard.stepReview') },
+    { id: 'log', label: t('wizard.stepLog') }
+  ]
+  const stepIndex = step === 'input' ? 0 : 1
+
+  const renderSelectionCard = (selection: ProjectSelection): JSX.Element | null => {
     const project = projectById.get(selection.projectId)
     if (!project) return null
     const targetLabels = project.targets.map((target) => {
@@ -394,41 +350,41 @@ export function SuggestionWizard({
         : target.jiraProjectKey
     })
     return (
-      <section key={project.id} className="wizard-project-section card">
-        <h4>
-          {project.name}
-          <span className="hint"> {targetLabels.join(' + ')}</span>
-        </h4>
-        {project.targets.length > 1 && (
-          <p className="hint">{t('wizard.multiTargetHint', { count: project.targets.length })}</p>
-        )}
+      <section key={project.id} className="wizard-card">
+        <header className="wizard-card-head">
+          <span className="chip-dot" style={{ background: project.color || 'var(--muted)' }} />
+          <h2>{project.name}</h2>
+          <span className="mono muted">{targetLabels.join(' + ')}</span>
+          {project.targets.length > 1 && (
+            <span className="tag">{t('wizard.multiTargetTag', { count: project.targets.length })}</span>
+          )}
+        </header>
         {project.gitFolders.length > 0 && (
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={selection.useCommits}
-              onChange={(e) => patchSelection(project.id, { useCommits: e.target.checked })}
-            />
-            {t('wizard.useRepoCommits', {
-              folders: project.gitFolders.map((f) => f.label || f.path).join(', ')
-            })}
-          </label>
+          <div className="wizard-commits">
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={selection.useCommits}
+                onChange={(e) => patchSelection(project.id, { useCommits: e.target.checked })}
+              />
+              {t('wizard.includeCommits')}
+            </label>
+            <span className="mono muted">
+              {project.gitFolders.map((f) => f.label || f.path).join(', ')}
+            </span>
+          </div>
         )}
-        <div className="field" style={{ marginTop: 8, marginBottom: 0 }}>
-          <label>{t('wizard.projectNote')}</label>
+        <label className="field wizard-note">
+          <span className="muted">{t('wizard.projectNote')}</span>
           <textarea
             value={selection.note}
             placeholder={t('wizard.projectNotePlaceholder')}
             onChange={(e) => patchSelection(project.id, { note: e.target.value })}
           />
-        </div>
+        </label>
       </section>
     )
   }
-
-  // Every pass reports its own model; normally they match, but a config change
-  // between a restored draft and a regeneration can mix them.
-  const usedModels = [...new Set(groups.flatMap((g) => (g.model ? [g.model] : [])))]
 
   const renderGroup = (group: ProjectSuggestions): JSX.Element => {
     const project = projectById.get(group.projectId)
@@ -438,24 +394,21 @@ export function SuggestionWizard({
       ? group.suggestions.filter((s) => s.date === dateFilter)
       : group.suggestions
     const visibleHours = visible.reduce((sum, s) => sum + s.hours, 0)
-    // A multi-target project produces one group per Jira - label them apart.
-    const multiTarget = (project?.targets.length ?? 0) > 1
 
     return (
-      <section key={group.targetId} className="wizard-connection-group">
-        <h4>
-          {project?.color && (
-            <span className="project-color-dot" style={{ background: project.color }} />
-          )}
-          {group.projectName}
-          <span className="hint">
-            {multiTarget
-              ? ` · ${group.jiraProjectKey} · ${group.connectionName}`
-              : ''}
-            {' · '}
-            {formatHours(visibleHours * 3600)}h
+      <section key={group.targetId} className="wizard-group">
+        <header className="wizard-group-head">
+          <span className="chip-dot" style={{ background: project?.color || 'var(--muted)' }} />
+          <h2>{group.projectName}</h2>
+          <span className="mono muted">
+            {group.jiraProjectKey} · {group.connectionName}
           </span>
-        </h4>
+          <span className="spacer" />
+          <span className="mono muted">
+            {formatHours(visibleHours * 3600)}
+            {t('app.hoursShort')}
+          </span>
+        </header>
         {layout === 'table' ? (
           <SuggestionTable
             suggestions={visible}
@@ -466,9 +419,7 @@ export function SuggestionWizard({
             onChange={(next) =>
               patchGroup(group.targetId, (list) => list.map((s) => (s.id === next.id ? next : s)))
             }
-            onRemove={(id) =>
-              patchGroup(group.targetId, (list) => list.filter((s) => s.id !== id))
-            }
+            onRemove={(id) => patchGroup(group.targetId, (list) => list.filter((s) => s.id !== id))}
           />
         ) : (
           visible.map((suggestion) => (
@@ -494,92 +445,221 @@ export function SuggestionWizard({
             />
           ))
         )}
-        <button className="btn" onClick={() => addSuggestion(group)}>
-          + {t('wizard.addEntry')}
+        <button className="btn btn-ghost btn-sm wizard-add" onClick={() => addSuggestion(group)}>
+          <Icon name="plus" size={14} />
+          {t('wizard.addEntry')}
         </button>
       </section>
     )
   }
 
-  return (
-    <Modal
-      title={`${t('wizard.title')} — ${step === 'input' ? t('wizard.step1') : t('wizard.step2')}`}
-      onClose={onClose}
-      footer={step === 'input' ? inputFooter : suggestionsFooter}
-      wide={step === 'suggestions' && layout === 'table'}
-    >
-      {error && <ErrorBanner error={error} />}
-      {busy && step === 'input' && <FunnyLoader />}
-
-      {step === 'input' ? (
-        <>
-          <div className="field">
-            <div className="wizard-label-row">
-              <label>{t('wizard.projects')}</label>
-              <button className="btn btn-ghost btn-sm" onClick={useRecent}>
-                ⟲ {t('wizard.useRecent')}
-              </button>
-            </div>
-            {selectableProjects.length === 0 ? (
-              <span className="hint">{t('wizard.noProjects')}</span>
-            ) : (
-              <div className="chip-list">
-                {selectableProjects.map((project) => (
-                  <button
-                    key={project.id}
-                    className={`chip ${selections.some((s) => s.projectId === project.id) ? 'selected' : ''}`}
-                    title={project.targets.map((target) => target.jiraProjectKey).join(', ')}
-                    onClick={() => toggleProject(project)}
-                  >
-                    {project.color && (
-                      <span className="project-color-dot" style={{ background: project.color }} />
-                    )}
-                    {project.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {selections.map(renderSelectionSection)}
-        </>
-      ) : (
-        <>
-          {renderDayTabs()}
-          <div className="wizard-step2-head">
-            <p className="hint wizard-info">
-              {t('wizard.suggestionsInfo')} {t('wizard.draftKept')}
-            </p>
-            <div className="wizard-total">
-              <span>{t('wizard.totalHours')}</span>
-              <span className={`wizard-total-hours ${hoursStatus(visibleTotal, visibleTarget)}`}>
-                {formatHours(visibleTotal * 3600)}/{formatHours(visibleTarget * 3600)}h
-              </span>
-            </div>
-            <div className="wizard-layout-toggle" role="group" aria-label={t('wizard.layout')}>
-              <button
-                className={`btn btn-sm ${layout === 'cards' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setLayout('cards')}
-              >
-                {t('wizard.layoutCards')}
-              </button>
-              <button
-                className={`btn btn-sm ${layout === 'table' ? 'btn-primary' : 'btn-ghost'}`}
-                onClick={() => setLayout('table')}
-                title={t('wizard.layoutTableHint')}
-              >
-                {t('wizard.layoutTable')}
-              </button>
-            </div>
-          </div>
-          {groups.map(renderGroup)}
-          {usedModels.length > 0 && (
-            <p className="hint wizard-model">
-              {t('wizard.generatedWith', { models: usedModels.join(', ') })}
-            </p>
+  /** Left column of the review step: a filter per day with its hours. */
+  const renderDays = (): JSX.Element => {
+    const totalAll = allSuggestions.reduce((sum, s) => sum + s.hours, 0)
+    const visibleTargetAll = tabDates.reduce((sum, date) => sum + targetByDate(date), 0)
+    const dayButton = (key: string, label: string, hours: number, target: number, selected: boolean, onClick: () => void): JSX.Element => {
+      const status = hoursStatus(hours, target)
+      return (
+        <button key={key} className={`wizard-day ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={onClick}>
+          <span className="wizard-day-row">
+            <span>{label}</span>
+            <span className={`mono wizard-hours ${status}`}>
+              {formatHours(hours * 3600)}
+              {t('app.hoursShort')} / {formatHours(target * 3600)}
+              {t('app.hoursShort')}
+            </span>
+          </span>
+          <span className="meter" aria-hidden>
+            <span className={status} style={{ width: `${Math.min(100, (hours / Math.max(target, 0.01)) * 100)}%` }} />
+          </span>
+          {status === 'under' && (
+            <span className="wizard-day-warn">
+              {t('wizard.dayShort', { hours: formatHours((target - hours) * 3600) })}
+            </span>
           )}
-        </>
-      )}
+        </button>
+      )
+    }
+    return (
+      <div className="wizard-side-block">
+        <span className="eyebrow">{t('wizard.days')}</span>
+        {tabDates.length > 1 &&
+          dayButton('all', t('wizard.allDays'), totalAll, visibleTargetAll, dateFilter === null, () =>
+            setDateFilter(null)
+          )}
+        {tabDates.map((date) =>
+          dayButton(
+            date,
+            format(new Date(date), 'EEE d MMM', { locale }),
+            totalsByDate.get(date) ?? 0,
+            targetByDate(date),
+            dateFilter === date || tabDates.length === 1,
+            () => setDateFilter(date)
+          )
+        )}
+      </div>
+    )
+  }
+
+  const notes = selections.filter((s) => s.note.trim())
+
+  return (
+    <div className="wizard-screen" role="dialog" aria-modal="true" aria-label={t('wizard.title')}>
+      <header className="wizard-header">
+        <button className="btn btn-icon" onClick={onClose} aria-label={t('app.close')}>
+          <Icon name="close" />
+        </button>
+        <div className="wizard-heading">
+          <span className="muted">{t('wizard.title')}</span>
+          <h1>{rangeLabel}</h1>
+        </div>
+        <ol className="wizard-steps" aria-label={t('wizard.steps')}>
+          {steps.map((s, i) => (
+            <li key={s.id} className={i < stepIndex ? 'done' : i === stepIndex ? 'current' : ''} aria-current={i === stepIndex ? 'step' : undefined}>
+              <span className="wizard-step-mark">{i < stepIndex ? <Icon name="check" size={12} /> : i + 1}</span>
+              {s.label}
+            </li>
+          ))}
+        </ol>
+        <span className="muted wizard-header-info">
+          {step === 'suggestions' && usedModels.length > 0
+            ? t('wizard.generatedWith', { models: usedModels.join(', ') })
+            : t('wizard.dayCount', { count: dates.length })}
+        </span>
+      </header>
+
+      <div className="wizard-body">
+        <aside className="wizard-side">
+          {step === 'input' ? (
+            <div className="wizard-side-block">
+              <div className="wizard-side-title">
+                <span className="eyebrow">{t('wizard.projects')}</span>
+                <button className="link" onClick={useRecent}>
+                  {t('wizard.useRecent')}
+                </button>
+              </div>
+              {selectableProjects.length === 0 ? (
+                <span className="hint">{t('wizard.noProjects')}</span>
+              ) : (
+                selectableProjects.map((project) => {
+                  const checked = selections.some((s) => s.projectId === project.id)
+                  return (
+                    <label key={project.id} className={`wizard-pick ${checked ? 'selected' : ''}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleProject(project)} />
+                      <span className="chip-dot" style={{ background: project.color || 'var(--muted)' }} />
+                      <span className="wizard-pick-text">
+                        <span>{project.name}</span>
+                        <span className="mono muted">{project.targets.map((target) => target.jiraProjectKey).join(' · ')}</span>
+                      </span>
+                    </label>
+                  )
+                })
+              )}
+              <p className="hint">{t('wizard.isolationHint')}</p>
+            </div>
+          ) : (
+            <>
+              {renderDays()}
+              {notes.length > 0 && (
+                <div className="wizard-side-block">
+                  <span className="eyebrow">{t('wizard.yourNotes')}</span>
+                  {notes.map((n) => (
+                    <p key={n.projectId} className="wizard-note-echo">
+                      {n.note}
+                    </p>
+                  ))}
+                </div>
+              )}
+              <button className="link wizard-edit-context" onClick={() => setStep('input')} disabled={busy}>
+                {t('wizard.editContext')}
+              </button>
+            </>
+          )}
+        </aside>
+
+        <main className="wizard-main">
+          {error && <ErrorBanner error={error} />}
+          {busy && step === 'input' && <FunnyLoader />}
+          {step === 'input' ? (
+            selections.length === 0 ? (
+              <p className="wizard-empty muted">{t('wizard.pickProjects')}</p>
+            ) : (
+              selections.map(renderSelectionCard)
+            )
+          ) : (
+            <>
+              <div className="wizard-review-head">
+                <p className="hint">
+                  {t('wizard.suggestionsInfo')} {t('wizard.draftKept')}
+                </p>
+                <div className="segmented" role="group" aria-label={t('wizard.layout')}>
+                  <button className={layout === 'cards' ? 'active' : ''} onClick={() => setLayout('cards')}>
+                    {t('wizard.layoutCards')}
+                  </button>
+                  <button
+                    className={layout === 'table' ? 'active' : ''}
+                    onClick={() => setLayout('table')}
+                    title={t('wizard.layoutTableHint')}
+                  >
+                    {t('wizard.layoutTable')}
+                  </button>
+                </div>
+              </div>
+              {groups.map(renderGroup)}
+            </>
+          )}
+        </main>
+      </div>
+
+      <footer className="wizard-footer">
+        {step === 'input' ? (
+          <>
+            <button
+              className="btn btn-ghost"
+              disabled={previewLoading || busy || !canGenerate}
+              onClick={showPreview}
+              title={t('wizard.previewContextHint')}
+            >
+              {previewLoading ? <span className="spinner" /> : <Icon name="code" size={15} />}
+              {t('wizard.previewContext')}
+            </button>
+            <span className="muted">{t('wizard.passCount', { count: selections.length })}</span>
+            <span className="spacer" />
+            <button className="btn btn-lg" onClick={discard}>
+              {t('app.cancel')}
+            </button>
+            <button className="btn btn-primary btn-lg" disabled={busy || !canGenerate} onClick={generate}>
+              {busy ? t('wizard.generating') : t('wizard.generate')}
+            </button>
+          </>
+        ) : (
+          <>
+            <span>
+              <b>{visibleSuggestions.length}</b> <span className="muted">{t('wizard.entriesShown')}</span>
+            </span>
+            <span className={`mono wizard-hours ${hoursStatus(visibleTotal, visibleTarget)}`}>
+              {formatHours(visibleTotal * 3600)}
+              {t('app.hoursShort')} / {formatHours(visibleTarget * 3600)}
+              {t('app.hoursShort')}
+            </span>
+            <span className="spacer" />
+            <button className="btn btn-ghost" onClick={discard} disabled={busy}>
+              {t('wizard.discard')}
+            </button>
+            <button className="btn btn-lg" onClick={() => setStep('input')} disabled={busy}>
+              {t('app.back')}
+            </button>
+            <button
+              className="btn btn-primary btn-lg"
+              disabled={busy || allSuggestions.length === 0}
+              onClick={submit}
+            >
+              {busy && <span className="spinner" />}
+              {busy ? t('wizard.submitting') : tt('wizard.submit', { count: allSuggestions.length })}
+            </button>
+          </>
+        )}
+      </footer>
 
       {preview && (
         <Modal
@@ -592,7 +672,7 @@ export function SuggestionWizard({
           }
         >
           {preview.map((section) => (
-            <section key={section.label} className="wizard-connection-group">
+            <section key={section.label} className="wizard-preview-section">
               <h4>
                 {section.label} — {t('wizard.previewTokens', { count: section.approxTokens })}
               </h4>
@@ -601,6 +681,6 @@ export function SuggestionWizard({
           ))}
         </Modal>
       )}
-    </Modal>
+    </div>
   )
 }

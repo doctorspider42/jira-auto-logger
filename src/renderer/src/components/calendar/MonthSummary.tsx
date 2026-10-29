@@ -10,6 +10,8 @@ interface Props {
   month: Date
   days: Date[]
   worklogsByDate: Map<string, CalendarEntry[]>
+  /** While the month loads, empty days are not counted as missing. */
+  loading: boolean
   onToggleConnection: (id: string) => void
   onFillMissing: (dates: string[]) => void
 }
@@ -21,13 +23,15 @@ const isWorkday = (d: Date): boolean => d.getDay() !== 0 && d.getDay() !== 6
  * one-click way to fill them) and the hours carrying each calendar-marked
  * custom field, e.g. overtime.
  */
-export function MonthSummary({ config, month, days, worklogsByDate, onToggleConnection, onFillMissing }: Props): JSX.Element {
+export function MonthSummary({ config, month, days, worklogsByDate, loading, onToggleConnection, onFillMissing }: Props): JSX.Element {
   const { t } = useTranslation()
   const summary = useMemo(() => {
     const today = startOfDay(new Date())
     const inMonth = days.filter((d) => isSameMonth(d, month))
     const entries = inMonth.flatMap((d) => worklogsByDate.get(toIsoDate(d)) ?? [])
-    const missing = inMonth
+    const missing = loading
+      ? []
+      : inMonth
       .filter((d) => isWorkday(d) && isBefore(d, today) && (worklogsByDate.get(toIsoDate(d)) ?? []).length === 0)
       .map(toIsoDate)
     const marked = config.customFields
@@ -45,7 +49,7 @@ export function MonthSummary({ config, month, days, worklogsByDate, onToggleConn
       missing,
       marked
     }
-  }, [config.customFields, days, month, worklogsByDate])
+  }, [config.customFields, days, loading, month, worklogsByDate])
 
   const monthName = format(month, 'LLLL', { locale: dateLocale(config.language) })
 

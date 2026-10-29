@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { AppError, CommitInfo, CustomFieldConfig, WorklogSuggestion } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { Icon } from '@/components/common/Icon'
 import { IssueAutocomplete } from './IssueAutocomplete'
 
 interface SuggestionRowProps {
@@ -51,11 +52,13 @@ export function SuggestionRow({
     }
   }
 
+  const setHours = (hours: number): void =>
+    onChange({ ...suggestion, hours: Math.min(24, Math.max(0.25, Math.round(hours * 4) / 4)) })
+
   return (
-    <div className={`suggestion-row card ${suggestion.issueKey ? '' : 'invalid'}`}>
-      <div className="suggestion-row-grid">
-        <div className="field">
-          <label>{t('wizard.issue')}</label>
+    <div className={`suggestion-row ${suggestion.issueKey ? '' : 'invalid'}`}>
+      <div className="suggestion-row-main">
+        <div className="suggestion-issue">
           <IssueAutocomplete
             value={suggestion.issueKey}
             valueTypeName={suggestion.issueTypeName}
@@ -73,78 +76,73 @@ export function SuggestionRow({
               })
             }
           />
-          {suggestion.issueSummary && <span className="hint">{suggestion.issueSummary}</span>}
+          <span className="suggestion-summary">{suggestion.issueSummary || t('wizard.pickIssue')}</span>
         </div>
-        <div className="field">
-          <label>{t('wizard.date')}</label>
-          <input
-            type="date"
-            value={suggestion.date}
-            onChange={(e) => onChange({ ...suggestion, date: e.target.value })}
-          />
-        </div>
-        <div className="field">
-          <label>{t('wizard.hours')}</label>
+        <input
+          className="suggestion-date"
+          type="date"
+          aria-label={t('wizard.date')}
+          value={suggestion.date}
+          onChange={(e) => onChange({ ...suggestion, date: e.target.value })}
+        />
+        <div className="hours-stepper" role="group" aria-label={t('wizard.hours')}>
+          <button type="button" aria-label={t('wizard.lessHours')} onClick={() => setHours(suggestion.hours - 0.25)}>
+            −
+          </button>
           <input
             type="number"
             min={0.25}
             max={24}
             step={0.25}
+            aria-label={t('wizard.hours')}
             value={suggestion.hours}
             onChange={(e) => onChange({ ...suggestion, hours: Number(e.target.value) })}
           />
+          <button type="button" aria-label={t('wizard.moreHours')} onClick={() => setHours(suggestion.hours + 0.25)}>
+            +
+          </button>
         </div>
-        <button
-          className="btn btn-ghost btn-sm btn-danger suggestion-remove"
-          onClick={onRemove}
-          title={t('wizard.removeEntry')}
-        >
-          ✕
+        <button className="btn btn-ghost btn-icon suggestion-remove" onClick={onRemove} aria-label={t('wizard.removeEntry')} title={t('wizard.removeEntry')}>
+          <Icon name="trash" size={15} />
         </button>
       </div>
 
-      <div className="field">
-        <label>{t('wizard.description')}</label>
-        <textarea
-          value={suggestion.description}
-          onChange={(e) => onChange({ ...suggestion, description: e.target.value })}
-        />
-      </div>
+      <textarea
+        className="suggestion-desc"
+        rows={2}
+        aria-label={t('wizard.description')}
+        value={suggestion.description}
+        onChange={(e) => onChange({ ...suggestion, description: e.target.value })}
+      />
 
-      {customFields.length > 0 && (
-        <div className="suggestion-custom-fields">
-          {customFields.map((field) => {
-            const value = suggestion.customFields[field.key]
-            const setValue = (next: string | boolean): void =>
-              onChange({
-                ...suggestion,
-                customFields: { ...suggestion.customFields, [field.key]: next }
-              })
-            return field.type === 'boolean' ? (
-              <label key={field.id} className="settings-checkbox" title={field.key}>
-                <input
-                  type="checkbox"
-                  checked={value === true}
-                  onChange={(e) => setValue(e.target.checked)}
-                />
-                {field.label}
-              </label>
-            ) : (
-              <div key={field.id} className="field suggestion-custom-field-text">
-                <label title={field.key}>{field.label}</label>
-                <input
-                  value={typeof value === 'string' ? value : ''}
-                  onChange={(e) => setValue(e.target.value)}
-                />
-              </div>
-            )
-          })}
-        </div>
-      )}
+      <div className="suggestion-extras">
+        {customFields.map((field) => {
+          const value = suggestion.customFields[field.key]
+          const setValue = (next: string | boolean): void =>
+            onChange({ ...suggestion, customFields: { ...suggestion.customFields, [field.key]: next } })
+          return field.type === 'boolean' ? (
+            <label key={field.id} className="switch" title={field.key}>
+              <input type="checkbox" checked={value === true} onChange={(e) => setValue(e.target.checked)} />
+              {field.label}
+            </label>
+          ) : (
+            <label key={field.id} className="suggestion-text-field" title={field.key}>
+              <span className="muted">{field.label}</span>
+              <input value={typeof value === 'string' ? value : ''} onChange={(e) => setValue(e.target.value)} />
+            </label>
+          )
+        })}
+        <span className="spacer" />
+        {!regenerateOpen && (
+          <button className="link" onClick={() => setRegenerateOpen(true)}>
+            {t('wizard.regenerate')}
+          </button>
+        )}
+      </div>
 
       {error && <ErrorBanner error={error} onRetry={regenerate} />}
 
-      {regenerateOpen ? (
+      {regenerateOpen && (
         <div className="regenerate-box">
           <input
             autoFocus
@@ -154,17 +152,13 @@ export function SuggestionRow({
             onChange={(e) => setHint(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !regenerating && void regenerate()}
           />
-          <button className="btn btn-sm btn-primary" disabled={regenerating} onClick={regenerate}>
+          <button className="btn btn-sm" disabled={regenerating} onClick={regenerate}>
             {regenerating ? <span className="spinner" /> : t('wizard.regenerateRun')}
           </button>
           <button className="btn btn-sm btn-ghost" onClick={() => setRegenerateOpen(false)}>
             {t('app.cancel')}
           </button>
         </div>
-      ) : (
-        <button className="btn btn-ghost btn-sm" onClick={() => setRegenerateOpen(true)}>
-          ↻ {t('wizard.regenerate')}
-        </button>
       )}
     </div>
   )
