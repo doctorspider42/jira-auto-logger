@@ -12,6 +12,14 @@ Write for users, not for the commit log — see the `release` skill.
 
 ## 0.2.0 — 2026-10-29
 
+**Updating from 0.1.x.** On Windows and Linux the app updates itself into
+this version as usual - after the restart it is the new app, with your
+settings and projects. On macOS the old version cannot install updates: open
+the release page from the update banner, download the `.dmg` and drag the app
+into Applications, replacing the old one. On macOS and Linux, paste your Jira,
+Tempo and OpenAI tokens again in Settings → Jira accounts (and AI assistant):
+the new app cannot read the copies the old one locked in the system keychain.
+
 - **A lighter, faster app.** Jira Auto Logger is rebuilt on Tauri with a Rust
   core instead of Electron. The installer shrinks from about 98 MB to about
   3 MB. Your settings, tokens and logs carry over untouched, and the old
