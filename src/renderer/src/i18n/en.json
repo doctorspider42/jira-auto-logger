@@ -60,7 +60,9 @@
     "previousWeek": "Previous week",
     "nextWeek": "Next week",
     "filterTotalWeek": "{{hours}} h this week",
-    "addShort": "Add"
+    "addShort": "Add",
+    "hidePanel": "Hide day panel",
+    "showPanel": "Show day panel"
   },
   "wizard": {
     "moreHours": "More time",

@@ -291,6 +291,57 @@
 
 /* ---------- Selected-day panel ---------- */
 
+.inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspector-toggle {
+  margin: -6px -8px -6px 0;
+  color: var(--muted);
+}
+
+/* The folded panel: a strip with the day written up its side. */
+.inspector-strip {
+  flex: 0 0 44px;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.inspector-strip .btn {
+  color: var(--muted);
+}
+
+.inspector-strip-title {
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.inspector-strip-total {
+  font-size: 12px;
+}
+
+.inspector-strip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+
 .inspector {
   flex: 1 1 300px;
   max-width: 360px;

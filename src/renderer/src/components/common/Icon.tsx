@@ -15,6 +15,20 @@ const PATHS: Record<string, JSX.Element> = {
     </>
   ),
   reports: <path d="M6 20V10M12 20V4M18 20v-7" />,
+  /** Side panel with an arrow pointing out: hide it. */
+  panelHide: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <path d="M15 4.5v15M9 10l2 2-2 2" />
+    </>
+  ),
+  /** Side panel with an arrow pointing in: show it. */
+  panelShow: (
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+      <path d="M15 4.5v15M11 10l-2 2 2 2" />
+    </>
+  ),
   settings: (
     <>
       <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />

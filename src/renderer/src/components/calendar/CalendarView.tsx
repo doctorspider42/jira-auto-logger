@@ -9,7 +9,7 @@ import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { findDraft, useAppStore } from '@/store/appStore'
 import { dateLocale, formatHours, toIsoDate } from '@/utils/format'
 import { jiraIssueUrl, openExternal } from '@/utils/external'
-import { DayInspector } from './DayInspector'
+import { DayInspector, DayInspectorStrip } from './DayInspector'
 import { DayView } from './DayView'
 import { EntryEditor } from './EntryEditor'
 import { MonthDayEntries } from './MonthDayEntries'
@@ -17,6 +17,8 @@ import { MonthSummary } from './MonthSummary'
 import { useCalendar, type CalendarEntry } from './useCalendar'
 import { WeekView } from './WeekView'
 import './calendar.css'
+
+const PANEL_KEY = 'jal.dayPanelCollapsed'
 
 export function CalendarView(): JSX.Element {
   const { t } = useTranslation()
@@ -50,6 +52,34 @@ export function CalendarView(): JSX.Element {
   )
   const calendar = useCalendar()
   const [newIssueOpen, setNewIssueOpen] = useState(false)
+  // The day panel can fold into a strip, like a side bar; remembered per machine.
+  const [panelCollapsed, setPanelCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(PANEL_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const togglePanel = useCallback(() => {
+    setPanelCollapsed((current) => {
+      try {
+        localStorage.setItem(PANEL_KEY, current ? '0' : '1')
+      } catch {
+        // Not remembered, still toggled.
+      }
+      return !current
+    })
+  }, [])
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
+        e.preventDefault()
+        togglePanel()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [togglePanel])
   const [createdIssue, setCreatedIssue] = useState<{ key: string; summary: string; url: string } | null>(null)
 
   // Confirmation mode generates straight away; notify-only opens the wizard
@@ -154,6 +184,9 @@ export function CalendarView(): JSX.Element {
       : isWeekView
         ? [weekDays.some((d) => toIsoDate(d) === todayIso) ? todayIso : focusedIso]
         : [toIsoDate(isSameMonth(new Date(), calendar.month) ? new Date() : startOfMonth(calendar.month))]
+  const panelDates = isDayView ? [focusedIso] : inspectedDates
+  const panelEntries = panelDates.flatMap((d) => calendar.worklogsByDate.get(d) ?? [])
+  const isoDay = (iso: string): Date => new Date(`${iso}T00:00:00`)
   const step = (offset: number): void =>
     isDayView ? calendar.goToDay(offset) : isWeekView ? calendar.goToWeek(offset) : calendar.goToMonth(offset)
   const dayTarget = config.workingHoursPerDay * 3600
@@ -426,16 +459,30 @@ export function CalendarView(): JSX.Element {
           </div>
         )}
 
-        <DayInspector
-          config={config}
-          dates={isDayView ? [focusedIso] : inspectedDates}
-          worklogsByDate={calendar.worklogsByDate}
-          draftDates={draftDates}
-          onSuggest={openWizard}
-          onOpenDay={calendar.openDay}
-          onEditEntry={setEditing}
-          onClearSelection={calendar.clearSelection}
-        />
+        {panelCollapsed ? (
+          <DayInspectorStrip
+            title={
+              panelDates.length > 1
+                ? `${format(isoDay(panelDates[0]), 'd MMM', { locale })} – ${format(isoDay(panelDates[panelDates.length - 1]), 'd MMM', { locale })}`
+                : format(isoDay(panelDates[0]), 'd MMMM', { locale })
+            }
+            totalSeconds={panelEntries.reduce((sum, e) => sum + e.timeSpentSeconds, 0)}
+            entries={panelEntries}
+            onExpand={togglePanel}
+          />
+        ) : (
+          <DayInspector
+            config={config}
+            dates={panelDates}
+            worklogsByDate={calendar.worklogsByDate}
+            draftDates={draftDates}
+            onSuggest={openWizard}
+            onOpenDay={calendar.openDay}
+            onEditEntry={setEditing}
+            onClearSelection={calendar.clearSelection}
+            onCollapse={togglePanel}
+          />
+        )}
       </div>
 
       {wizardDates && (
