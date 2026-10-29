@@ -1,16 +1,18 @@
 /* With a system backdrop (Mica, Acrylic, macOS vibrancy) the page lets the
    window's blurred background through: the body becomes see-through, the side
    rail keeps a little of the theme's ground and the content area a bit more,
-   so text always sits on enough colour to stay readable. */
-html[data-backdrop]:not([data-backdrop='none']),
-html[data-backdrop]:not([data-backdrop='none']) body {
+   so text always sits on enough colour to stay readable. Themes that paint
+   their own canvas (`data-canvas`) stay opaque - the backdrop would wash the
+   painting out. */
+html[data-backdrop]:not([data-backdrop='none']):not([data-canvas]),
+html[data-backdrop]:not([data-backdrop='none']):not([data-canvas]) body {
   background: transparent;
 }
 
-html[data-backdrop]:not([data-backdrop='none']) .app-rail {
+html[data-backdrop]:not([data-backdrop='none']):not([data-canvas]) .app-rail {
   background: color-mix(in srgb, var(--ground) 45%, transparent);
 }
 
-html[data-backdrop]:not([data-backdrop='none']) .app-main {
+html[data-backdrop]:not([data-backdrop='none']):not([data-canvas]) .app-main {
   background: color-mix(in srgb, var(--ground) 78%, transparent);
 }

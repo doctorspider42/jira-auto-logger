@@ -1,0 +1,123 @@
+/*
+ * The two retro themes that need little beyond their tokens: Classic 95 gets
+ * its navy title bars and sunken fields, and the Fallout terminals get the
+ * phosphor glow of a CRT. Scoped per theme; tokens live in themes.ts.
+ */
+
+/* ---------- Classic 95 ---------- */
+
+[data-theme='win95'] .modal-header,
+[data-theme='win95'] .wizard-header {
+  background: linear-gradient(90deg, #000080 0%, #1084d0 100%);
+  color: #ffffff;
+  border-bottom: 0;
+}
+
+[data-theme='win95'] .modal-header .btn,
+[data-theme='win95'] .wizard-header .btn-icon {
+  color: #000000;
+  background: #c0c0c0;
+  box-shadow: var(--bevel);
+}
+
+[data-theme='win95'] .wizard-header .muted,
+[data-theme='win95'] .wizard-steps,
+[data-theme='win95'] .wizard-steps li.current {
+  color: #ffffff;
+}
+
+[data-theme='win95'] .card,
+[data-theme='win95'] .modal,
+[data-theme='win95'] .inspector,
+[data-theme='win95'] .month-summary,
+[data-theme='win95'] .wizard-card,
+[data-theme='win95'] .md-list,
+[data-theme='win95'] .app-rail {
+  border: 0;
+  box-shadow: var(--bevel);
+}
+
+[data-theme='win95'] .app-rail,
+[data-theme='win95'] .md-list,
+[data-theme='win95'] .wizard-screen,
+[data-theme='win95'] .save-bar {
+  background: #c0c0c0;
+}
+
+[data-theme='win95'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='win95'] textarea,
+[data-theme='win95'] select,
+[data-theme='win95'] .search-field,
+[data-theme='win95'] .calendar-grid,
+[data-theme='win95'] .day-lane {
+  background-color: #ffffff;
+  border: 0;
+  box-shadow: inset -1px -1px #ffffff, inset 1px 1px #808080, inset -2px -2px #dfdfdf, inset 2px 2px #0a0a0a;
+}
+
+[data-theme='win95'] .search-field input {
+  box-shadow: none;
+}
+
+[data-theme='win95'] .calendar-grid {
+  padding: 2px;
+  background: #808080;
+}
+
+[data-theme='win95'] .calendar-day.selected,
+[data-theme='win95'] .md-item.active,
+[data-theme='win95'] .settings-nav-item.active {
+  background: #000080;
+  color: #ffffff;
+}
+
+[data-theme='win95'] .md-item.active .muted {
+  color: #c0c0ff;
+}
+
+[data-theme='win95'] .btn:active:not(:disabled) {
+  box-shadow: inset 1px 1px #0a0a0a, inset -1px -1px #ffffff, inset 2px 2px #808080, inset -2px -2px #dfdfdf;
+}
+
+/* ---------- Vault Terminal / New Vegas ---------- */
+
+[data-theme='fallout'],
+[data-theme='falloutNV'] {
+  --phosphor: color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+[data-theme='fallout'] body,
+[data-theme='falloutNV'] body {
+  text-shadow: 0 0 4px var(--phosphor);
+}
+
+[data-theme='fallout'] .page-title,
+[data-theme='falloutNV'] .page-title,
+[data-theme='fallout'] .wizard-heading h1,
+[data-theme='falloutNV'] .wizard-heading h1 {
+  font-size: 32px;
+  text-shadow: 0 0 8px var(--phosphor);
+}
+
+/* The glass curves away at the edges. */
+[data-theme='fallout'] body::after,
+[data-theme='falloutNV'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: radial-gradient(125% 100% at 50% 50%, transparent 58%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+[data-theme='fallout'] .btn-primary,
+[data-theme='falloutNV'] .btn-primary,
+[data-theme='fallout'] .app-nav-item.active,
+[data-theme='falloutNV'] .app-nav-item.active,
+[data-theme='fallout'] .segmented button.active,
+[data-theme='falloutNV'] .segmented button.active {
+  background: var(--ink);
+  color: var(--ground);
+  text-shadow: none;
+  box-shadow: 0 0 12px var(--phosphor);
+}

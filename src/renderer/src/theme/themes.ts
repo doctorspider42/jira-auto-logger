@@ -16,8 +16,11 @@ export interface ThemeCopy {
 /**
  * A theme changes five layers and never the layout: palette, type, shape,
  * texture and (optionally) voice. Spacing, density and hierarchy are the same
- * in every theme, so no theme can break a screen - a new theme is one entry
- * here, not a stylesheet of overrides.
+ * in every theme, so no theme can break a screen - a plain theme is one entry
+ * here. The character themes (PS1, Clair Obscur, Animus, Y2K, maa-sn-ek...)
+ * add an effects stylesheet in styles/themes/, scoped under their
+ * `[data-theme]`, for what tokens can't express: CRT glass, falling petals,
+ * bevels, banners.
  */
 export interface ThemeTokens {
   /** Which variant the webview draws native widgets in (scrollbars, date pickers). */
@@ -72,6 +75,12 @@ export interface Theme {
    */
   copy?: ThemeCopy
   /**
+   * The theme paints its own window canvas (styles/themes/<id>.css): the
+   * system backdrop (Mica, Acrylic) is not let through, or it would wash the
+   * painting out.
+   */
+  canvas?: boolean
+  /**
    * Kept out of the theme picker in Settings. The theme works normally, it is
    * just not offered: reaching it takes the unlock sequence on the Settings
    * screen, a hand-edited `themeId` in config.json or `JAL_THEME=<id>`.
@@ -82,6 +91,8 @@ export interface Theme {
 const SANS = "Geist, 'Segoe UI Variable', 'Segoe UI', -apple-system, system-ui, sans-serif"
 const MONO = "'Geist Mono', ui-monospace, 'Cascadia Code', Consolas, monospace"
 const TERMINAL = "VT323, 'Cascadia Code', Consolas, monospace"
+// Body copy of the terminal themes: VT323 is too small to read at 14px.
+const TERMINAL_BODY = "'Cascadia Code', Consolas, 'Courier New', monospace"
 
 export const THEMES: Theme[] = [
   {
@@ -230,9 +241,9 @@ export const THEMES: Theme[] = [
       danger: '#ff6a4d',
       success: '#3dff7d',
       warning: '#d8ff5a',
-      fontBody: TERMINAL,
+      fontBody: TERMINAL_BODY,
       fontDisplay: TERMINAL,
-      fontMono: TERMINAL,
+      fontMono: TERMINAL_BODY,
       displayCase: 'uppercase',
       displayTracking: '0.04em',
       radius: '0px',
@@ -258,9 +269,9 @@ export const THEMES: Theme[] = [
       danger: '#ff6a4d',
       success: '#c9e86a',
       warning: '#ffd27a',
-      fontBody: TERMINAL,
+      fontBody: TERMINAL_BODY,
       fontDisplay: TERMINAL,
-      fontMono: TERMINAL,
+      fontMono: TERMINAL_BODY,
       displayCase: 'uppercase',
       displayTracking: '0.04em',
       radius: '0px',
@@ -269,10 +280,11 @@ export const THEMES: Theme[] = [
     }
   },
   {
-    // Memory Card (PS1) - pixel display type for headings only, a dithered
-    // backdrop; body copy stays in a clean sans.
+    // Memory Card (PS1) - the BIOS screen: CRT glass, hard bevels, dither and
+    // the four face-button colours. The effects live in styles/themes/ps1.css.
     id: 'ps1',
     nameKey: 'settings.themePs1',
+    canvas: true,
     tokens: {
       scheme: 'dark',
       ground: '#0a0a16',
@@ -287,13 +299,13 @@ export const THEMES: Theme[] = [
       danger: '#ff7a8a',
       success: '#6fe0a8',
       warning: '#f0c35a',
-      fontBody: SANS,
-      fontDisplay: "Silkscreen, Geist, sans-serif",
+      fontBody: "Verdana, Tahoma, 'Segoe UI', sans-serif",
+      fontDisplay: "Verdana, Tahoma, 'Segoe UI', sans-serif",
       fontMono: MONO,
       displayCase: 'uppercase',
+      displayTracking: '0.12em',
       radius: '2px',
-      radiusControl: '2px',
-      texture: 'radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.2px) 0 0 / 4px 4px'
+      radiusControl: '2px'
     }
   },
   {
@@ -314,8 +326,8 @@ export const THEMES: Theme[] = [
       danger: '#c0263a',
       success: '#2f8a5a',
       warning: '#9a6200',
-      fontBody: "Fredoka, 'Segoe UI', sans-serif",
-      fontDisplay: "Fredoka, 'Segoe UI', sans-serif",
+      fontBody: "'Comic Sans MS', Fredoka, 'Segoe UI', sans-serif",
+      fontDisplay: "'Comic Sans MS', Fredoka, 'Segoe UI', sans-serif",
       fontMono: MONO,
       radius: '18px',
       radiusControl: '999px',
@@ -323,10 +335,11 @@ export const THEMES: Theme[] = [
     }
   },
   {
-    // Y2K Chrome - glossy pills on a chrome sky; the one theme where
-    // gradients are part of the character.
+    // Y2K Chrome - Frutiger-Aero holographic sky, chrome and aqua candy; the
+    // one theme where gradients are the character (styles/themes/y2k.css).
     id: 'y2k',
     nameKey: 'settings.themeY2K',
+    canvas: true,
     tokens: {
       scheme: 'light',
       ground: '#cdefff',
@@ -341,20 +354,21 @@ export const THEMES: Theme[] = [
       danger: '#c0263a',
       success: '#16804d',
       warning: '#8a5a00',
-      fontBody: SANS,
-      fontDisplay: "Michroma, Geist, sans-serif",
+      fontBody: "'Trebuchet MS', Verdana, 'Segoe UI', sans-serif",
+      fontDisplay: "Michroma, 'Trebuchet MS', sans-serif",
       fontMono: MONO,
       radius: '16px',
       radiusControl: '999px',
-      bevel: 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
-      texture: 'linear-gradient(160deg, #f0faff 0%, #a7e6ff 100%)'
+      bevel: 'inset 0 1px 0 rgba(255, 255, 255, 0.7)'
     }
   },
   {
-    // maa-sn-ek - condensed uppercase labels, square corners, one red signal.
+    // maa-sn-ek - a picket line: concrete wall, placards, one red signal
+    // (styles/themes/maa-sn-ek.css).
     id: 'maaSnEk',
     nameKey: 'settings.themeMaaSnEk',
     hidden: true,
+    canvas: true,
     tokens: {
       scheme: 'dark',
       ground: '#16161a',
@@ -379,9 +393,11 @@ export const THEMES: Theme[] = [
     }
   },
   {
-    // Clair Obscur - serif display on deep black, gold only on what matters.
+    // Clair Obscur - an oil canvas with petals drifting over it, old-style
+    // serif, gold only on type (styles/themes/clair-obscur.css).
     id: 'clairObscur',
     nameKey: 'settings.themeClairObscur',
+    canvas: true,
     // The game's own voice: its loading lines, and "We Continue" on the button
     // that commits the day.
     copy: { key: 'themeCopy.clairObscur', loadingMessages: 'replace' },
@@ -399,18 +415,21 @@ export const THEMES: Theme[] = [
       danger: '#ff7a6a',
       success: '#eccfa3',
       warning: '#d9a441',
-      fontBody: SANS,
-      fontDisplay: "'Cormorant Garamond', Constantia, Garamond, Georgia, serif",
+      // Constantia ships with Windows; Cormorant (bundled) stands in elsewhere.
+      fontBody: "Constantia, 'Palatino Linotype', 'Cormorant Garamond', Garamond, Georgia, serif",
+      fontDisplay: "Constantia, 'Palatino Linotype', 'Cormorant Garamond', Garamond, Georgia, serif",
       fontMono: MONO,
-      radius: '2px',
-      radiusControl: '2px',
-      texture: 'radial-gradient(120% 80% at 50% 0%, rgba(246, 192, 55, 0.10), transparent 60%)'
+      displayTracking: '0.06em',
+      radius: '0px',
+      radiusControl: '0px'
     }
   },
   {
-    // Animus - steel-blue sky, slate blocks with plain white type, cyan glints.
+    // Animus - steel-blue sky with formulas rising through fog, slate blocks
+    // with plain white type, cyan glints (styles/themes/animus.css).
     id: 'animus',
     nameKey: 'settings.themeAnimus',
+    canvas: true,
     // Abstergo's loading lines, and "Synchronise" on the button that commits
     // the day - logging time is just syncing with a memory.
     copy: { key: 'themeCopy.animus', loadingMessages: 'replace' },
@@ -434,8 +453,7 @@ export const THEMES: Theme[] = [
       displayCase: 'uppercase',
       displayTracking: '0.08em',
       radius: '0px',
-      radiusControl: '0px',
-      texture: 'linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px) 0 0 / 100% 10px'
+      radiusControl: '0px'
     }
   }
 ]
@@ -480,4 +498,6 @@ export function applyTheme(themeId: string): void {
   }
   root.dataset.theme = theme.id
   root.dataset.scheme = theme.tokens.scheme
+  if (theme.canvas) root.dataset.canvas = ''
+  else delete root.dataset.canvas
 }

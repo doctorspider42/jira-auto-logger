@@ -73,6 +73,29 @@ theme in `src/renderer/src/theme/themes.ts`. Never hardcode a color in
 component CSS - use the variables (or `color-mix` on them) so every theme in
 `THEMES` keeps working.
 
+The character themes also have an effects stylesheet in
+`src/renderer/src/styles/themes/` (imported in `main.tsx`), every rule scoped
+under `[data-theme='<id>']`: PS1's CRT glass and bevels, Clair Obscur's petals
+and journal numerals, Animus's fog and rising formulas, Y2K's chrome, the
+maa-sn-ek banner, Classic 95 title bars and the Fallout glow. They hook the
+shared class names (`.app-rail`, `.app-nav-item`, `.page-title`, `.card`,
+`.inspector`, `.segmented`, `.calendar-day`, `.wizard-screen`...), so **renaming
+one of those means grepping `styles/themes/` too**. Rules for those files:
+- Never change layout (sizes, grid templates, padding that moves content) -
+  only paint. The exception is making room for a theme's own fixture (the
+  maa-sn-ek plank shortens `.app-shell`).
+- Anything that moves continuously runs on its own `position: fixed` layer
+  animated by `transform`, never by `background-position`: the latter repaints
+  the whole window every frame. Layers behind the UI use `z-index: 0` (under
+  `#root`), overlays (scanlines, petals) a z-index above the modal layer and
+  `pointer-events: none`.
+- Every animation stops under `prefers-reduced-motion`.
+- A theme that paints its own window canvas sets `canvas: true` in `THEMES`,
+  which keeps the window opaque under Mica/Acrylic (`bridge/backdrop.css`), and
+  paints `.wizard-screen` with the same canvas (it covers the window).
+- Inline tokens beat stylesheet variables, so a theme file can't override
+  `--font-display` and friends - give its own values their own names.
+
 **A theme can also reword the UI, not just recolour it** - assume any label may
 be themed and keep new UI open to it. The mechanism is `Theme.copy`, resolved by
 `src/renderer/src/theme/useThemeCopy.ts`. The strings themselves stay in the

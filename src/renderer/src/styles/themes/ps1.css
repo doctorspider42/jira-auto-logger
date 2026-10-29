@@ -1,0 +1,397 @@
+/*
+ * Memory Card (PS1) - the original PlayStation BIOS as a work app: a near-black
+ * blue CRT canvas, hard-beveled panels lifted from the memory-card manager, the
+ * four face-button colours, and the artefacts the hardware was famous for -
+ * scanlines, dither and vertices that never quite sat still.
+ *
+ * Scoped under `[data-theme='ps1']` (stamped on <html> by `applyTheme`), so
+ * switching away drops all of it. Tokens live in themes.ts; this file adds what
+ * tokens can't express. Layout is never touched.
+ */
+
+/* ---------- CRT canvas ---------- */
+
+[data-theme='ps1'] body,
+[data-theme='ps1'] .wizard-screen {
+  background:
+    radial-gradient(90% 60% at 50% -15%, rgba(64, 64, 150, 0.5), transparent 70%),
+    radial-gradient(70% 55% at 15% 115%, rgba(42, 30, 96, 0.55), transparent 70%),
+    linear-gradient(180deg, #10102a 0%, #0a0a16 55%, #04040c 100%);
+  background-attachment: fixed;
+}
+
+/* The BIOS glow breathes, very slowly. One oversized layer under the app that
+   drifts by transform - moving a background position would repaint the whole
+   window every frame. */
+[data-theme='ps1'] body::before {
+  inset: -12%;
+  background:
+    radial-gradient(40% 32% at 46% 20%, rgba(84, 84, 190, 0.28), transparent 70%),
+    radial-gradient(36% 30% at 22% 82%, rgba(72, 40, 140, 0.26), transparent 70%);
+  will-change: transform;
+  animation: ps1-drift 32s ease-in-out infinite alternate;
+}
+
+@keyframes ps1-drift {
+  to {
+    transform: translate3d(6%, 4%, 0);
+  }
+}
+
+/*
+ * Scanlines and vignette over the whole app. Above the modal layer on purpose -
+ * a CRT mask covers everything on the glass - and pointer-events stays off so
+ * nothing below becomes unclickable.
+ */
+[data-theme='ps1'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px),
+    radial-gradient(125% 100% at 50% 50%, transparent 52%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+/* Power-on: the hairline that snaps open into a full picture. Plays once, when
+   the theme is applied. */
+html[data-theme='ps1']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+  background: #e2e6ff;
+  opacity: 0;
+  animation: ps1-boot 900ms ease-out 1;
+}
+
+@keyframes ps1-boot {
+  0%,
+  30% {
+    opacity: 1;
+    transform: scaleY(0.005);
+  }
+  55% {
+    opacity: 0.9;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1);
+  }
+}
+
+/* ---------- Boot-screen rail and titles ---------- */
+
+[data-theme='ps1'] .app-rail {
+  background: linear-gradient(90deg, #000000 0%, #0a0a1e 100%);
+  border-right: 2px solid #000000;
+  box-shadow: 1px 0 0 #4a4a86, 8px 0 20px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='ps1'] .app-mark {
+  position: relative;
+  border: 1px solid #000000;
+  background: linear-gradient(180deg, #8098ff 0%, #4a6bdc 48%, #2f4ec0 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+/*
+ * Triangle, circle, cross, square under the logo. Drawn rather than typed: the
+ * Unicode glyphs come from different blocks, so their sizes and baselines never
+ * line up. As geometry they get the optical corrections the real buttons have -
+ * the triangle a bit wider, the square a bit smaller than the circle.
+ */
+[data-theme='ps1'] .app-mark::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 9px);
+  left: 50%;
+  width: 57px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: no-repeat center / 57px 12px
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 16'%3E%3Cg fill='none' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2.4 L13.3 11.7 L2.7 11.7 Z' stroke='%233dbf7a'/%3E%3Ccircle cx='28' cy='8' r='4.8' stroke='%23e4344a'/%3E%3Cpath d='M44.3 4.3 L51.7 11.7 M51.7 4.3 L44.3 11.7' stroke='%236c8cff'/%3E%3Crect x='63.9' y='3.9' width='8.2' height='8.2' stroke='%23ff7ad9'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Chromatic aberration - the red/blue fringing of a composite cable - and the
+   unstable vertices of a console that snapped coordinates to a grid. */
+[data-theme='ps1'] .page-title,
+[data-theme='ps1'] .wizard-heading h1 {
+  color: #d6d6ee;
+  text-shadow: -1px 0 rgba(228, 52, 74, 0.55), 1px 0 rgba(108, 140, 255, 0.55);
+  animation: ps1-jitter 6s steps(1) infinite;
+}
+
+@keyframes ps1-jitter {
+  0%,
+  90%,
+  100% {
+    transform: translate(0, 0);
+  }
+  91% {
+    transform: translate(0.6px, -0.6px);
+  }
+  94% {
+    transform: translate(-0.6px, 0.4px);
+  }
+  97% {
+    transform: translate(0.4px, 0.6px);
+  }
+}
+
+[data-theme='ps1'] .eyebrow,
+[data-theme='ps1'] .calendar-weekdays span,
+[data-theme='ps1'] .wizard-steps li {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Tighter: "CALENDAR" has to fit the 58px rail item. */
+[data-theme='ps1'] .app-nav-item {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 9px;
+}
+
+/* ---------- Memory-card-manager panels ---------- */
+
+[data-theme='ps1'] .card,
+[data-theme='ps1'] .modal,
+[data-theme='ps1'] .inspector,
+[data-theme='ps1'] .month-summary,
+[data-theme='ps1'] .wizard-card,
+[data-theme='ps1'] .connection-card {
+  position: relative;
+  background: linear-gradient(180deg, #1a1a33 0%, #101024 100%);
+  border: 1px solid #000000;
+  box-shadow:
+    inset 1px 1px 0 rgba(142, 152, 222, 0.35),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.9),
+    5px 5px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* Ordered dither - the trick PS1 leaned on to hide banding in 15-bit colour. */
+[data-theme='ps1'] .card::after,
+[data-theme='ps1'] .modal::after,
+[data-theme='ps1'] .inspector::after,
+[data-theme='ps1'] .month-summary::after,
+[data-theme='ps1'] .wizard-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.05) 0% 25%, transparent 0% 50%) 0 0 / 4px 4px;
+}
+
+[data-theme='ps1'] .modal-header,
+[data-theme='ps1'] .wizard-header {
+  background: linear-gradient(180deg, #2b2b5e 0%, #15152e 100%);
+  border-bottom: 2px solid #000000;
+}
+
+[data-theme='ps1'] .modal-header h2 {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+[data-theme='ps1'] .wizard-footer,
+[data-theme='ps1'] .save-bar {
+  background: #0a0a16;
+  border-top: 2px solid #000000;
+}
+
+/* ---------- Hard-beveled buttons that physically press in ---------- */
+
+[data-theme='ps1'] .btn:not(.btn-ghost) {
+  border: 1px solid #000000;
+  background: linear-gradient(180deg, #33335e 0%, #1e1e3c 100%);
+  color: #dcdcf0;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow:
+    inset 1px 1px 0 rgba(150, 160, 230, 0.5),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.85),
+    3px 3px 0 rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='ps1'] .btn:not(.btn-ghost):hover:not(:disabled) {
+  background: linear-gradient(180deg, #3e3e74 0%, #26264b 100%);
+  filter: none;
+}
+
+[data-theme='ps1'] .btn:not(.btn-ghost):active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.85),
+    inset -1px -1px 0 rgba(150, 160, 230, 0.3);
+}
+
+[data-theme='ps1'] .btn-primary:not(.blocked),
+[data-theme='ps1'] .btn-primary:not(.blocked):hover:not(:disabled) {
+  background: linear-gradient(180deg, #8098ff 0%, #4a6bdc 48%, #2f4ec0 100%);
+  color: #06060f;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    3px 3px 0 rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(108, 140, 255, 0.35);
+}
+
+[data-theme='ps1'] .btn-danger-solid,
+[data-theme='ps1'] .btn-danger-solid:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ff5f72 0%, #e4344a 48%, #b31f33 100%);
+  color: #0f0406;
+}
+
+/* ---------- BIOS menu selection ---------- */
+
+[data-theme='ps1'] .app-nav-item.active,
+[data-theme='ps1'] .segmented button.active,
+[data-theme='ps1'] .settings-nav-item.active,
+[data-theme='ps1'] .md-item.active,
+[data-theme='ps1'] .chip.selected {
+  background: linear-gradient(180deg, #6c8cff 0%, #3350cc 100%);
+  color: #06060f;
+  border-color: #000000;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.6),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    3px 3px 0 rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='ps1'] .md-item.active .muted {
+  color: #1a1a40;
+}
+
+[data-theme='ps1'] .segmented {
+  background: #08081a;
+  border-color: #000000;
+}
+
+/* ---------- Recessed inputs ---------- */
+
+[data-theme='ps1'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='ps1'] textarea,
+[data-theme='ps1'] select,
+[data-theme='ps1'] .search-field {
+  background: #08081a;
+  border: 1px solid #000000;
+  color: #dcdcf0;
+  box-shadow:
+    inset 1px 1px 0 rgba(0, 0, 0, 0.9),
+    inset -1px -1px 0 rgba(122, 132, 200, 0.3);
+}
+
+[data-theme='ps1'] input:not([type='checkbox']):not([type='radio']):focus,
+[data-theme='ps1'] textarea:focus,
+[data-theme='ps1'] select:focus,
+[data-theme='ps1'] .search-field:focus-within {
+  border-color: #6c8cff;
+  box-shadow:
+    0 0 0 2px rgba(108, 140, 255, 0.35),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+[data-theme='ps1'] .search-field input,
+[data-theme='ps1'] .search-field input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='ps1'] .chip {
+  border: 1px solid #000000;
+  background: linear-gradient(180deg, #2a2a52 0%, #191934 100%);
+  box-shadow:
+    inset 1px 1px 0 rgba(142, 152, 222, 0.35),
+    2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Calendar grid as save-slot tiles ---------- */
+
+[data-theme='ps1'] .calendar-grid {
+  gap: 3px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+[data-theme='ps1'] .calendar-day {
+  background: linear-gradient(180deg, #17172e 0%, #0f0f22 100%);
+  border: 1px solid #000000;
+  box-shadow:
+    inset 1px 1px 0 rgba(122, 132, 200, 0.22),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.8);
+}
+
+[data-theme='ps1'] .calendar-day.weekend {
+  background: #0b0b19;
+}
+
+[data-theme='ps1'] .calendar-day:hover {
+  background: linear-gradient(180deg, #23234a 0%, #15152e 100%);
+}
+
+[data-theme='ps1'] .calendar-day.selected {
+  box-shadow:
+    inset 0 0 0 2px #6c8cff,
+    0 0 14px rgba(108, 140, 255, 0.35);
+}
+
+[data-theme='ps1'] .calendar-day.today .calendar-day-number {
+  border-radius: 0;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.55), 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+[data-theme='ps1'] .calendar-entry,
+[data-theme='ps1'] .day-entry {
+  border-radius: 0;
+}
+
+[data-theme='ps1'] .day-entry {
+  box-shadow:
+    inset 3px 0 0 var(--entry-color, var(--accent)),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ---------- Chunky console scrollbars ---------- */
+
+[data-theme='ps1'] ::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+[data-theme='ps1'] ::-webkit-scrollbar-track {
+  background: #08081a;
+}
+
+[data-theme='ps1'] ::-webkit-scrollbar-thumb {
+  border: 1px solid #000000;
+  border-radius: 0;
+  background: linear-gradient(180deg, #3a3a70 0%, #202042 100%);
+  background-clip: border-box;
+  box-shadow:
+    inset 1px 1px 0 rgba(150, 160, 230, 0.45),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* Keep the picture still for anyone who'd rather it stayed still - including
+   the power-on flash, the most motion-heavy thing here. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='ps1'] body::before,
+  [data-theme='ps1'] .page-title,
+  [data-theme='ps1'] .wizard-heading h1 {
+    animation: none;
+  }
+
+  html[data-theme='ps1']::after {
+    display: none;
+  }
+}

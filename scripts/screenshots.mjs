@@ -71,7 +71,8 @@ const waitForData = `for (let i = 0; i < 40 && document.querySelector('.spinner'
 try {
   mkdirSync(OUT, { recursive: true })
   await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 820, deviceScaleFactor: 1, mobile: false })
-  await run(`for (let i = 0; i < 40 && !document.querySelector('.calendar-grid'); i++) await wait(250); ${waitForData}; await wait(500)`)
+  // The extra second lets start-up effects finish (PS1's power-on flash).
+  await run(`for (let i = 0; i < 40 && !document.querySelector('.calendar-grid'); i++) await wait(250); ${waitForData}; await wait(1500)`)
 
   // Calendar with a selected day in the panel. Clicked through the DevTools
   // input pipeline: synthetic DOM events race the real cursor, and a cursor

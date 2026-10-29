@@ -30,12 +30,16 @@ Write for users, not for the commit log — see the `release` skill.
   stepper and descriptions you edit in place.
 - **Projects as a list.** Projects sit in a list with an editor beside it, with
   ready-made colours to pick from.
-- **Every theme rebuilt.** Themes now change colours, fonts, shapes and one
-  background effect, but never the layout, so every theme looks finished. The
-  default dark and light themes are now Graphite and Paper; the fonts ship with
-  the app.
+- **Every theme rebuilt, with its old soul.** Themes fit the new layout and
+  keep everything that made them themselves: PS1's CRT scanlines, power-on
+  flash and pressable bevels, Clair Obscur's falling petals, journal numerals
+  and hexagon tabs, Animus's fog with formulas rising through it, Y2K's chrome
+  and candy buttons, the maa-sn-ek banner and picket line, navy title bars in
+  Classic 95 and a phosphor glow on the Fallout terminals. The default dark and
+  light themes are now Graphite and Paper.
 - **Window backdrop.** On Windows the window shows a blurred backdrop (Mica on
-  Windows 11, Acrylic on Windows 10).
+  Windows 11, Acrylic on Windows 10) - except in the themes that paint their
+  own background.
 
 ## 0.1.45 — 2026-09-29
 
