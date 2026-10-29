@@ -19,9 +19,11 @@ regex = "1.13.1"
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "charset", "http2", "system-proxy"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["image-png", "tray-icon"] }
 tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
 tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "process", "time", "sync", "fs"] }
 uuid = { version = "1.29.0", features = ["v4"] }
 which = "8.0.6"
@@ -35,4 +37,11 @@ panic = "abort"
 strip = true
 
 [target."cfg(windows)".dependencies]
+webview2-com = "0.39"
+windows = { version = "0.62", features = ["Win32_Foundation"] }
+windows-core = "0.62"
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Security_Cryptography"] }
+
+[target.'cfg(any(target_os = "macos", windows, target_os = "linux"))'.dependencies]
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"

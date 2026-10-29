@@ -263,14 +263,6 @@ pub enum AttrValue {
     Text(String),
 }
 
-impl AttrValue {
-    pub fn is_truthy(&self) -> bool {
-        match self {
-            AttrValue::Bool(b) => *b,
-            AttrValue::Text(s) => !s.is_empty(),
-        }
-    }
-}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

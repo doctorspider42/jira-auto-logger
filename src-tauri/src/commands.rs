@@ -20,6 +20,7 @@ pub struct AppState {
     pub connections: Arc<ConnectionManager>,
     pub git: Arc<dyn CommitSource>,
     pub llm: Arc<crate::llm::LlmService>,
+    pub reports: Arc<crate::reports::ReportService>,
 }
 
 pub async fn to_result<T: Serialize>(channel: &str, run: impl Future<Output = AppResult<T>>) -> Envelope<T> {
@@ -220,4 +221,84 @@ pub async fn llm_regenerate_description(request: RegenerateDescriptionRequest, s
 pub async fn llm_start_claude_login(state: State<'_, AppState>) -> Result<Envelope<()>, ()> {
     let llm = state.llm.clone();
     Ok(to_result("llm:startClaudeLogin", async move { llm.start_claude_login() }).await)
+}
+
+// ---------- reports ----------
+
+#[tauri::command]
+pub async fn reports_generate(request: ReportRequest, state: State<'_, AppState>, app: tauri::AppHandle) -> Result<Envelope<ReportResult>, ()> {
+    let reports = state.reports.clone();
+    Ok(to_result("reports:generate", async move {
+        let result = reports.generate(&app, request).await?;
+        crate::telemetry::track_report_generated();
+        Ok(result)
+    })
+    .await)
+}
+
+#[tauri::command]
+pub fn reports_get_reminder(state: State<'_, AppState>) -> ReportReminder {
+    state.reports.get_reminder()
+}
+
+#[tauri::command]
+pub async fn reports_reveal(file_path: String, app: tauri::AppHandle) -> Result<Envelope<()>, ()> {
+    use tauri_plugin_opener::OpenerExt;
+    Ok(to_result("reports:reveal", async move {
+        app.opener().reveal_item_in_dir(&file_path).map_err(|e| crate::error::AppError::unknown(e.to_string()))
+    })
+    .await)
+}
+
+// ---------- updates ----------
+
+#[tauri::command]
+pub fn updates_get_state(updates: State<'_, Arc<crate::updates::UpdateService>>) -> UpdateState {
+    updates.get_state()
+}
+
+#[tauri::command]
+pub async fn updates_check(updates: State<'_, Arc<crate::updates::UpdateService>>, app: tauri::AppHandle) -> Result<Envelope<()>, ()> {
+    let updates = updates.inner().clone();
+    Ok(to_result("updates:check", async move {
+        updates.check(&app).await;
+        Ok(())
+    })
+    .await)
+}
+
+#[tauri::command]
+pub async fn updates_get_release_history(updates: State<'_, Arc<crate::updates::UpdateService>>) -> Result<Envelope<Vec<ReleaseNote>>, ()> {
+    let updates = updates.inner().clone();
+    Ok(to_result("updates:getReleaseHistory", async move { updates.release_history().await.map_err(crate::error::AppError::unknown) }).await)
+}
+
+#[tauri::command]
+pub async fn updates_download(updates: State<'_, Arc<crate::updates::UpdateService>>, app: tauri::AppHandle) -> Result<Envelope<()>, ()> {
+    let updates = updates.inner().clone();
+    Ok(to_result("updates:download", async move {
+        updates.download(&app).await;
+        Ok(())
+    })
+    .await)
+}
+
+#[tauri::command]
+pub async fn updates_quit_and_install(updates: State<'_, Arc<crate::updates::UpdateService>>, app: tauri::AppHandle) -> Result<Envelope<()>, ()> {
+    let updates = updates.inner().clone();
+    Ok(to_result("updates:quitAndInstall", async move { updates.quit_and_install(&app).map_err(crate::error::AppError::unknown) }).await)
+}
+
+// ---------- auto logger ----------
+
+#[tauri::command]
+pub async fn auto_logger_run_now(auto: State<'_, Arc<crate::auto_logger::AutoLogger>>, app: tauri::AppHandle) -> Result<Envelope<AutoLoggerRunResult>, ()> {
+    let auto = auto.inner().clone();
+    Ok(to_result("autoLogger:runNow", async move { auto.run_now(&app).await }).await)
+}
+
+/// The renderer subscribed to prompts; anything queued while it loaded is sent now.
+#[tauri::command]
+pub fn auto_logger_renderer_ready(auto: State<'_, Arc<crate::auto_logger::AutoLogger>>, app: tauri::AppHandle) {
+    auto.renderer_ready(&app);
 }
