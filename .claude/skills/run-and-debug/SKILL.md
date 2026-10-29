@@ -14,6 +14,7 @@ npm run typecheck    # tsc for vite.config.ts (tsconfig.node.json) and the rende
 npm run test:rust    # cargo test for the backend
 npm run build        # installer for this OS into src-tauri/target/release/bundle/
 npx tauri build --no-bundle   # release exe only (src-tauri/target/release/jira-auto-logger.exe)
+npm run screenshots  # README images from the release exe in mock mode (Windows)
 ```
 
 Run `npm run typecheck` and `cargo build` (or `npm run test:rust`) before
@@ -71,6 +72,15 @@ Then `http://127.0.0.1:9333/json` lists the page; connect to its
 `Runtime.evaluate` (e.g. `await window.api.llm.generateSuggestions(...)`) or
 `Page.captureScreenshot`. The CDP capture shows the page only - the window
 backdrop behind it is not in the image.
+
+`npm run screenshots` (`scripts/screenshots.mjs`) does this for the README: it
+starts the release exe in mock mode with `JAL_BACKDROP=none`, fixes the
+viewport at 1280×820 and captures calendar, day view, both wizard steps,
+projects, reports and settings into `screenshots/` (`JAL_SCREENSHOTS=<dir>`
+for a scratch folder). Build first with `npx tauri build --no-bundle`. Clicks
+on the calendar go through `Input.dispatchMouseEvent`, not synthetic DOM
+events - a real cursor resting over the grid otherwise turns a click into a
+drag across several days.
 
 Reports land in the configured output folder (default `Documents/Jira Auto
 Logger Reports`) even in mock mode - move test PDFs out afterwards.

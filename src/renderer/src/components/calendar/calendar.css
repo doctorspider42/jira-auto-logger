@@ -426,6 +426,8 @@
   flex: 999 1 640px;
   min-width: 0;
   overflow: auto;
+  /* Room for the last hour label, which sits on the grid's bottom edge. */
+  padding-bottom: 12px;
 }
 
 .day-lanes-head,

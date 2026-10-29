@@ -1,6 +1,6 @@
 {
   "name": "jira-auto-logger",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Desktop app that suggests Jira/Tempo worklogs from git commits using an LLM",
   "author": "doctorspider42",
   "license": "MIT",
@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "tauri dev",
     "dev:mock": "cross-env JAL_MOCK=1 tauri dev",
+    "screenshots": "node scripts/screenshots.mjs",
     "build": "tauri build",
     "web:dev": "vite",
     "web:build": "vite build",

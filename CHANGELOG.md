@@ -10,6 +10,33 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 0.2.0 — 2026-10-29
+
+- **A lighter, faster app.** Jira Auto Logger is rebuilt on Tauri with a Rust
+  core instead of Electron. The installer shrinks from about 98 MB to about
+  3 MB. Your settings, tokens and logs carry over untouched, and the old
+  version updates itself into this one.
+- **A new, quieter look.** Navigation moved to a slim side bar, and the
+  calendar shows each day's progress towards your working day, flags workdays
+  with nothing logged and sums the month at the top - with one button to fill
+  the empty days.
+- **A panel for the selected day.** Clicking a day now shows what it holds,
+  per Jira, beside the calendar; double-click (or "Suggest entries") opens the
+  new entries flow.
+- **Day view per Jira.** When you log to several Jiras, each gets its own lane,
+  so a day logged to two of them reads as two full days.
+- **New entries, step by step.** Adding entries is now a full-screen flow:
+  pick projects and write notes, then review compact rows with an hours
+  stepper and descriptions you edit in place.
+- **Projects as a list.** Projects sit in a list with an editor beside it, with
+  ready-made colours to pick from.
+- **Every theme rebuilt.** Themes now change colours, fonts, shapes and one
+  background effect, but never the layout, so every theme looks finished. The
+  default dark and light themes are now Graphite and Paper; the fonts ship with
+  the app.
+- **Window backdrop.** On Windows the window shows a blurred backdrop (Mica on
+  Windows 11, Acrylic on Windows 10).
+
 ## 0.1.45 — 2026-09-29
 
 - **Each Jira in a project now has its own standing instruction.** When a
