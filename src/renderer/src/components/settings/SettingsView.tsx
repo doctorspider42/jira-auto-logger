@@ -436,7 +436,7 @@ export function SettingsView(): JSX.Element {
                   <div className="wizard-label-row">
                     <label>
                       {t('settings.jiraApiToken')}
-                      <HelpTip label={t('settings.jiraTokenHelp.title')}>
+                      <HelpTip label={t('settings.jiraTokenHelp.title')} align="end">
                         <TokenHelp kind="jira" />
                       </HelpTip>
                     </label>
@@ -459,7 +459,7 @@ export function SettingsView(): JSX.Element {
                   <div className="wizard-label-row">
                     <label>
                       {t('settings.tempoApiToken')}
-                      <HelpTip label={t('settings.tempoTokenHelp.title')}>
+                      <HelpTip label={t('settings.tempoTokenHelp.title')} align="end">
                         <TokenHelp kind="tempo" />
                       </HelpTip>
                     </label>

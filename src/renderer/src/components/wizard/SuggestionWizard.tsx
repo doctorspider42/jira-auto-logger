@@ -11,6 +11,7 @@ import type {
   WorklogSuggestion
 } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
 import { FunnyLoader } from '@/components/common/FunnyLoader'
 import { Icon } from '@/components/common/Icon'
 import { Modal, useDialogEscape } from '@/components/common/Modal'
@@ -533,7 +534,10 @@ export function SuggestionWizard({
           {step === 'input' ? (
             <div className="wizard-side-block">
               <div className="wizard-side-title">
-                <span className="eyebrow">{t('wizard.projects')}</span>
+                <span className="eyebrow">
+                  {t('wizard.projects')}
+                  <HelpTip label={t('wizard.helpLabel')}>{t('wizard.isolationHint')}</HelpTip>
+                </span>
                 <button className="link" onClick={useRecent}>
                   {t('wizard.useRecent')}
                 </button>
@@ -555,7 +559,6 @@ export function SuggestionWizard({
                   )
                 })
               )}
-              <p className="hint">{t('wizard.isolationHint')}</p>
             </div>
           ) : (
             <>
@@ -590,7 +593,8 @@ export function SuggestionWizard({
             <>
               <div className="wizard-review-head">
                 <p className="hint">
-                  {t('wizard.suggestionsInfo')} {t('wizard.draftKept')}
+                  {t('wizard.reviewTitle')}
+                  <HelpTip label={t('wizard.helpLabel')}>{t('wizard.suggestionsInfo')}</HelpTip>
                 </p>
                 <div className="segmented" role="group" aria-label={t('wizard.layout')}>
                   <button className={layout === 'cards' ? 'active' : ''} onClick={() => setLayout('cards')}>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, isSameMonth, isToday, startOfMonth } from 'date-fns'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
 import { Icon } from '@/components/common/Icon'
 import { SuggestionWizard } from '@/components/wizard/SuggestionWizard'
 import { findDraft, useAppStore } from '@/store/appStore'
@@ -168,6 +169,7 @@ export function CalendarView(): JSX.Element {
         <button className="btn" onClick={calendar.goToToday}>
           {t('calendar.today')}
         </button>
+        <HelpTip label={t('calendar.helpLabel')}>{t('calendar.selectHint')}</HelpTip>
         {calendar.loading && <span className="spinner" />}
         <div className="spacer" />
         {taskOptions.length > 0 && (
@@ -318,7 +320,6 @@ export function CalendarView(): JSX.Element {
                   )
                 })}
             </div>
-            <p className="hint calendar-hint">{t('calendar.selectHint')}</p>
           </div>
         )}
 

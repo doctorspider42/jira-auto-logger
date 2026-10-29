@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { PROJECT_COLOR_PALETTE } from '@shared/domain'
 import type { AppError, GitFolder, JiraProject, ProjectConfig, ProjectTarget } from '@shared/domain'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
+import { HelpTip } from '@/components/common/HelpTip'
 import { Icon } from '@/components/common/Icon'
 import { Modal } from '@/components/common/Modal'
 import { useAppStore } from '@/store/appStore'
@@ -198,7 +199,10 @@ export function ProjectsView(): JSX.Element {
     <div className={`master-detail ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
       <nav className="md-list" aria-label={t('app.projects')}>
         <div className="md-list-head">
-          <h1 className="page-title">{t('app.projects')}</h1>
+          <h1 className="page-title">
+            {t('app.projects')}
+            <HelpTip label={t('app.projects')}>{t('projects.hint')}</HelpTip>
+          </h1>
           <button
             className="btn btn-icon"
             onClick={addProject}
@@ -236,7 +240,6 @@ export function ProjectsView(): JSX.Element {
             </button>
           )
         })}
-        <p className="hint md-list-hint">{t('projects.hint')}</p>
       </nav>
 
       <main className="md-detail">
@@ -265,7 +268,6 @@ export function ProjectsView(): JSX.Element {
             <section className="form-section">
               <div className="form-section-intro">
                 <h3>{t('projects.general')}</h3>
-                <p>{t('projects.generalHint')}</p>
               </div>
               <div className="form-section-body">
                 <label className="field">
@@ -305,8 +307,10 @@ export function ProjectsView(): JSX.Element {
 
             <section className="form-section">
               <div className="form-section-intro">
-                <h3>{t('projects.jiraTargets')}</h3>
-                <p>{t('projects.jiraTargetsHint')}</p>
+                <h3>
+                  {t('projects.jiraTargets')}
+                  <HelpTip label={t('projects.jiraTargets')}>{t('projects.jiraTargetsHint')}</HelpTip>
+                </h3>
               </div>
               <div className="form-section-body">
                 {project.targets.map((target) => {
@@ -390,8 +394,10 @@ export function ProjectsView(): JSX.Element {
 
             <section className="form-section">
               <div className="form-section-intro">
-                <h3>{t('settings.projectFolder')}</h3>
-                <p>{t('projects.foldersHint')}</p>
+                <h3>
+                  {t('settings.projectFolder')}
+                  <HelpTip label={t('settings.projectFolder')}>{t('projects.foldersHint')}</HelpTip>
+                </h3>
               </div>
               <div className="form-section-body">
                 {project.gitFolders.map((folder, index) => (
