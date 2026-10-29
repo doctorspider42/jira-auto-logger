@@ -17,10 +17,16 @@
     "start": "node scripts/ensure-electron.mjs && electron-vite preview",
     "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "electron-vite build && electron-builder --mac",
-    "dist:linux": "electron-vite build && electron-builder --linux"
+    "dist:linux": "electron-vite build && electron-builder --linux",
+    "tauri:web:dev": "vite --config vite.tauri.config.ts",
+    "tauri:web:build": "vite build --config vite.tauri.config.ts",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "typecheck:tauri": "tsc --noEmit -p tsconfig.tauri.json"
   },
   "dependencies": {
     "@aptabase/electron": "^0.3.1",
+    "@tauri-apps/api": "^2.12.4",
     "date-fns": "^3.6.0",
     "electron-updater": "^6.8.9",
     "i18next": "^23.16.0",
@@ -30,6 +36,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

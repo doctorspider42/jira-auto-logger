@@ -10,3 +10,7 @@ screenshots/pdf/
 
 # Internal brand material dropped in the repo root for reference - not ours to publish
 iteo_Brandbook.pdf
+
+# Tauri trial build output
+src-tauri/target/
+src-tauri/gen/

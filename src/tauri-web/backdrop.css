@@ -1,0 +1,15 @@
+/* With a system backdrop (Mica, Acrylic, macOS vibrancy) the page lets the
+   window's blurred background through: the body becomes see-through and the
+   app shell keeps only part of the theme's background colour. */
+html[data-backdrop]:not([data-backdrop='none']),
+html[data-backdrop]:not([data-backdrop='none']) body {
+  background: transparent;
+}
+
+html[data-backdrop]:not([data-backdrop='none']) .app-shell {
+  background: color-mix(in srgb, var(--color-bg) 62%, transparent);
+}
+
+html[data-backdrop]:not([data-backdrop='none']) .app-header {
+  background: color-mix(in srgb, var(--color-bg-raised) 40%, transparent);
+}

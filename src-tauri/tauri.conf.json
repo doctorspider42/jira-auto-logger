@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Jira Auto Logger Tauri Trial",
+  "version": "0.1.0",
+  "identifier": "com.doctorspider42.jira-auto-logger.tauri-trial",
+  "build": {
+    "frontendDist": "../out/tauri",
+    "devUrl": "http://localhost:5174",
+    "beforeDevCommand": "npm run tauri:web:dev",
+    "beforeBuildCommand": "npm run tauri:web:build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Jira Auto Logger",
+        "url": "renderer/index.tauri.html",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 900,
+        "minHeight": 600,
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
