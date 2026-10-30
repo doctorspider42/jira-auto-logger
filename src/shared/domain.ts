@@ -293,8 +293,8 @@ export type UpdateStatus =
 
 /**
  * Snapshot of the updater, broadcast to the renderer on every change. On
- * platforms that cannot self-update (unsigned macOS builds) `canAutoUpdate`
- * is false and the UI offers a manual download link (`releaseUrl`) instead.
+ * builds that cannot self-update `canAutoUpdate` is false and the UI offers
+ * a manual download link (`releaseUrl`) instead.
  */
 export interface UpdateState {
   status: UpdateStatus

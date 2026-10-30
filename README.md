@@ -52,7 +52,7 @@ Filling in Tempo at the end of the day (or month) means reconstructing what you 
 
 ## Install
 
-Download the installer for your system from the [latest release](https://github.com/doctorspider42/jira-auto-logger/releases/latest): `*-setup.exe` (Windows), `.dmg` (macOS) or `.AppImage` (Linux). The app updates itself on Windows and Linux; on macOS it tells you when a new version is out.
+Download the installer for your system from the [latest release](https://github.com/doctorspider42/jira-auto-logger/releases/latest): `*-setup.exe` (Windows), `.dmg` (macOS) or `.AppImage` (Linux). The app updates itself on every platform.
 
 > The macOS app is signed with a Developer ID and notarized by Apple, so it opens without warnings. The Windows and Linux installers are not code-signed, so Windows SmartScreen will ask you to confirm the first launch.
 
