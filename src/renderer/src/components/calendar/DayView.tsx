@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { isToday } from 'date-fns'
+import type { JiraConnection } from '@shared/domain'
 import { formatHours } from '@/utils/format'
 import type { CalendarEntry } from './useCalendar'
 
@@ -81,37 +82,12 @@ function packOverlaps(positioned: PlacedEntry[]): PositionedEntry[] {
   return result
 }
 
-/**
- * Turn a day's worklogs into positioned blocks. With several Jiras active each
- * connection gets its own fixed column (they log the same day independently, so
- * mixing them across columns by mere time-overlap is confusing); within a single
- * connection overlapping blocks are still split into columns.
- */
-function layoutEntries(entries: CalendarEntry[], splitByConnection: boolean): PositionedEntry[] {
-  if (!splitByConnection) return packOverlaps(placeEntries(entries))
-
-  // One column per connection, ordered stably so left/right stay put day to day.
-  const byConnection = new Map<string, CalendarEntry[]>()
-  for (const entry of entries) {
-    const list = byConnection.get(entry.connectionId) ?? []
-    list.push(entry)
-    byConnection.set(entry.connectionId, list)
-  }
-  const connectionIds = [...byConnection.keys()].sort()
-  const cols = connectionIds.length
-  const result: PositionedEntry[] = []
-  connectionIds.forEach((connectionId, col) => {
-    for (const placed of placeEntries(byConnection.get(connectionId) ?? [])) {
-      result.push({ ...placed, col, cols })
-    }
-  })
-  return result
-}
-
 interface DayViewProps {
   day: Date
   entries: CalendarEntry[]
-  multipleActive: boolean
+  /** Active connections; each gets its own lane, so a day logged to two Jiras reads as two days. */
+  connections: JiraConnection[]
+  workingHoursPerDay: number
   onEditEntry: (entry: CalendarEntry) => void
   /** When set, entries it rejects are dimmed and matches are emphasised. */
   matchEntry?: (entry: CalendarEntry) => boolean
@@ -120,26 +96,37 @@ interface DayViewProps {
 export function DayView({
   day,
   entries,
-  multipleActive,
+  connections,
+  workingHoursPerDay,
   onEditEntry,
   matchEntry
 }: DayViewProps): JSX.Element {
   const { t } = useTranslation()
-  const positioned = useMemo(
-    () => layoutEntries(entries, multipleActive),
-    [entries, multipleActive]
+  const lanes = useMemo(
+    () =>
+      connections.map((connection) => {
+        const laneEntries = entries.filter((e) => e.connectionId === connection.id)
+        return {
+          connection,
+          seconds: laneEntries.reduce((sum, e) => sum + e.timeSpentSeconds, 0),
+          // Within one Jira, overlapping blocks still split into columns.
+          positioned: packOverlaps(placeEntries(laneEntries))
+        }
+      }),
+    [connections, entries]
   )
 
   const { startHour, endHour } = useMemo(() => {
-    const from = positioned.reduce((min, p) => Math.min(min, p.start), MIN_HOUR * 3600)
-    const to = positioned.reduce((max, p) => Math.max(max, p.end), MAX_HOUR * 3600)
+    const all = lanes.flatMap((lane) => lane.positioned)
+    const from = all.reduce((min, p) => Math.min(min, p.start), MIN_HOUR * 3600)
+    const to = all.reduce((max, p) => Math.max(max, p.end), MAX_HOUR * 3600)
     return {
       startHour: Math.max(0, Math.min(MIN_HOUR, Math.floor(from / 3600))),
       endHour: Math.min(24, Math.max(MAX_HOUR, Math.ceil(to / 3600)))
     }
-  }, [positioned])
+  }, [lanes])
 
-  const hours = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
+  const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i)
   const gridHeight = (endHour - startHour) * HOUR_HEIGHT
   const secToTop = (sec: number): number => ((sec - startHour * 3600) / 3600) * HOUR_HEIGHT
 
@@ -150,71 +137,72 @@ export function DayView({
 
   return (
     <div className="day-view">
-      <div className="day-grid" style={{ height: gridHeight }}>
-        {hours.map((hour, i) => (
-          <div key={hour} className="day-hour-row" style={{ top: i * HOUR_HEIGHT }}>
-            <span className="day-hour-label">{String(hour).padStart(2, '0')}:00</span>
-            <span className="day-hour-line" />
+      <div className="day-lanes-head" style={{ gridTemplateColumns: `56px repeat(${lanes.length}, minmax(0, 1fr))` }}>
+        <span />
+        {lanes.map((lane) => (
+          <div key={lane.connection.id} className="day-lane-head">
+            <span className="day-lane-name">{lane.connection.name || lane.connection.jira.baseUrl}</span>
+            <span className="mono muted">
+              {formatHours(lane.seconds)} / {workingHoursPerDay}
+              {t('app.hoursShort')}
+            </span>
           </div>
         ))}
-
-        {showNow && (
-          <div className="day-now" style={{ top: secToTop(nowSeconds) }}>
-            <span className="day-now-dot" />
-          </div>
-        )}
-
-        <div className="day-entries" style={{ left: 52 }}>
-          {positioned.map((p) => {
-            const top = secToTop(p.start)
-            const height = Math.max(18, (p.entry.timeSpentSeconds / 3600) * HOUR_HEIGHT - 2)
-            const width = `calc((100% - 8px) / ${p.cols})`
-            const left = `calc((100% - 8px) / ${p.cols} * ${p.col})`
-            const worklog = p.entry
-            return (
-              <div
-                key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
-                className={`day-entry ${matchEntry ? (matchEntry(worklog) ? 'matched' : 'dimmed') : ''}`}
-                role="button"
-                style={{
-                  top,
-                  height,
-                  width,
-                  left,
-                  ...(worklog.projectColor
-                    ? ({ '--entry-color': worklog.projectColor } as React.CSSProperties)
-                    : {})
-                }}
-                title={`[${worklog.projectName || worklog.connectionName}] ${worklog.issueKey} ${worklog.issueSummary}\n${worklog.description}\n— ${t('calendar.editor.editHint')}`}
-                onClick={() => onEditEntry(worklog)}
-              >
-                <div className="day-entry-head">
-                  <span className="day-entry-key">
-                    {multipleActive && (
-                      <span className="calendar-entry-conn">
-                        {(worklog.connectionName || '?').charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    {worklog.issueKey}
-                  </span>
-                  <span className="day-entry-hours">
-                    {worklog.fieldIcons.length > 0 && (
-                      <span className="calendar-entry-icons">{worklog.fieldIcons.join('')}</span>
-                    )}
-                    {formatHours(worklog.timeSpentSeconds)}
-                    {t('app.hoursShort')}
-                  </span>
-                </div>
-                {worklog.issueSummary && (
-                  <span className="day-entry-summary">{worklog.issueSummary}</span>
-                )}
-                {worklog.description && height > 44 && (
-                  <span className="day-entry-desc">{worklog.description}</span>
-                )}
-              </div>
-            )
-          })}
+      </div>
+      <div className="day-grid" style={{ gridTemplateColumns: `56px repeat(${lanes.length}, minmax(0, 1fr))` }}>
+        <div className="day-hours" style={{ height: gridHeight }}>
+          {hours.map((hour, i) => (
+            <span key={hour} className="day-hour-label mono" style={{ top: i * HOUR_HEIGHT }}>
+              {String(hour).padStart(2, '0')}:00
+            </span>
+          ))}
         </div>
+        {lanes.map((lane) => (
+          <div
+            key={lane.connection.id}
+            className="day-lane"
+            style={{ height: gridHeight, backgroundSize: `100% ${HOUR_HEIGHT}px` }}
+          >
+            {showNow && <div className="day-now" style={{ top: secToTop(nowSeconds) }} />}
+            {lane.positioned.map((p) => {
+              const top = secToTop(p.start)
+              const height = Math.max(22, (p.entry.timeSpentSeconds / 3600) * HOUR_HEIGHT - 4)
+              const worklog = p.entry
+              return (
+                <button
+                  key={`${worklog.connectionId}-${worklog.tempoWorklogId}`}
+                  className={`day-entry ${matchEntry ? (matchEntry(worklog) ? 'matched' : 'dimmed') : ''}`}
+                  style={{
+                    top: top + 2,
+                    height,
+                    width: `calc((100% - 12px) / ${p.cols})`,
+                    left: `calc(6px + (100% - 12px) / ${p.cols} * ${p.col})`,
+                    ...(worklog.projectColor
+                      ? ({ '--entry-color': worklog.projectColor } as React.CSSProperties)
+                      : {})
+                  }}
+                  title={`[${worklog.projectName || worklog.connectionName}] ${worklog.issueKey} ${worklog.issueSummary}
+${worklog.description}
+— ${t('calendar.editor.editHint')}`}
+                  onClick={() => onEditEntry(worklog)}
+                >
+                  <span className="day-entry-head">
+                    <span className="day-entry-key mono">{worklog.issueKey}</span>
+                    <span className="day-entry-hours mono">
+                      {worklog.fieldIcons.length > 0 && <span aria-hidden>{worklog.fieldIcons.join('')}</span>}
+                      {formatHours(worklog.timeSpentSeconds)}
+                      {t('app.hoursShort')}
+                    </span>
+                  </span>
+                  {worklog.issueSummary && <span className="day-entry-summary">{worklog.issueSummary}</span>}
+                  {worklog.description && height > 56 && (
+                    <span className="day-entry-desc">{worklog.description}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </div>
     </div>
   )

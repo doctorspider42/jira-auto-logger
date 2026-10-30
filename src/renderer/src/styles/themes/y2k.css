@@ -1,0 +1,343 @@
+/*
+ * Y2K Chrome - the maximalist skin: a Frutiger-Aero holographic sky, a
+ * brushed-chrome rail, aqua candy buttons with a gloss across the top half and
+ * frosted cards. Peak 2002 energy, on purpose.
+ *
+ * Scoped under `[data-theme='y2k']`; tokens live in themes.ts.
+ */
+
+/* ---------- Frutiger-Aero holographic desktop ---------- */
+
+/* The still part of the sky: highlights and a glow from below. Also behind the
+   full-screen flow, which covers the moving layer. */
+[data-theme='y2k'] body,
+[data-theme='y2k'] .wizard-screen {
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgba(255, 255, 255, 0.85), transparent 55%),
+    radial-gradient(90% 70% at 85% 10%, rgba(255, 47, 214, 0.35), transparent 60%),
+    radial-gradient(100% 90% at 50% 110%, rgba(0, 224, 255, 0.5), transparent 60%),
+    linear-gradient(125deg, #b7f0ff 0%, #cfe0ff 25%, #f0d0ff 50%, #cfe0ff 75%, #b7f0ff 100%);
+  background-attachment: fixed;
+}
+
+/*
+ * The holographic band slides back and forth under the highlights. A layer
+ * three windows wide moved by `transform` - shifting a background position
+ * would repaint the whole window every frame.
+ */
+[data-theme='y2k'] body::before {
+  inset: 0 auto 0 0;
+  width: 300%;
+  background: linear-gradient(125deg, #b7f0ff 0%, #cfe0ff 17%, #f0d0ff 33%, #cfe0ff 50%, #b7f0ff 67%, #cfe0ff 83%, #f0d0ff 100%);
+  will-change: transform;
+  animation: y2k-holo 18s ease-in-out infinite alternate;
+}
+
+[data-theme='y2k'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgba(255, 255, 255, 0.85), transparent 55%),
+    radial-gradient(90% 70% at 85% 10%, rgba(255, 47, 214, 0.35), transparent 60%),
+    radial-gradient(100% 90% at 50% 110%, rgba(0, 224, 255, 0.5), transparent 60%);
+}
+
+@keyframes y2k-holo {
+  to {
+    transform: translate3d(-66.666%, 0, 0);
+  }
+}
+
+/* ---------- Brushed-chrome rail ---------- */
+
+[data-theme='y2k'] .app-rail {
+  background: linear-gradient(90deg, #ffffff 0%, #dfe9f7 18%, #aebfd8 50%, #c9d6ea 82%, #ffffff 100%);
+  border-right: 2px solid #ffffff;
+  box-shadow: 4px 0 14px rgba(0, 40, 120, 0.3), inset -1px 0 0 #ffffff;
+}
+
+[data-theme='y2k'] .app-nav-item {
+  color: #1d3a7a;
+  font-weight: 700;
+}
+
+[data-theme='y2k'] .app-version {
+  color: #1d3a7a;
+}
+
+/* Chrome, beveled, faintly shimmering title text. */
+[data-theme='y2k'] .page-title,
+[data-theme='y2k'] .wizard-heading h1 {
+  /* The old title sat on a chrome bar; on the open sky it needs a deeper
+     band of blue and a dark rim to stay readable. */
+  background: linear-gradient(180deg, #ffffff 0%, #8fcaff 30%, #1e4fd8 48%, #0b1a52 56%, #5aa8ff 74%, #ffffff 100%) 0 0 / 100% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  filter: drop-shadow(0 0 0.6px rgba(11, 26, 82, 0.9)) drop-shadow(0 1px 0 #ffffff) drop-shadow(0 2px 3px rgba(0, 40, 120, 0.5));
+  animation: y2k-sheen 4s ease-in-out infinite;
+}
+
+[data-theme='y2k'] .page-title .soft {
+  color: transparent;
+}
+
+@keyframes y2k-sheen {
+  0%,
+  100% {
+    background-position: 0 0%;
+  }
+  50% {
+    background-position: 0 100%;
+  }
+}
+
+/* ---------- Aqua candy buttons ---------- */
+
+[data-theme='y2k'] .btn {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.15) 48%, rgba(0, 0, 0, 0.06) 52%, rgba(255, 255, 255, 0.25) 100%),
+    linear-gradient(180deg, #eaf6ff 0%, #bfe4ff 50%, #9ed3ff 100%);
+  color: #0b2a66;
+  font-weight: 700;
+  box-shadow: 0 3px 8px rgba(0, 60, 140, 0.35), inset 0 1px 0 #ffffff, inset 0 -2px 4px rgba(0, 60, 140, 0.25);
+}
+
+/* Glossy top-half highlight. */
+[data-theme='y2k'] .btn::before {
+  content: '';
+  position: absolute;
+  inset: 1px 1px 50% 1px;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+[data-theme='y2k'] .btn:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.15) 48%, rgba(0, 0, 0, 0.06) 52%, rgba(255, 255, 255, 0.25) 100%),
+    linear-gradient(180deg, #eaf6ff 0%, #bfe4ff 50%, #9ed3ff 100%);
+  filter: brightness(1.08) saturate(1.15);
+  box-shadow: 0 4px 14px rgba(0, 120, 255, 0.55), inset 0 1px 0 #ffffff;
+}
+
+[data-theme='y2k'] .btn:active:not(:disabled) {
+  box-shadow: inset 0 2px 6px rgba(0, 60, 140, 0.45);
+  filter: brightness(0.96);
+}
+
+/* Ghost buttons stay quiet - a candy pill for every icon would be noise. */
+[data-theme='y2k'] .btn-ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='y2k'] .btn-ghost::before {
+  display: none;
+}
+
+[data-theme='y2k'] .btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 4px rgba(0, 60, 140, 0.25);
+}
+
+/* Primary = hot holographic candy. `:not(.blocked)` keeps the validation red. */
+[data-theme='y2k'] .btn-primary:not(.blocked),
+[data-theme='y2k'] .btn-primary:not(.blocked):hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.08) 52%, rgba(255, 255, 255, 0.2) 100%),
+    linear-gradient(90deg, #ff2fd6, #ff7a1a, #ffe600, #2fff9e, #33c6ff, #ff2fd6);
+  background-size: 100% 100%, 300% 100%;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  animation: y2k-holo-btn 6s linear infinite;
+}
+
+@keyframes y2k-holo-btn {
+  from {
+    background-position: 0 0, 0% 50%;
+  }
+  to {
+    background-position: 0 0, 300% 50%;
+  }
+}
+
+/* ---------- Frosted-glass panels ---------- */
+
+[data-theme='y2k'] .card,
+[data-theme='y2k'] .modal,
+[data-theme='y2k'] .inspector,
+[data-theme='y2k'] .month-summary,
+[data-theme='y2k'] .wizard-card {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(224, 244, 255, 0.82));
+  border: 2px solid #ffffff;
+  box-shadow: 0 10px 30px rgba(0, 60, 160, 0.3), 0 0 0 1px rgba(0, 180, 255, 0.4), inset 0 1px 0 #ffffff;
+}
+
+/* A sheen across the top edge of each panel. */
+[data-theme='y2k'] :is(.card, .modal, .inspector, .month-summary, .wizard-card)::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 40%;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+[data-theme='y2k'] .modal-header,
+[data-theme='y2k'] .wizard-header {
+  background: linear-gradient(180deg, #eaf6ff, #bfe4ff);
+  border-bottom: 2px solid #ffffff;
+}
+
+[data-theme='y2k'] .modal-header {
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+[data-theme='y2k'] .wizard-footer,
+[data-theme='y2k'] .save-bar {
+  background: linear-gradient(180deg, #eaf6ff, #cfeaff);
+  border-top: 2px solid #ffffff;
+}
+
+[data-theme='y2k'] .md-list {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* ---------- Bubbly selection ---------- */
+
+[data-theme='y2k'] .app-nav-item.active,
+[data-theme='y2k'] .segmented button.active,
+[data-theme='y2k'] .settings-nav-item.active,
+[data-theme='y2k'] .md-item.active,
+[data-theme='y2k'] .chip.selected {
+  background: linear-gradient(180deg, #ff8fe8, #ff2fd6);
+  color: #ffffff;
+  border-color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 10px rgba(255, 47, 214, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-theme='y2k'] .md-item.active .muted {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme='y2k'] .app-nav-item:hover:not(.active),
+[data-theme='y2k'] .settings-nav-item:hover:not(.active),
+[data-theme='y2k'] .md-item:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme='y2k'] .segmented {
+  background: linear-gradient(180deg, #ffffff, #dff3ff);
+  border: 1.5px solid #7fc4ef;
+}
+
+/* ---------- Glossy inputs & chips ---------- */
+
+[data-theme='y2k'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='y2k'] textarea,
+[data-theme='y2k'] select,
+[data-theme='y2k'] .search-field {
+  background: linear-gradient(180deg, #ffffff, #eaf6ff);
+  border: 2px solid #7fc4ef;
+  box-shadow: inset 0 2px 4px rgba(0, 60, 140, 0.15), 0 1px 0 #ffffff;
+}
+
+[data-theme='y2k'] input:not([type='checkbox']):not([type='radio']):focus,
+[data-theme='y2k'] textarea:focus,
+[data-theme='y2k'] select:focus,
+[data-theme='y2k'] .search-field:focus-within {
+  border-color: #ff2fd6;
+  box-shadow: 0 0 0 3px rgba(255, 47, 214, 0.3), inset 0 2px 4px rgba(0, 60, 140, 0.15);
+}
+
+[data-theme='y2k'] .search-field input,
+[data-theme='y2k'] .search-field input:focus {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme='y2k'] .chip {
+  background: linear-gradient(180deg, #ffffff, #dff3ff);
+  border: 1.5px solid #7fc4ef;
+  box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(0, 60, 140, 0.25);
+}
+
+[data-theme='y2k'] .switch input:checked {
+  background: linear-gradient(180deg, #ff8fe8, #ff2fd6);
+}
+
+/* ---------- Calendar ---------- */
+
+[data-theme='y2k'] .calendar-grid {
+  border: 2px solid #ffffff;
+  background: rgba(127, 196, 239, 0.6);
+  box-shadow: 0 10px 30px rgba(0, 60, 160, 0.25), 0 0 0 1px rgba(0, 180, 255, 0.4);
+}
+
+[data-theme='y2k'] .calendar-day {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(234, 246, 255, 0.9));
+}
+
+[data-theme='y2k'] .calendar-day.weekend {
+  background: rgba(223, 243, 255, 0.75);
+}
+
+[data-theme='y2k'] .calendar-day:hover {
+  background: #ffffff;
+}
+
+[data-theme='y2k'] .calendar-day.selected {
+  box-shadow: inset 0 0 0 2px #ff2fd6, inset 0 0 18px rgba(255, 47, 214, 0.18);
+}
+
+[data-theme='y2k'] .calendar-day.today .calendar-day-number {
+  background: linear-gradient(180deg, #ff8fe8, #ff2fd6);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(255, 47, 214, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+[data-theme='y2k'] .day-lane {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+/* ---------- Chunky chrome scrollbars ---------- */
+
+[data-theme='y2k'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+[data-theme='y2k'] ::-webkit-scrollbar-track {
+  background: linear-gradient(90deg, #cfe0ff, #eaf6ff);
+}
+
+[data-theme='y2k'] ::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid #eaf6ff;
+  background: linear-gradient(180deg, #9fd6ff, #2f6bff);
+  background-clip: border-box;
+}
+
+/* Respect anyone who'd rather not watch the gradients breathe. */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='y2k'] body::before,
+  [data-theme='y2k'] .page-title,
+  [data-theme='y2k'] .wizard-heading h1,
+  [data-theme='y2k'] .btn-primary {
+    animation: none;
+  }
+}

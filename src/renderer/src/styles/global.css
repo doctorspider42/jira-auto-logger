@@ -1,11 +1,42 @@
+/* Base styles and the shared building blocks (buttons, fields, chips, cards,
+   modal, banners). Every colour, font and radius comes from the theme tokens
+   set by `applyTheme` (theme/themes.ts) - never hardcode them here or in a
+   component stylesheet, or some theme breaks. */
+
 * {
   box-sizing: border-box;
 }
 
 :root {
-  /* Drives the variant Chromium paints native widgets in - notably the time
-     input's clock icon, which is otherwise near-black on the dark themes. */
-  color-scheme: var(--color-scheme, light);
+  color-scheme: var(--color-scheme, dark);
+
+  /* Derived tokens: computed from the theme's palette so themes stay small. */
+  --surface-2: color-mix(in srgb, var(--ink) 4%, var(--surface));
+  --hover: color-mix(in srgb, var(--ink) 7%, var(--surface));
+  --line-soft: color-mix(in srgb, var(--line) 55%, var(--surface));
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --selection: color-mix(in srgb, var(--accent) 28%, transparent);
+  --shadow-popup: 0 18px 50px color-mix(in srgb, #000 45%, transparent);
+  --focus-ring: 0 0 0 2px var(--ground), 0 0 0 4px var(--accent);
+
+  /* Older names still used by a few stylesheets. */
+  --color-bg: var(--ground);
+  --color-bg-raised: var(--surface);
+  --color-bg-hover: var(--hover);
+  --color-border: var(--line);
+  --color-text: var(--ink);
+  --color-text-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-selection: var(--selection);
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius);
+  --font-family: var(--font-body);
 }
 
 html,
@@ -16,13 +47,48 @@ body,
 }
 
 body {
-  font-family: var(--font-family);
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.45;
-  color: var(--color-text);
-  background: var(--color-bg);
+  color: var(--ink);
+  background: var(--ground);
   -webkit-font-smoothing: antialiased;
   user-select: none;
+}
+
+/* The theme's one backdrop effect (scanlines, dither, polka...). It sits under
+   the app and never behind inputs, which keep a solid surface. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: var(--texture);
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: var(--selection);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  text-transform: var(--display-case);
+  letter-spacing: var(--display-tracking);
+  font-weight: 600;
+}
+
+.mono,
+kbd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 input,
@@ -36,31 +102,65 @@ button {
 input,
 textarea,
 select {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 8px 11px;
   outline: none;
   user-select: text;
-  transition: border-color 120ms ease;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--color-accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
 }
 
 /* A required field flagged after a blocked save attempt. */
 .input-error,
 .input-error:focus {
-  border-color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg));
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface));
 }
 
+/* Multi-line boxes never become pills, even in themes with pill controls. */
 textarea {
+  border-radius: min(var(--radius-control), 14px);
   resize: vertical;
   min-height: 72px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ---------- Buttons ---------- */
@@ -68,18 +168,23 @@ textarea {
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-raised);
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: transparent;
+  box-shadow: var(--bevel);
   cursor: pointer;
-  transition: background 120ms ease, border-color 120ms ease;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 120ms ease, border-color 120ms ease, filter 120ms ease;
   white-space: nowrap;
 }
 
 .btn:hover:not(:disabled) {
-  background: var(--color-bg-hover);
+  background: var(--hover);
 }
 
 .btn:disabled {
@@ -88,170 +193,261 @@ textarea {
 }
 
 .btn-primary {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: var(--color-accent-contrast);
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-ink);
   font-weight: 600;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-accent);
-  filter: brightness(1.1);
+  background: var(--primary);
+  filter: brightness(1.08);
 }
 
-/* A primary action that is blocked by validation: still clickable (to reveal
-   the reason) but clearly not ready, so the disabled-looking state that used to
-   confuse users is replaced by an obvious "something's wrong" red. */
-.btn-primary.blocked {
-  background: var(--color-danger);
-  border-color: var(--color-danger);
-  color: #fff;
-}
-
+/* A primary action blocked by validation: still clickable (to reveal the
+   reason) but clearly not ready. */
+.btn-primary.blocked,
 .btn-primary.blocked:hover:not(:disabled) {
-  background: var(--color-danger);
-  filter: brightness(1.1);
+  background: var(--danger);
+  color: var(--ground);
 }
 
 .btn-ghost {
   border-color: transparent;
-  background: transparent;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background: var(--color-bg-hover);
+  box-shadow: none;
 }
 
 .btn-danger {
-  color: var(--color-danger);
+  color: var(--danger);
 }
 
 /* Solid destructive button for confirmed, irreversible actions. */
-.btn-danger-solid {
-  background: var(--color-danger);
-  border-color: var(--color-danger);
-  color: #fff;
-  font-weight: 600;
-}
-
+.btn-danger-solid,
 .btn-danger-solid:hover:not(:disabled) {
-  background: var(--color-danger);
-  filter: brightness(1.1);
+  border-color: transparent;
+  background: var(--danger);
+  color: var(--ground);
+  font-weight: 600;
 }
 
 .btn-sm {
-  padding: 4px 10px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12.5px;
+}
+
+.btn-lg {
+  min-height: 40px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+.btn-icon {
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
   font-size: 13px;
 }
 
-/* ---------- Layout ---------- */
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Segmented control: one choice of a few (Month / Day, layouts, formats). */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line-soft);
+  border-radius: calc(var(--radius-control) + 2px);
+  background: var(--surface-2);
+}
+
+.segmented button {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.segmented button.active {
+  background: var(--hover);
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: var(--bevel);
+}
+
+/* On/off switch built on a real checkbox. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.switch input {
+  appearance: none;
+  position: relative;
+  width: 30px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.switch input::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 150ms ease, background 150ms ease;
+}
+
+.switch input:checked {
+  background: var(--accent);
+}
+
+.switch input:checked::after {
+  transform: translateX(12px);
+  background: var(--accent-ink);
+}
+
+/* ---------- App shell ---------- */
 
 .app-shell {
   display: flex;
-  flex-direction: column;
   height: 100%;
 }
 
-.app-header {
+.app-rail {
+  flex: 0 0 76px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-raised);
+  gap: 26px;
+  padding: 18px 0 14px;
+  border-right: 1px solid var(--line-soft);
 }
 
-/* Takes over the h1's former `flex: 1` so the title block still pushes the
-   update button and the tabs to the right edge. */
-.app-title {
+.app-nav {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.app-header h1 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0;
+.app-nav-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  /* Wide enough for "Ustawienia" in the themes that set labels in caps. */
+  width: 68px;
+  height: 52px;
+  border: 0;
+  border-radius: calc(var(--radius-control) + 3px);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.app-nav-item:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.app-nav-item.active {
+  background: var(--hover);
+  color: var(--ink);
+  box-shadow: var(--bevel);
+}
+
+/* Small dot on Settings while an update is available. */
+.app-nav-badge {
+  position: absolute;
+  top: 9px;
+  right: 20px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .app-version {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .app-main {
   flex: 1;
+  min-width: 0;
   overflow: auto;
-  padding: 20px;
-  /* Column flex so the calendar can claim the exact viewport height. */
+  padding: 22px 30px 28px;
   display: flex;
   flex-direction: column;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 900px) {
   .app-main {
-    padding: 12px;
-  }
-
-  .app-header {
-    padding: 8px 12px;
-    gap: 10px;
+    padding: 14px;
   }
 }
 
-@media (max-width: 820px) {
-  .app-main {
-    padding: 8px;
-  }
-
-  .app-header h1 {
-    font-size: 14px;
-  }
-
-  .nav-tab {
-    padding: 5px 10px;
-    font-size: 13px;
-  }
-}
-
-.update-check {
+/* Page title row shared by the views. */
+.page-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 12px 14px;
+  margin-bottom: 18px;
 }
 
-.nav-tabs {
-  display: flex;
-  gap: 4px;
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.2;
 }
 
-.nav-tab {
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--color-text-muted);
+.page-title .soft {
+  color: var(--muted);
+  font-weight: 400;
 }
 
-.nav-tab.active {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-weight: 600;
+.spacer {
+  flex: 1;
 }
 
 /* ---------- Cards & forms ---------- */
 
 .card {
-  background: var(--color-bg-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: 18px;
 }
 
 .field {
@@ -263,8 +459,7 @@ textarea {
 
 .field > label {
   font-size: 13px;
-  color: var(--color-text-muted);
-  font-weight: 500;
+  color: var(--muted);
 }
 
 .field-row {
@@ -279,7 +474,82 @@ textarea {
 
 .hint {
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Help tip: the "?" that holds an explanation ---------- */
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: normal;
+  font-variant: normal;
+}
+
+.help-tip-trigger {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
+.help-tip-trigger:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.help-tip-popover {
+  position: absolute;
+  left: -8px;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 300px;
+  max-width: 80vw;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  box-shadow: var(--shadow-popup);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: left;
+  white-space: normal;
+  cursor: default;
+  display: none;
+}
+
+.help-tip-end .help-tip-popover {
+  left: auto;
+  right: -8px;
+}
+
+.help-tip:hover .help-tip-popover,
+.help-tip:focus-within .help-tip-popover {
+  display: block;
 }
 
 /* ---------- Feedback ---------- */
@@ -289,13 +559,16 @@ textarea {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
   margin-bottom: 14px;
+  font-size: 13px;
 }
 
 .banner-error {
-  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
-  color: var(--color-danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--line));
+  color: var(--danger);
 }
 
 .banner-error:has(.error-banner-main) {
@@ -310,7 +583,7 @@ textarea {
 
 .error-banner-details {
   margin-top: 10px;
-  color: var(--color-text);
+  color: var(--ink);
 }
 
 .error-banner-details > span {
@@ -325,9 +598,9 @@ textarea {
   margin: 0;
   padding: 8px;
   overflow: auto;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-bg-raised));
-  color: var(--color-text);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  color: var(--ink);
   font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.4;
@@ -336,18 +609,20 @@ textarea {
 }
 
 .banner-success {
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
-  color: var(--color-success);
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--success) 30%, var(--line));
+  color: var(--success);
 }
 
 .banner-update {
-  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
-  color: var(--color-accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  color: var(--ink);
 }
 
 .banner-report {
-  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-bg-raised));
-  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  background: var(--surface);
+  border-color: var(--line-soft);
 }
 
 .banner-report-icon {
@@ -356,9 +631,9 @@ textarea {
   width: 32px;
   height: 32px;
   flex-shrink: 0;
-  border-radius: 6px;
-  color: var(--color-accent-contrast);
-  background: var(--color-accent);
+  border-radius: var(--radius-control);
+  color: var(--accent-ink);
+  background: var(--accent);
   font-size: 9px;
   font-weight: 800;
 }
@@ -367,31 +642,20 @@ textarea {
   flex: 1;
   display: flex;
   flex-direction: column;
-  color: var(--color-text-muted);
+  color: var(--muted);
   font-size: 12px;
 }
 
 .banner-report-copy strong {
-  color: var(--color-text);
+  color: var(--ink);
   font-size: 13px;
-}
-
-/* Small dot on the Settings tab while an update is available. */
-.nav-tab-badge {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: var(--color-accent);
-  vertical-align: middle;
 }
 
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--color-border);
-  border-top-color: var(--color-accent);
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 700ms linear infinite;
   flex-shrink: 0;
@@ -407,11 +671,11 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   margin-bottom: 14px;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 .funny-loader-text {
@@ -434,7 +698,7 @@ textarea {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, #000 55%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -442,17 +706,16 @@ textarea {
 }
 
 .modal {
-  background: var(--color-bg-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-popup);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popup), var(--bevel);
   width: min(860px, calc(100vw - 48px));
   max-height: calc(100vh - 64px);
   display: flex;
   flex-direction: column;
 }
 
-/* Wide variant for dense content such as the tabular suggestions layout. */
 .modal-wide {
   width: 95vw;
 }
@@ -462,7 +725,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .modal-header h2 {
@@ -481,7 +744,7 @@ textarea {
   justify-content: flex-end;
   gap: 10px;
   padding: 14px 20px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--line-soft);
 }
 
 /* ---------- Tags / chips ---------- */
@@ -490,19 +753,35 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  min-height: 28px;
+  padding: 0 11px;
   border-radius: 999px;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  border: 1px solid var(--line);
+  background: transparent;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12.5px;
   transition: background 120ms ease, border-color 120ms ease;
 }
 
+.chip:hover {
+  background: var(--hover);
+}
+
 .chip.selected {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
+  background: var(--hover);
+  border-color: color-mix(in srgb, var(--ink) 30%, var(--line));
+  color: var(--ink);
+}
+
+.chip:not(.selected) {
+  color: var(--muted);
+}
+
+.chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .chip-list {
@@ -517,23 +796,22 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--color-text-muted);
+  color: var(--muted);
   padding: 8px 0;
 }
 
 .release-note {
   padding: 16px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .release-note:last-child {
   border-bottom: none;
 }
 
-/* Emphasize the version being offered as an update. */
 .release-note-available {
-  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  border-radius: var(--radius);
   padding: 16px;
   margin: 8px 0;
   border-bottom: none;
@@ -561,7 +839,7 @@ textarea {
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: var(--color-text-muted);
+  color: var(--muted);
 }
 
 .release-tag {
@@ -569,21 +847,20 @@ textarea {
   font-weight: 500;
   padding: 1px 7px;
   border-radius: 999px;
-  background: var(--color-bg-hover);
-  color: var(--color-text-muted);
+  background: var(--hover);
+  color: var(--muted);
 }
 
 .release-tag-current {
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 .release-tag-new {
-  background: var(--color-accent);
-  color: var(--color-accent-contrast);
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
-/* Rendered markdown inside a release note. */
 .markdown {
   font-size: 13px;
   line-height: 1.55;
@@ -610,13 +887,381 @@ textarea {
 }
 
 .markdown code {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 0.92em;
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-sm);
+  background: var(--hover);
+  border-radius: var(--radius-control);
   padding: 1px 5px;
 }
 
 .markdown a {
-  color: var(--color-accent);
+  color: var(--accent);
+}
+
+/* ---------- Small helpers ---------- */
+
+.muted {
+  color: var(--muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-danger {
+  background: var(--danger);
+}
+
+.dot-warning {
+  background: var(--warning);
+}
+
+/* A thin progress meter; the inner span's width is the value. */
+.meter {
+  flex: 1;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+/* An input with a leading icon, e.g. the calendar's task filter. */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.search-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+/* ---------- List + editor layout (Projects, Settings) ---------- */
+
+.master-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  margin: -22px -30px -28px;
+}
+
+.md-list {
+  flex: 1 1 260px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 22px 14px;
+  border-right: 1px solid var(--line-soft);
+}
+
+.md-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 14px;
+}
+
+.md-list-head .page-title {
+  font-size: 20px;
+}
+
+.md-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.md-item:hover,
+.md-item.active {
+  background: var(--hover);
+}
+
+.md-item.archived .md-item-text > span:first-child {
+  color: var(--muted);
+}
+
+.md-item-swatch {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: calc(var(--radius-control) - 1px);
+}
+
+.md-item-swatch > span {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.md-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.md-item-text > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-item-text .muted {
+  font-size: 12px;
+}
+
+.md-detail {
+  flex: 999 1 520px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 40px 0;
+  overflow: auto;
+}
+
+.md-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 22px;
+}
+
+.md-detail-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* A settings section: title and explanation on the left, fields on the right. */
+.form-section {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 24px;
+  max-width: 900px;
+  padding: 24px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.form-section-intro h3 {
+  margin: 0;
+  font-size: 14px;
+  font-family: var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.form-section-intro p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.form-section-body > .link {
+  align-self: flex-start;
+}
+
+.form-section-body .field {
+  margin-bottom: 0;
+}
+
+.form-section-body .field > span,
+.form-section-body .field > legend {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.form-section-body label.field {
+  display: flex;
+}
+
+@media (max-width: 1000px) {
+  .form-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+}
+
+/* A boxed sub-item of a section: a Jira target, a repository, a connection. */
+.row-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: min(var(--radius-control), 14px);
+  background: var(--surface);
+}
+
+.row-card-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.row-card-line .grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.row-card-line .grow > select,
+.row-card-line .grow > input {
+  width: 100%;
+}
+
+.row-card-status {
+  font-size: 12px;
+  color: var(--success);
+}
+
+.row-card-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.inline-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.inline-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.swatch-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.swatch {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--radius-control) - 1px);
+  cursor: pointer;
+}
+
+.swatch.selected {
+  box-shadow: 0 0 0 2px var(--ground), 0 0 0 4px var(--ink);
+}
+
+.swatch-custom {
+  overflow: hidden;
+  background: conic-gradient(#ff8a7a, #f0b85a, #6fd8a0, #5cc8d0, #9db4ff, #b79bff, #f28cc0, #ff8a7a);
+}
+
+.swatch-custom input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Sticky bottom bar that appears once there is something to save. */
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line-soft);
+  background: var(--ground);
+  font-size: 13px;
+}
+
+.save-bar-dirty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warning);
+}
+
+.save-bar-ok {
+  color: var(--success);
+}
+
+.save-bar-blocked {
+  color: var(--danger);
 }

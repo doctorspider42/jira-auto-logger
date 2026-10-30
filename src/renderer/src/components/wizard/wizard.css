@@ -1,155 +1,523 @@
-.wizard-label-row {
+/* ---------- Full-screen flow: header with steps, side column, footer ---------- */
+
+.wizard-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  background: var(--ground);
 }
 
-.wizard-label-row > label {
+.wizard-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  padding: 14px 30px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.wizard-heading {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+}
+
+.wizard-heading h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.wizard-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--muted);
+}
+
+.wizard-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-steps li + li::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  margin-right: 4px;
+  background: var(--line);
+}
+
+.wizard-steps li.current {
+  color: var(--ink);
   font-weight: 500;
 }
 
-.wizard-info {
-  margin-top: 0;
-}
-
-/* Which model produced the suggestions - small print under the last group. */
-.wizard-model {
-  margin: 4px 0 0;
+.wizard-step-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
   font-size: 11px;
-  text-align: right;
-  opacity: 0.8;
 }
 
-.wizard-connection-group {
-  margin-bottom: 20px;
+.wizard-steps li.done .wizard-step-mark {
+  border-color: transparent;
+  background: var(--hover);
 }
 
-.wizard-connection-group h4 {
+.wizard-steps li.current .wizard-step-mark {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+}
+
+.wizard-header-info {
+  font-size: 12px;
+}
+
+.wizard-body {
+  flex: 1;
+  min-height: 0;
   display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: 0 0 10px;
-  font-size: 14px;
-  color: var(--color-accent);
+  flex-wrap: wrap;
+  gap: 32px;
+  padding: 26px 30px;
+  overflow: auto;
+  align-items: flex-start;
 }
 
-/* ---------- Day tabs (step 2) ---------- */
-
-.day-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  position: sticky;
-  top: -20px;
-  z-index: 30;
-  margin: -20px -20px 16px;
-  padding: 14px 20px;
-  background: var(--color-bg-raised);
-  border-bottom: 1px solid var(--color-border);
-}
-
-.day-tab {
+.wizard-side {
+  flex: 1 1 240px;
+  max-width: 290px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  min-width: 92px;
-  padding: 8px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  gap: 24px;
+  position: sticky;
+  top: 0;
 }
 
-.day-tab:hover {
-  border-color: var(--color-accent);
-  transform: translateY(-1px);
+.wizard-side-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.day-tab.selected {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  box-shadow: inset 0 -3px 0 var(--color-accent);
+.wizard-side-block .eyebrow {
+  padding: 0 10px 6px;
 }
 
-.day-tab-weekday {
-  font-weight: 600;
-  font-size: 12.5px;
-  text-transform: capitalize;
-  line-height: 1.1;
-}
-
-.day-tab-date {
-  font-size: 11.5px;
-  color: var(--color-text-muted);
-  line-height: 1.1;
-}
-
-.day-tab-hours {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 9px;
-  border-radius: 999px;
-  margin-top: 2px;
-}
-
-.day-tab-hours.ok,
-.wizard-total-hours.ok {
-  color: var(--color-success);
-  background: color-mix(in srgb, var(--color-success) 15%, transparent);
-}
-
-.day-tab-hours.under,
-.wizard-total-hours.under {
-  color: var(--color-warning);
-  background: color-mix(in srgb, var(--color-warning) 15%, transparent);
-}
-
-.day-tab-hours.over,
-.wizard-total-hours.over {
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 15%, transparent);
-}
-
-/* ---------- Step 2 header + layout toggle ---------- */
-
-.wizard-step2-head {
+.wizard-side-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  padding-right: 10px;
 }
 
-.wizard-layout-toggle {
-  display: inline-flex;
-  gap: 2px;
-  flex-shrink: 0;
+.wizard-side-title .eyebrow {
+  padding-bottom: 6px;
 }
 
-/* Sum of every project's entries for the days currently in view. */
-.wizard-total {
-  display: inline-flex;
+.wizard-side .hint {
+  margin: 12px 10px 0;
+}
+
+.wizard-pick {
+  display: flex;
   align-items: center;
-  gap: 7px;
-  margin-left: auto;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.wizard-pick:hover,
+.wizard-pick.selected {
+  background: var(--hover);
+}
+
+.wizard-pick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wizard-pick-text .mono {
+  font-size: 12px;
+}
+
+.wizard-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wizard-day:hover,
+.wizard-day.selected {
+  background: var(--hover);
+}
+
+.wizard-day-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.wizard-day-warn {
+  font-size: 12px;
+  color: var(--warning);
+}
+
+.wizard-day .meter > .under {
+  background: var(--warning);
+}
+
+.wizard-day .meter > .over {
+  background: var(--danger);
+}
+
+.wizard-hours {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.wizard-hours.under {
+  color: var(--warning);
+}
+
+.wizard-hours.over {
+  color: var(--danger);
+}
+
+.wizard-note-echo {
+  margin: 0 10px 6px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--ink) 80%, var(--muted));
+}
+
+.wizard-edit-context {
+  align-self: flex-start;
+  margin-left: 10px;
+}
+
+.wizard-main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wizard-empty {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.wizard-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 14px 30px;
+  border-top: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+
+/* ---------- Step 1: one card per selected project ---------- */
+
+.wizard-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.wizard-card-head,
+.wizard-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.wizard-card-head h2,
+.wizard-group-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.wizard-card-head .mono,
+.wizard-group-head .mono {
+  font-size: 12px;
+}
+
+.tag {
+  padding: 2px 8px;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+
+.wizard-commits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 11px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.wizard-commits .mono {
+  font-size: 12px;
+}
+
+.wizard-note {
+  margin: 0;
+}
+
+.wizard-allow-new {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: -4px;
+  font-size: 12px;
+}
+
+.suggestion-new-summary {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.wizard-note textarea {
+  min-height: 76px;
+}
+
+/* ---------- Step 2: review ---------- */
+
+.wizard-review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+}
+
+.wizard-review-head .hint {
+  margin: 0;
+  max-width: 640px;
+}
+
+.wizard-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-group-head {
+  padding: 0 4px 10px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.wizard-add {
+  align-self: flex-start;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.suggestion-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.suggestion-row.invalid {
+  box-shadow: inset 3px 0 0 var(--warning);
+  padding-left: 12px;
+}
+
+.suggestion-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.suggestion-issue {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.suggestion-issue .issue-autocomplete {
+  flex: 0 0 200px;
+}
+
+.suggestion-summary {
+  min-width: 0;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-date {
+  width: 150px;
+}
+
+.hours-stepper {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.hours-stepper button {
+  width: 28px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.hours-stepper button:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.hours-stepper input {
+  width: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-mono);
+  box-shadow: none;
+  -moz-appearance: textfield;
+}
+
+.hours-stepper input::-webkit-inner-spin-button,
+.hours-stepper input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.suggestion-remove {
+  color: var(--muted);
+}
+
+.suggestion-remove:hover {
+  color: var(--danger);
+}
+
+/* The description reads as text until it is focused. */
+.suggestion-desc {
+  min-height: 0;
+  padding: 6px 8px;
+  border-color: transparent;
+  background: transparent;
+  color: color-mix(in srgb, var(--ink) 82%, var(--muted));
+  resize: none;
+}
+
+.suggestion-desc:hover {
+  border-color: var(--line-soft);
+}
+
+.suggestion-desc:focus {
+  background: var(--surface);
+  resize: vertical;
+}
+
+.suggestion-extras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  padding: 0 8px;
+}
+
+.suggestion-text-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.suggestion-text-field input {
+  width: 200px;
+  padding: 5px 8px;
+}
+
+.regenerate-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.regenerate-box input {
+  flex: 1;
+}
+
+/* Also used by the entry editor's form. */
+.suggestion-row-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 90px auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.suggestion-custom-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.suggestion-custom-field-text {
+  margin-bottom: 0 !important;
+  min-width: 220px;
+}
+
+.project-color-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
   flex-shrink: 0;
-  font-size: 12.5px;
-  color: var(--color-text-muted);
 }
 
-.wizard-total-hours {
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 2px 10px;
-  border-radius: 999px;
-}
-
-/* ---------- Tabular layout ---------- */
+/* ---------- Table layout ---------- */
 
 .suggestion-table-wrap {
   overflow-x: auto;
@@ -164,18 +532,18 @@
 
 .suggestion-table th {
   text-align: left;
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line-soft);
   white-space: nowrap;
 }
 
 .suggestion-table td {
-  padding: 4px 6px;
+  padding: 5px 6px;
   vertical-align: middle;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .suggestion-table input {
@@ -212,9 +580,9 @@
   text-align: right;
 }
 
-/* Flag a row that still needs an issue, mirroring the card layout. */
+/* Flag a row that still needs an issue, like the card layout. */
 .suggestion-table tr.invalid td {
-  background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
 }
 
 /* Description cell: compact input that expands into a floating textarea. */
@@ -233,52 +601,38 @@
   z-index: 201;
   min-height: 120px;
   padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-accent);
-  background: var(--color-bg-raised);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--accent);
+  background: var(--surface);
   box-shadow: var(--shadow-popup);
   resize: vertical;
 }
 
-.suggestion-row {
-  margin-bottom: 14px;
+/* ---------- Prompt preview ---------- */
+
+.wizard-preview-section h4 {
+  margin: 0 0 8px;
 }
 
-.suggestion-row.invalid {
-  border-color: var(--color-warning);
+.wizard-preview-section + .wizard-preview-section {
+  margin-top: 18px;
 }
 
-.suggestion-row-grid {
-  display: grid;
-  grid-template-columns: 1fr 140px 80px auto;
-  gap: 12px;
-  align-items: start;
+.prompt-preview {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.5;
+  background: var(--ground);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  padding: 12px;
 }
 
-.wizard-project-section {
-  margin-bottom: 14px;
-}
-
-.wizard-project-section h4 {
-  margin: 0 0 10px;
-  font-size: 14px;
-}
-
-.suggestion-remove {
-  margin-top: 24px;
-}
-
-.suggestion-row .field {
-  margin-bottom: 10px;
-}
-
-.project-color-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+/* ---------- Issue type badge and autocomplete ---------- */
 
 .issue-type-badge {
   display: inline-flex;
@@ -295,51 +649,14 @@
   margin-right: 5px;
 }
 
-.suggestion-custom-fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.suggestion-custom-field-text {
-  margin-bottom: 0 !important;
-  min-width: 220px;
-}
-
-.regenerate-box {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.regenerate-box input {
-  flex: 1;
-}
-
-.prompt-preview {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  user-select: text;
-  font-family: Consolas, 'SF Mono', 'Cascadia Code', monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-}
-
-/* ---------- Issue autocomplete ---------- */
-
 .issue-autocomplete {
   position: relative;
 }
 
 .issue-autocomplete input {
   width: 100%;
+  font-family: var(--font-mono);
+  font-size: 13px;
 }
 
 .issue-autocomplete-input-row {
@@ -377,45 +694,47 @@
   transform: translateY(-50%);
   border: none;
   background: transparent;
-  color: var(--color-accent);
+  color: var(--accent);
   cursor: pointer;
   padding: 4px 6px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   font-size: 13px;
   line-height: 1;
 }
 
 .issue-link-btn:hover {
-  background: var(--color-accent-soft);
+  background: var(--accent-soft);
 }
 
 .issue-autocomplete-list {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 520px;
   z-index: 20;
   margin: 0;
-  padding: 4px;
+  padding: 6px;
   list-style: none;
-  background: var(--color-bg-raised);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   box-shadow: var(--shadow-popup);
-  max-height: 220px;
+  max-height: 260px;
   overflow: auto;
 }
 
 .issue-autocomplete-list button {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   text-align: left;
   background: none;
   border: none;
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  border-radius: calc(var(--radius-control) - 2px);
   cursor: pointer;
 }
 
@@ -433,5 +752,19 @@
 }
 
 .issue-autocomplete-list button:hover {
-  background: var(--color-bg-hover);
+  background: var(--hover);
+}
+
+@media (max-width: 900px) {
+  .wizard-header,
+  .wizard-body,
+  .wizard-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .wizard-side {
+    position: static;
+    max-width: none;
+  }
 }

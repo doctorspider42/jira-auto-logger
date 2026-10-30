@@ -14,13 +14,60 @@ export interface ThemeCopy {
 }
 
 /**
- * Themes are plain maps of CSS custom properties. Adding a theme means
- * adding an entry here (or, in the future, loading one from user config).
+ * A theme changes five layers and never the layout: palette, type, shape,
+ * texture and (optionally) voice. Spacing, density and hierarchy are the same
+ * in every theme, so no theme can break a screen - a plain theme is one entry
+ * here. The character themes (PS1, Clair Obscur, Animus, Y2K, maa-sn-ek...)
+ * add an effects stylesheet in styles/themes/, scoped under their
+ * `[data-theme]`, for what tokens can't express: CRT glass, falling petals,
+ * bevels, banners.
  */
+export interface ThemeTokens {
+  /** Which variant the webview draws native widgets in (scrollbars, date pickers). */
+  scheme: 'light' | 'dark'
+  // ---- Palette. Every text colour is checked at 4.5:1 on ground and surface.
+  /** Window background. */
+  ground: string
+  /** Panels, cards, inputs. */
+  surface: string
+  /** Hairlines and borders. */
+  line: string
+  /** Body text. */
+  ink: string
+  /** Secondary text; still 4.5:1. */
+  muted: string
+  /** Selection, today, focus and progress - used sparingly. */
+  accent: string
+  /** Text drawn on the accent. */
+  accentInk: string
+  /** The primary button. A colour, or a gradient where the theme calls for one. */
+  primary: string
+  primaryInk: string
+  danger: string
+  success: string
+  warning: string
+  // ---- Type
+  fontBody: string
+  fontDisplay: string
+  fontMono: string
+  /** `uppercase` for themes whose headings shout, else `none`. */
+  displayCase?: string
+  displayTracking?: string
+  // ---- Shape
+  /** Panels and cards. */
+  radius: string
+  /** Buttons, inputs, chips. `999px` makes pills. */
+  radiusControl: string
+  /** Box shadow of raised controls - bevels for Classic 95, else none. */
+  bevel?: string
+  // ---- Texture: at most one backdrop effect, never behind inputs.
+  texture?: string
+}
+
 export interface Theme {
   id: string
   nameKey: string
-  variables: Record<string, string>
+  tokens: ThemeTokens
   /**
    * Optional per-theme wording. Any key under the subtree wins over the same
    * key at the root of the locale file, so a theme can reword single labels
@@ -28,434 +75,432 @@ export interface Theme {
    */
   copy?: ThemeCopy
   /**
-   * Kept out of the theme dropdown in Settings. The theme itself works
-   * normally - `applyTheme` doesn't care - it just isn't offered, so reaching it
-   * takes either the unlock sequence on the Settings screen, a hand-edited
-   * `themeId` in config.json or `JAL_THEME=<id>` at launch. Once it is the
-   * active theme the dropdown lists it again, otherwise the control would show
-   * a value that isn't among its options.
+   * The theme paints its own window canvas (styles/themes/<id>.css): the
+   * system backdrop (Mica, Acrylic) is not let through, or it would wash the
+   * painting out.
+   */
+  canvas?: boolean
+  /**
+   * Kept out of the theme picker in Settings. The theme works normally, it is
+   * just not offered: reaching it takes the unlock sequence on the Settings
+   * screen, a hand-edited `themeId` in config.json or `JAL_THEME=<id>`.
    */
   hidden?: boolean
 }
 
-const shared = {
-  // Which variant Chromium draws native widgets in (the time input's clock
-  // icon, scrollbars, autofill). Dark themes override it; without it the icon
-  // is painted near-black and disappears into a dark input.
-  '--color-scheme': 'light',
-  '--radius-sm': '6px',
-  '--radius-md': '10px',
-  '--radius-lg': '14px',
-  '--font-family':
-    "'Segoe UI Variable', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif",
-  '--shadow-popup': '0 12px 40px rgba(0, 0, 0, 0.35)'
-}
+const SANS = "Geist, 'Segoe UI Variable', 'Segoe UI', -apple-system, system-ui, sans-serif"
+const MONO = "'Geist Mono', ui-monospace, 'Cascadia Code', Consolas, monospace"
+const TERMINAL = "VT323, 'Cascadia Code', Consolas, monospace"
+// Body copy of the terminal themes: VT323 is too small to read at 14px.
+const TERMINAL_BODY = "'Cascadia Code', Consolas, 'Courier New', monospace"
 
 export const THEMES: Theme[] = [
   {
+    // Graphite - neutral greys, one periwinkle accent, a white primary button.
     id: 'dark',
     nameKey: 'settings.themeDark',
-    variables: {
-      ...shared,
-      '--color-scheme': 'dark',
-      '--color-bg': '#111318',
-      '--color-bg-raised': '#1a1d24',
-      '--color-bg-hover': '#232733',
-      '--color-border': '#2c3140',
-      '--color-text': '#e8eaf0',
-      '--color-text-muted': '#9aa1b2',
-      '--color-accent': '#6d9eff',
-      '--color-accent-contrast': '#0d1117',
-      '--color-accent-soft': 'rgba(109, 158, 255, 0.16)',
-      '--color-danger': '#ff6b6b',
-      '--color-success': '#4fd28a',
-      '--color-warning': '#ffc857',
-      '--color-selection': 'rgba(109, 158, 255, 0.28)',
-      '--shadow-popup': '0 12px 40px rgba(0, 0, 0, 0.55)'
+    tokens: {
+      scheme: 'dark',
+      ground: '#0c0d10',
+      surface: '#131418',
+      line: '#23262d',
+      ink: '#edeef0',
+      muted: '#8e939e',
+      accent: '#9db4ff',
+      accentInk: '#0c0d10',
+      primary: '#edeef0',
+      primaryInk: '#0c0d10',
+      danger: '#ff8a7a',
+      success: '#6fd8a0',
+      warning: '#f0b85a',
+      fontBody: SANS,
+      fontDisplay: SANS,
+      fontMono: MONO,
+      radius: '14px',
+      radiusControl: '9px'
     }
   },
   {
+    // Paper - warm off-white, an ink-black primary button, cobalt for selection.
     id: 'light',
     nameKey: 'settings.themeLight',
-    variables: {
-      ...shared,
-      '--color-bg': '#f5f6f8',
-      '--color-bg-raised': '#ffffff',
-      '--color-bg-hover': '#eceef2',
-      '--color-border': '#d8dce4',
-      '--color-text': '#1d2330',
-      '--color-text-muted': '#5d6575',
-      '--color-accent': '#2f6fed',
-      '--color-accent-contrast': '#ffffff',
-      '--color-accent-soft': 'rgba(47, 111, 237, 0.12)',
-      '--color-danger': '#d64545',
-      '--color-success': '#1f9d5f',
-      '--color-warning': '#c98a12',
-      '--color-selection': 'rgba(47, 111, 237, 0.18)',
-      '--shadow-popup': '0 12px 40px rgba(30, 40, 60, 0.18)'
+    tokens: {
+      scheme: 'light',
+      ground: '#f6f5f1',
+      surface: '#ffffff',
+      line: '#e4e2dc',
+      ink: '#18181b',
+      muted: '#636260',
+      accent: '#2f5bea',
+      accentInk: '#ffffff',
+      primary: '#18181b',
+      primaryInk: '#ffffff',
+      danger: '#c8372d',
+      success: '#1d7f4e',
+      warning: '#9a6200',
+      fontBody: SANS,
+      fontDisplay: SANS,
+      fontMono: MONO,
+      radius: '14px',
+      radiusControl: '9px'
     }
   },
   {
+    // iteo brand. Navy carries text and the primary button; the brand orange
+    // only marks today, focus and progress - white or navy on #ff6500 is too
+    // weak for small text, so orange never carries a label.
     id: 'iteoLight',
     nameKey: 'settings.themeIteoLight',
-    variables: {
-      ...shared,
-      // iteo brand palette. Background, borders, graphite text and the orange
-      // accent come straight from the brandbook; success reuses the brand
-      // green. The brandbook defines no red, so the danger colour is picked to
-      // sit far enough from the orange accent to never be mistaken for it.
-      '--color-bg': '#f2f3f7',
-      '--color-bg-raised': '#ffffff',
-      '--color-bg-hover': '#e6e7eb',
-      '--color-border': '#d4d4d5',
-      '--color-text': '#040429',
-      '--color-text-muted': '#525258',
-      '--color-accent': '#ff6500',
-      // Dark-on-orange, not the brandbook's white-on-orange: white only
-      // reaches 2.9:1 against #ff6500, which is unreadable on small UI labels.
-      '--color-accent-contrast': '#040429',
-      '--color-accent-soft': 'rgba(255, 101, 0, 0.14)',
-      '--color-danger': '#d32f45',
-      '--color-success': '#00a150',
-      '--color-warning': '#b67a00',
-      '--color-selection': 'rgba(255, 101, 0, 0.22)',
-      '--font-family': "'Codec Cold', Verdana, 'Segoe UI', sans-serif",
-      '--shadow-popup': '0 12px 40px rgba(4, 4, 41, 0.18)'
+    tokens: {
+      scheme: 'light',
+      ground: '#f2f3f7',
+      surface: '#ffffff',
+      line: '#dcdde3',
+      ink: '#040429',
+      muted: '#52526a',
+      accent: '#ff6500',
+      accentInk: '#040429',
+      primary: '#040429',
+      primaryInk: '#ffffff',
+      danger: '#d32f45',
+      success: '#00a150',
+      warning: '#9a6200',
+      fontBody: "'Codec Cold', Geist, Verdana, 'Segoe UI', sans-serif",
+      fontDisplay: "'Codec Cold', Geist, Verdana, 'Segoe UI', sans-serif",
+      fontMono: MONO,
+      radius: '12px',
+      radiusControl: '8px'
     }
   },
   {
     id: 'iteoDark',
     nameKey: 'settings.themeIteoDark',
-    variables: {
-      ...shared,
-      // Same brand palette on the graphite surface colour. #27272e is what the
-      // brandbook actually fills dark areas with; #040429 is the ink colour and
-      // stays reserved for text (as a full background its blue cast reads as
-      // navy). Steps up from #27272e are kept neutral for the same reason.
-      // Success and warning are lightened so they stay legible on it.
-      '--color-scheme': 'dark',
-      '--color-bg': '#27272e',
-      '--color-bg-raised': '#32323a',
-      '--color-bg-hover': '#3e3e47',
-      '--color-border': '#4b4b55',
-      '--color-text': '#f2f3f7',
-      '--color-text-muted': '#a9a9ab',
-      '--color-accent': '#ff6500',
-      '--color-accent-contrast': '#040429',
-      '--color-accent-soft': 'rgba(255, 101, 0, 0.18)',
-      '--color-danger': '#ff5266',
-      '--color-success': '#10c46b',
-      '--color-warning': '#ffcb4d',
-      '--color-selection': 'rgba(255, 101, 0, 0.30)',
-      '--font-family': "'Codec Cold', Verdana, 'Segoe UI', sans-serif",
-      '--shadow-popup': '0 12px 40px rgba(0, 0, 0, 0.55)'
+    tokens: {
+      scheme: 'dark',
+      ground: '#1d1d24',
+      surface: '#27272e',
+      line: '#3d3d47',
+      ink: '#f2f3f7',
+      muted: '#a6a6b4',
+      accent: '#ff6500',
+      accentInk: '#040429',
+      primary: '#f2f3f7',
+      primaryInk: '#040429',
+      danger: '#ff7a8a',
+      success: '#3fd08a',
+      warning: '#f0b85a',
+      fontBody: "'Codec Cold', Geist, Verdana, 'Segoe UI', sans-serif",
+      fontDisplay: "'Codec Cold', Geist, Verdana, 'Segoe UI', sans-serif",
+      fontMono: MONO,
+      radius: '12px',
+      radiusControl: '8px'
     }
   },
   {
+    // Classic 95 - bevels only on real controls; the teal desktop shows
+    // around the window, not behind content.
     id: 'win95',
     nameKey: 'settings.themeWin95',
-    variables: {
-      ...shared,
-      // Teal desktop, gray window chrome, navy title-bar accents.
-      '--color-bg': '#008080',
-      '--color-bg-raised': '#c0c0c0',
-      '--color-bg-hover': '#d4d0c8',
-      '--color-border': '#808080',
-      '--color-text': '#000000',
-      '--color-text-muted': '#3f3f3f',
-      '--color-accent': '#000080',
-      '--color-accent-contrast': '#ffffff',
-      '--color-accent-soft': 'rgba(0, 0, 128, 0.15)',
-      '--color-danger': '#aa0000',
-      '--color-success': '#007000',
-      '--color-warning': '#7a6a00',
-      '--color-selection': 'rgba(0, 0, 128, 0.25)',
-      '--radius-sm': '0px',
-      '--radius-md': '0px',
-      '--radius-lg': '0px',
-      '--font-family': "Tahoma, 'MS Sans Serif', 'Segoe UI', sans-serif",
-      '--shadow-popup': '3px 3px 0 rgba(0, 0, 0, 0.5)'
+    tokens: {
+      scheme: 'light',
+      ground: '#008080',
+      surface: '#c0c0c0',
+      line: '#808080',
+      ink: '#000000',
+      muted: '#303030',
+      accent: '#000080',
+      accentInk: '#ffffff',
+      primary: '#c0c0c0',
+      primaryInk: '#000000',
+      danger: '#a00000',
+      success: '#006000',
+      warning: '#6b5200',
+      fontBody: "Tahoma, 'MS Sans Serif', 'Segoe UI', sans-serif",
+      fontDisplay: "Tahoma, 'MS Sans Serif', 'Segoe UI', sans-serif",
+      fontMono: "'Courier New', monospace",
+      radius: '0px',
+      radiusControl: '0px',
+      bevel: 'inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf'
     }
   },
   {
+    // Vault Terminal - single-hue phosphor; scanlines on the backdrop only.
     id: 'fallout',
     nameKey: 'settings.themeFallout',
-    variables: {
-      ...shared,
-      // Phosphor-green CRT terminal.
-      '--color-scheme': 'dark',
-      '--color-bg': '#031008',
-      '--color-bg-raised': '#07190d',
-      '--color-bg-hover': '#0c2a15',
-      '--color-border': '#1d5c31',
-      '--color-text': '#2fe36b',
-      '--color-text-muted': '#1e9c4a',
-      '--color-accent': '#3dff7d',
-      '--color-accent-contrast': '#031008',
-      '--color-accent-soft': 'rgba(61, 255, 125, 0.14)',
-      '--color-danger': '#ff6b4a',
-      '--color-success': '#3dff7d',
-      '--color-warning': '#ffd24a',
-      '--color-selection': 'rgba(61, 255, 125, 0.24)',
-      '--radius-sm': '2px',
-      '--radius-md': '3px',
-      '--radius-lg': '4px',
-      '--font-family': "'Cascadia Code', Consolas, 'Courier New', monospace",
-      '--shadow-popup': '0 0 28px rgba(61, 255, 125, 0.25)'
+    tokens: {
+      scheme: 'dark',
+      ground: '#031008',
+      surface: '#06160c',
+      line: '#1d5c31',
+      ink: '#3dff7d',
+      muted: '#2bb45a',
+      accent: '#3dff7d',
+      accentInk: '#031008',
+      primary: '#3dff7d',
+      primaryInk: '#031008',
+      danger: '#ff6a4d',
+      success: '#3dff7d',
+      warning: '#d8ff5a',
+      fontBody: TERMINAL_BODY,
+      fontDisplay: TERMINAL,
+      fontMono: TERMINAL_BODY,
+      displayCase: 'uppercase',
+      displayTracking: '0.04em',
+      radius: '0px',
+      radiusControl: '0px',
+      texture: 'repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 3px)'
     }
   },
   {
-  id: 'falloutNV',
-  nameKey: 'settings.themeFalloutNV',
-  variables: {
-    ...shared,
-    // Fallout: New Vegas amber Pip-Boy CRT.
-    '--color-scheme': 'dark',
-    '--color-bg': '#120a03',
-    '--color-bg-raised': '#1a1005',
-    '--color-bg-hover': '#261708',
-    '--color-border': '#8b5518',
-    '--color-text': '#ffb347',
-    '--color-text-muted': '#c98933',
-    '--color-accent': '#ffbf5a',
-    '--color-accent-contrast': '#120a03',
-    '--color-accent-soft': 'rgba(255, 191, 90, 0.14)',
-    '--color-danger': '#ff6240',
-    '--color-success': '#ffbf5a',
-    '--color-warning': '#ffd56a',
-    '--color-selection': 'rgba(255, 191, 90, 0.24)',
-    '--radius-sm': '2px',
-    '--radius-md': '3px',
-    '--radius-lg': '4px',
-    '--font-family': "'Cascadia Code', Consolas, 'Courier New', monospace",
-    '--shadow-popup': '0 0 28px rgba(255, 191, 90, 0.28)'
-  }
+    // New Vegas - the same terminal in Mojave amber.
+    id: 'falloutNV',
+    nameKey: 'settings.themeFalloutNV',
+    tokens: {
+      scheme: 'dark',
+      ground: '#120a03',
+      surface: '#1a1005',
+      line: '#6b4214',
+      ink: '#ffb347',
+      muted: '#d4923a',
+      accent: '#ffbf5a',
+      accentInk: '#120a03',
+      primary: '#ffb347',
+      primaryInk: '#120a03',
+      danger: '#ff6a4d',
+      success: '#c9e86a',
+      warning: '#ffd27a',
+      fontBody: TERMINAL_BODY,
+      fontDisplay: TERMINAL,
+      fontMono: TERMINAL_BODY,
+      displayCase: 'uppercase',
+      displayTracking: '0.04em',
+      radius: '0px',
+      radiusControl: '0px',
+      texture: 'repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 3px)'
+    }
   },
   {
+    // Memory Card (PS1) - the BIOS screen: CRT glass, hard bevels, dither and
+    // the four face-button colours. The effects live in styles/themes/ps1.css.
     id: 'ps1',
     nameKey: 'settings.themePs1',
-    variables: {
-      ...shared,
-      // Sony PlayStation BIOS: near-black blue CRT, and the four face-button
-      // colours doing the semantic work (○ red, △ green, ✕ blue) with the
-      // logo's yellow as the warning. Scanlines, dither and the hard bevels
-      // are layered on by the scoped `[data-theme='ps1']` rules in ps1.css.
-      '--color-scheme': 'dark',
-      '--color-bg': '#0a0a16',
-      '--color-bg-raised': '#16162b',
-      '--color-bg-hover': '#232347',
-      '--color-border': '#3c3c72',
-      '--color-text': '#e8e8f4',
-      '--color-text-muted': '#9a9ac4',
-      '--color-accent': '#6c8cff',
-      '--color-accent-contrast': '#06060f',
-      '--color-accent-soft': 'rgba(108, 140, 255, 0.18)',
-      '--color-danger': '#e4344a',
-      '--color-success': '#3dbf7a',
-      '--color-warning': '#ffc20e',
-      '--color-selection': 'rgba(108, 140, 255, 0.32)',
-      '--radius-sm': '0px',
-      '--radius-md': '2px',
-      '--radius-lg': '3px',
-      '--font-family': "Verdana, Tahoma, 'Segoe UI', sans-serif",
-      '--shadow-popup': '6px 6px 0 rgba(0, 0, 0, 0.65), 0 0 40px rgba(108, 140, 255, 0.22)'
+    canvas: true,
+    tokens: {
+      scheme: 'dark',
+      ground: '#0a0a16',
+      surface: '#15152a',
+      line: '#34346a',
+      ink: '#e8e8f4',
+      muted: '#a2a2c8',
+      accent: '#6c8cff',
+      accentInk: '#0a0a16',
+      primary: '#6c8cff',
+      primaryInk: '#0a0a16',
+      danger: '#ff7a8a',
+      success: '#6fe0a8',
+      warning: '#f0c35a',
+      fontBody: "Verdana, Tahoma, 'Segoe UI', sans-serif",
+      fontDisplay: "Verdana, Tahoma, 'Segoe UI', sans-serif",
+      fontMono: MONO,
+      displayCase: 'uppercase',
+      displayTracking: '0.12em',
+      radius: '2px',
+      radiusControl: '2px'
     }
   },
   {
+    // Hello Kitty - round everything: pill buttons, Comic Sans headings over
+    // Fredoka body copy, a quiet polka backdrop. Opaque: over the window
+    // backdrop the pale pinks lost all their contrast.
     id: 'helloKitty',
     nameKey: 'settings.themeHelloKitty',
-    variables: {
-      ...shared,
-      // Soft pink Sanrio look: pale pink desk, white cards, hot-pink accents.
-      '--color-bg': '#ffe4ef',
-      '--color-bg-raised': '#ffffff',
-      '--color-bg-hover': '#ffd6e8',
-      '--color-border': '#ffb6d5',
-      '--color-text': '#4a2c3a',
-      '--color-text-muted': '#9c6b82',
-      '--color-accent': '#ff4d94',
-      '--color-accent-contrast': '#ffffff',
-      '--color-accent-soft': 'rgba(255, 77, 148, 0.14)',
-      '--color-danger': '#e63950',
-      '--color-success': '#3fbf7f',
-      '--color-warning': '#f5a623',
-      '--color-selection': 'rgba(255, 77, 148, 0.22)',
-      '--radius-sm': '10px',
-      '--radius-md': '16px',
-      '--radius-lg': '22px',
-      '--font-family':
-        "'Comic Sans MS', 'Segoe UI Rounded', 'Segoe UI Variable', 'Segoe UI', sans-serif",
-      '--shadow-popup': '0 12px 40px rgba(255, 77, 148, 0.32)'
+    canvas: true,
+    tokens: {
+      scheme: 'light',
+      ground: '#ffe9f1',
+      surface: '#ffffff',
+      line: '#f5a8c8',
+      ink: '#38202c',
+      muted: '#6e3d56',
+      accent: '#d92c74',
+      accentInk: '#ffffff',
+      primary: '#d92c74',
+      primaryInk: '#ffffff',
+      danger: '#c0263a',
+      success: '#2f8a5a',
+      warning: '#9a6200',
+      fontBody: "Fredoka, 'Segoe UI', sans-serif",
+      fontDisplay: "'Comic Sans MS', Fredoka, 'Segoe UI', sans-serif",
+      fontMono: MONO,
+      radius: '18px',
+      radiusControl: '999px',
+      texture: 'radial-gradient(#ffdbe8 1.3px, transparent 1.4px) 0 0 / 16px 16px'
     }
   },
   {
+    // Y2K Chrome - Frutiger-Aero holographic sky, chrome and aqua candy; the
+    // one theme where gradients are the character (styles/themes/y2k.css).
     id: 'y2k',
     nameKey: 'settings.themeY2K',
-    variables: {
-      ...shared,
-      // Peak-2002 Frutiger-Aero / chrome / aqua look. Light frosty-candy
-      // surfaces keep the dark navy text readable everywhere; the glossy
-      // bevels, holographic gradients and chrome are layered on top by the
-      // scoped `[data-theme='y2k']` rules in y2k.css.
-      '--color-bg': '#a7e6ff',
-      '--color-bg-raised': '#f2fbff',
-      '--color-bg-hover': '#dff3ff',
-      '--color-border': '#5fb8e8',
-      '--color-text': '#0b1a52',
-      '--color-text-muted': '#3a5bb0',
-      '--color-accent': '#ff2fd6',
-      '--color-accent-contrast': '#ffffff',
-      '--color-accent-soft': 'rgba(0, 200, 255, 0.22)',
-      '--color-danger': '#ff2965',
-      '--color-success': '#00d47f',
-      '--color-warning': '#ffc400',
-      '--color-selection': 'rgba(0, 224, 255, 0.4)',
-      '--radius-sm': '10px',
-      '--radius-md': '16px',
-      '--radius-lg': '24px',
-      '--font-family': "'Trebuchet MS', 'Verdana', 'Comic Sans MS', 'Segoe UI', sans-serif",
-      '--shadow-popup':
-        '0 0 0 2px #ffffff, 0 16px 44px rgba(0, 40, 120, 0.45), 0 0 34px rgba(0, 200, 255, 0.55)'
+    canvas: true,
+    tokens: {
+      scheme: 'light',
+      ground: '#cdefff',
+      surface: '#f5fcff',
+      line: '#8ccdf0',
+      ink: '#0b1a52',
+      muted: '#3d5687',
+      accent: '#c3189f',
+      accentInk: '#ffffff',
+      primary: 'linear-gradient(#ff7be5, #c3189f)',
+      primaryInk: '#ffffff',
+      danger: '#c0263a',
+      success: '#16804d',
+      warning: '#8a5a00',
+      fontBody: "'Trebuchet MS', Verdana, 'Segoe UI', sans-serif",
+      fontDisplay: "Michroma, 'Trebuchet MS', sans-serif",
+      fontMono: MONO,
+      radius: '16px',
+      radiusControl: '999px',
+      bevel: 'inset 0 1px 0 rgba(255, 255, 255, 0.7)'
     }
   },
   {
+    // maa-sn-ek - a picket line: concrete wall, placards, one red signal
+    // (styles/themes/maa-sn-ek.css).
     id: 'maaSnEk',
     nameKey: 'settings.themeMaaSnEk',
     hidden: true,
-    variables: {
-      ...shared,
-      // Protest: a concrete wall, black paint, cardboard placards and red used
-      // as paint. Everything is squared off (nobody rounds the corners of a
-      // hand-cut placard) and the body font is a condensed photocopy-leaflet
-      // sans; the heavy poster typeface, the drips, the tape and the slogans
-      // are layered on by the scoped rules in maa-sn-ek.css.
-      //
-      // The surfaces are deliberately neutral grey, not red: a red canvas plus
-      // a red accent plus diagonal stripes reads as a cold-war propaganda
-      // poster rather than a street. Red only appears where paint would - the
-      // slogan, the active tab, the primary action.
-      //
-      // That leaves no room for a red danger colour anyone could tell apart
-      // from the accent, so danger is pushed towards crimson-pink AND
-      // destructive buttons get a hazard-yellow outline in the scoped CSS,
-      // which is what actually keeps them distinct from primary.
-      '--color-scheme': 'dark',
-      '--color-bg': '#16161a',
-      '--color-bg-raised': '#202025',
-      '--color-bg-hover': '#2b2b31',
-      '--color-border': '#3c3c43',
-      // Off-white poster paper rather than pure white.
-      '--color-text': '#ecebe6',
-      '--color-text-muted': '#9c9c96',
-      '--color-accent': '#e0322b',
-      '--color-accent-contrast': '#100403',
-      '--color-accent-soft': 'rgba(224, 50, 43, 0.18)',
-      '--color-danger': '#ff4d6d',
-      '--color-success': '#3fcf6a',
-      '--color-warning': '#ffd400',
-      '--color-selection': 'rgba(224, 50, 43, 0.34)',
-      '--radius-sm': '0px',
-      '--radius-md': '0px',
-      '--radius-lg': '0px',
-      '--font-family': "'Arial Narrow', Arial, 'Helvetica Neue', 'Segoe UI', sans-serif",
-      '--shadow-popup': '10px 10px 0 rgba(0, 0, 0, 0.8)'
+    canvas: true,
+    tokens: {
+      scheme: 'dark',
+      ground: '#16161a',
+      surface: '#202025',
+      line: '#3c3c43',
+      ink: '#ecebe6',
+      muted: '#a2a19b',
+      accent: '#e0322b',
+      accentInk: '#ffffff',
+      primary: '#e0322b',
+      primaryInk: '#ffffff',
+      danger: '#ff6a5f',
+      success: '#7fd49c',
+      warning: '#f0c35a',
+      fontBody: "'Archivo Narrow', 'Arial Narrow', Arial, sans-serif",
+      fontDisplay: "'Archivo Narrow', 'Arial Narrow', Arial, sans-serif",
+      fontMono: MONO,
+      displayCase: 'uppercase',
+      displayTracking: '0.02em',
+      radius: '0px',
+      radiusControl: '0px'
     }
   },
   {
+    // Clair Obscur - an oil canvas with petals drifting over it, old-style
+    // serif, gold only on type (styles/themes/clair-obscur.css).
     id: 'clairObscur',
     nameKey: 'settings.themeClairObscur',
-    // The expedition speaks for itself: its own loading messages instead of the
-    // shared jokes, and "We continue" on the button that commits the day.
+    canvas: true,
+    // The game's own voice: its loading lines, and "We Continue" on the button
+    // that commits the day.
     copy: { key: 'themeCopy.clairObscur', loadingMessages: 'replace' },
-    variables: {
-      ...shared,
-      // Clair Obscur: Expedition 33, sampled off its own menu screens: a black
-      // oil canvas (#070606), ink-blot panels, bone-white serif text, and gold
-      // doing all the accent work - the pale champagne #eccfa3 on headings, the
-      // richer #f6c037 on anything emphasised.
-      //
-      // Gold is the colour of TYPE in this game, never of surfaces; the selected
-      // tab is filled dark plum (#3a2132) instead. That split is enforced in
-      // clair-obscur.css, which is also where the drifting petals live.
-      '--color-scheme': 'dark',
-      '--color-bg': '#070606',
-      '--color-bg-raised': '#121110',
-      '--color-bg-hover': '#1d1a17',
-      // Warm off-white, not grey: every stroke in these menus is bone or
-      // parchment, and a neutral grey border goes blue against this much black.
-      '--color-border': '#4b443c',
-      '--color-text': '#f2efe9',
-      '--color-text-muted': '#a1968a',
-      '--color-accent': '#f6c037',
-      '--color-accent-contrast': '#1a1206',
-      '--color-accent-soft': 'rgba(246, 192, 55, 0.14)',
-      // The crimson of the health bars, lifted just far enough off the sampled
-      // #952b26 to stay legible as small text on near-black.
-      '--color-danger': '#b8382f',
-      // The game has no green anywhere, so success takes the pale champagne and
-      // accent keeps the saturated gold - they are told apart by lightness
-      // rather than by hue, which is how the game separates them too.
-      '--color-success': '#eccfa3',
-      '--color-warning': '#c08a2e',
-      '--color-selection': 'rgba(246, 192, 55, 0.28)',
-      // Nothing in this interface is rounded. Rectangles, elongated hexagons and
-      // rhombuses only - the softness comes from painted edges instead.
-      '--radius-sm': '0px',
-      '--radius-md': '0px',
-      '--radius-lg': '0px',
-      // An old-style serif, which is the single biggest thing that makes these
-      // menus look like themselves. Constantia and Cambria ship with Windows,
-      // Palatino and Garamond cover Office and macOS, so nothing is downloaded.
-      '--font-family':
-        "Constantia, 'Palatino Linotype', 'Book Antiqua', Garamond, Cambria, Georgia, 'Times New Roman', serif",
-      '--shadow-popup': '0 22px 60px rgba(0, 0, 0, 0.85)'
+    tokens: {
+      scheme: 'dark',
+      ground: '#070606',
+      surface: '#121110',
+      line: '#3a342d',
+      ink: '#f2efe9',
+      muted: '#a79f93',
+      accent: '#f6c037',
+      accentInk: '#070606',
+      primary: '#f6c037',
+      primaryInk: '#070606',
+      danger: '#ff7a6a',
+      success: '#eccfa3',
+      warning: '#d9a441',
+      // Constantia ships with Windows; Cormorant (bundled) stands in elsewhere.
+      fontBody: "Constantia, 'Palatino Linotype', 'Cormorant Garamond', Garamond, Georgia, serif",
+      fontDisplay: "Constantia, 'Palatino Linotype', 'Cormorant Garamond', Garamond, Georgia, serif",
+      fontMono: MONO,
+      displayTracking: '0.06em',
+      radius: '0px',
+      radiusControl: '0px'
     }
   },
   {
+    // Animus - steel-blue sky with formulas rising through fog, slate blocks
+    // with plain white type, cyan glints (styles/themes/animus.css).
     id: 'animus',
     nameKey: 'settings.themeAnimus',
-    // Abstergo's own loading lines, and "Synchronise" on the button that
-    // commits the day - logging time is just syncing with a memory.
+    canvas: true,
+    // Abstergo's loading lines, and "Synchronise" on the button that commits
+    // the day - logging time is just syncing with a memory.
     copy: { key: 'themeCopy.animus', loadingMessages: 'replace' },
-    variables: {
-      ...shared,
-      // Animus 1.28, the first Assassin's Creed, sampled off its menu screens:
-      // a cloudy steel-blue sky, dark slate label blocks with plain white type,
-      // solid black for the item you are on. The pale glowing cyan (#3fd8ff) is
-      // the Animus's information layer and does the accent work - on these dark
-      // blocks it is legible as text too. The sky, the rising nucleobase
-      // formulas and the `>` menu idiom live in animus.css.
-      '--color-scheme': 'dark',
-      '--color-bg': '#5d778b',
-      '--color-bg-raised': '#1b2630',
-      '--color-bg-hover': '#2a3946',
-      '--color-border': '#4a6072',
-      '--color-text': '#f2f7fa',
-      '--color-text-muted': '#aec1ce',
-      '--color-accent': '#3fd8ff',
-      '--color-accent-contrast': '#04202b',
-      '--color-accent-soft': 'rgba(63, 216, 255, 0.16)',
-      // Desynchronisation red.
-      '--color-danger': '#ff5c64',
-      '--color-success': '#5ee3a8',
-      '--color-warning': '#ffcf5a',
-      '--color-selection': 'rgba(63, 216, 255, 0.3)',
-      // The game's blocks are sharp rectangles, every one of them.
-      '--radius-sm': '0px',
-      '--radius-md': '0px',
-      '--radius-lg': '0px',
-      // A plain grotesque, as in the menus. Arial stands in on Windows.
-      '--font-family': "'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif",
-      '--shadow-popup': '0 18px 50px rgba(8, 14, 20, 0.55), 0 0 0 1px rgba(242, 247, 250, 0.12)'
+    tokens: {
+      scheme: 'dark',
+      ground: '#5d778b',
+      surface: '#1b2630',
+      line: '#4a6072',
+      ink: '#f2f7fa',
+      muted: '#b4c6d2',
+      accent: '#3fd8ff',
+      accentInk: '#04202b',
+      primary: '#3fd8ff',
+      primaryInk: '#04202b',
+      danger: '#ff5c64',
+      success: '#5ee3a8',
+      warning: '#ffcf5a',
+      fontBody: "'Inter Tight', Geist, sans-serif",
+      fontDisplay: "'Inter Tight', Geist, sans-serif",
+      fontMono: MONO,
+      displayCase: 'uppercase',
+      displayTracking: '0.08em',
+      radius: '0px',
+      radiusControl: '0px'
     }
   }
 ]
 
+/** The CSS custom properties a theme sets on `<html>`; components use only these. */
+function variablesOf(t: ThemeTokens): Record<string, string> {
+  return {
+    '--color-scheme': t.scheme,
+    '--ground': t.ground,
+    '--surface': t.surface,
+    '--line': t.line,
+    '--ink': t.ink,
+    '--muted': t.muted,
+    '--accent': t.accent,
+    '--accent-ink': t.accentInk,
+    '--primary': t.primary,
+    '--primary-ink': t.primaryInk,
+    '--danger': t.danger,
+    '--success': t.success,
+    '--warning': t.warning,
+    '--font-body': t.fontBody,
+    '--font-display': t.fontDisplay,
+    '--font-mono': t.fontMono,
+    '--display-case': t.displayCase ?? 'none',
+    '--display-tracking': t.displayTracking ?? '-0.02em',
+    '--radius': t.radius,
+    '--radius-control': t.radiusControl,
+    '--bevel': t.bevel ?? 'none',
+    '--texture': t.texture ?? 'none'
+  }
+}
+
+export function themeById(themeId: string): Theme {
+  return THEMES.find((t) => t.id === themeId) ?? THEMES[0]
+}
+
 export function applyTheme(themeId: string): void {
-  const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0]
+  const theme = themeById(themeId)
   const root = document.documentElement
-  for (const [name, value] of Object.entries(theme.variables)) {
+  for (const [name, value] of Object.entries(variablesOf(theme.tokens))) {
     root.style.setProperty(name, value)
   }
   root.dataset.theme = theme.id
+  root.dataset.scheme = theme.tokens.scheme
+  if (theme.canvas) root.dataset.canvas = ''
+  else delete root.dataset.canvas
 }

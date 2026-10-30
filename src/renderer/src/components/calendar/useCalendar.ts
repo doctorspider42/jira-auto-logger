@@ -25,20 +25,22 @@ export interface CalendarEntry extends Worklog {
 }
 
 /** A field marks an entry when its stored value is meaningfully set. */
-function isTruthyAttribute(type: 'string' | 'boolean', value: string | boolean | undefined): boolean {
+export function isTruthyAttribute(type: 'string' | 'boolean', value: string | boolean | undefined): boolean {
   if (value === undefined) return false
   if (type === 'boolean') return value === true || value === 'true'
   return typeof value === 'string' && value.trim() !== '' && value !== 'false'
 }
 
-export type CalendarView = 'month' | 'day'
+export type CalendarView = 'month' | 'week' | 'day'
 
 export interface CalendarState {
   view: CalendarView
   setView(view: CalendarView): void
   month: Date
-  /** Day focused in the day view. */
+  /** Day focused in the day view; its week is the one the week view shows. */
   focusedDay: Date
+  /** Monday..Sunday of the focused day's week. */
+  weekDays: Date[]
   /** All days of the visible grid (full weeks covering the month). */
   days: Date[]
   worklogsByDate: Map<string, CalendarEntry[]>
@@ -48,13 +50,26 @@ export interface CalendarState {
   error: AppError | null
   goToMonth(offset: number): void
   goToDay(offset: number): void
+  goToWeek(offset: number): void
   /** Focus a specific day and switch to the day view. */
   openDay(date: Date): void
+  /** Focus a specific day and switch to the week view. */
+  openWeek(date: Date): void
   goToToday(): void
   onDayMouseDown(date: Date): void
   onDayMouseEnter(date: Date): void
   clearSelection(): void
+  /** Selects exactly this day, as a click on it does. */
+  selectDay(date: Date): void
   reload(): void
+}
+
+/**
+ * The month whose grid is fetched for a week: the month of its Thursday. That
+ * month's grid always holds the whole week, also when the week crosses months.
+ */
+function monthOfWeek(date: Date): Date {
+  return startOfMonth(addDays(startOfWeek(date, { weekStartsOn: 1 }), 3))
 }
 
 /** Continuous ISO date range between two ISO dates, in either order. */
@@ -64,11 +79,10 @@ function isoRange(a: string, b: string): string[] {
 }
 
 /**
- * Calendar data + selection behaviour: a plain click opens the wizard for
- * that single day (via onQuickOpen), click-and-drag selects a range.
- * Worklogs are fetched from every active connection and merged.
+ * Calendar data + selection behaviour: a click selects a day, click-and-drag
+ * selects a range. Worklogs are fetched from every active connection and merged.
  */
-export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarState {
+export function useCalendar(): CalendarState {
   const config = useAppStore((s) => s.config)
   const [view, setView] = useState<CalendarView>('month')
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -167,19 +181,17 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     return map
   }, [entries])
 
-  // Finish the drag on mouseup anywhere: one day -> open the wizard
-  // immediately, a dragged range -> keep it selected for the toolbar action.
+  // Finish the drag on mouseup anywhere: the day or range stays selected and
+  // the panel beside the calendar offers what to do with it.
   useEffect(() => {
     if (!drag) return
     const onMouseUp = (): void => {
-      const range = isoRange(drag.anchor, drag.current)
       setDrag(null)
-      setSelected(new Set(range))
-      if (range.length === 1) onQuickOpen(range)
+      setSelected(new Set(isoRange(drag.anchor, drag.current)))
     }
     window.addEventListener('mouseup', onMouseUp)
     return () => window.removeEventListener('mouseup', onMouseUp)
-  }, [drag, onQuickOpen])
+  }, [drag])
 
   const onDayMouseDown = useCallback((date: Date): void => {
     const iso = toIsoDate(date)
@@ -206,6 +218,25 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     })
   }, [])
 
+  const goToWeek = useCallback((offset: number): void => {
+    setFocusedDay((d) => {
+      const next = addDays(d, offset * 7)
+      setMonth(monthOfWeek(next))
+      return next
+    })
+  }, [])
+
+  const openWeek = useCallback((date: Date): void => {
+    setFocusedDay(date)
+    setMonth(monthOfWeek(date))
+    setView('week')
+  }, [])
+
+  const weekDays = useMemo(() => {
+    const start = startOfWeek(focusedDay, { weekStartsOn: 1 })
+    return eachDayOfInterval({ start, end: addDays(start, 6) })
+  }, [focusedDay])
+
   const openDay = useCallback((date: Date): void => {
     setFocusedDay(date)
     setMonth((m) => (isSameMonth(date, m) ? m : startOfMonth(date)))
@@ -217,6 +248,7 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     setView,
     month,
     focusedDay,
+    weekDays,
     days,
     worklogsByDate,
     selected: visibleSelection,
@@ -224,15 +256,18 @@ export function useCalendar(onQuickOpen: (dates: string[]) => void): CalendarSta
     error,
     goToMonth: (offset) => setMonth((m) => addMonths(m, offset)),
     goToDay,
+    goToWeek,
     openDay,
+    openWeek,
     goToToday: () => {
       const now = new Date()
-      setMonth(startOfMonth(now))
+      setMonth(view === 'week' ? monthOfWeek(now) : startOfMonth(now))
       setFocusedDay(now)
     },
     onDayMouseDown,
     onDayMouseEnter,
     clearSelection: () => setSelected(new Set()),
+    selectDay: (date) => setSelected(new Set([toIsoDate(date)])),
     reload: () => setReloadCounter((c) => c + 1)
   }
 }

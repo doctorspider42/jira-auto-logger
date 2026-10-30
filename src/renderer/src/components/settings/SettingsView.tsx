@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type {
   AppConfig,
@@ -14,9 +14,10 @@ import {
 } from '@shared/reportFilename'
 import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
+import { Icon, type IconName } from '@/components/common/Icon'
 import { UpdateCheckButton } from '@/components/common/UpdateCheckButton'
 import { VersionHistoryModal } from '@/components/common/VersionHistoryModal'
-import { useAppStore } from '@/store/appStore'
+import { UPDATE_NOTIFYING_STATUSES, useAppStore } from '@/store/appStore'
 import { THEMES } from '@/theme/themes'
 import { openExternal } from '@/utils/external'
 import { formatHours } from '@/utils/format'
@@ -46,16 +47,24 @@ const TEMPO_TOKEN_HELP_URL = 'https://help.tempo.io/timesheets/latest/rest-api-a
 /** Icons available for the "show in calendar" marker of a custom field. */
 const CALENDAR_ICONS = ['⭐', '🔥', '🏠', '💰', '🌙', '🚨', '📞', '✈️', '🎓', '🐛', '🖌️']
 
-/** Sections listed in the side navigation, in document order. */
-const SETTINGS_SECTIONS = [
-  { id: 'connections', labelKey: 'settings.sectionConnections' },
-  { id: 'llm', labelKey: 'settings.sectionLlm' },
-  { id: 'appearance', labelKey: 'settings.sectionAppearance' },
-  { id: 'automation', labelKey: 'settings.sectionAutomation' },
-  { id: 'reports', labelKey: 'settings.sectionReports' },
-  { id: 'updates', labelKey: 'settings.sectionUpdates' },
-  { id: 'privacy', labelKey: 'settings.sectionPrivacy' }
-] as const
+/** Edits wait this long for the next keystroke before they are saved. */
+const AUTOSAVE_DELAY_MS = 600
+
+type SectionId = 'general' | 'accounts' | 'ai' | 'appearance' | 'automation' | 'reports' | 'about'
+
+/** The sections, each with the icon it carries in the list. */
+const SECTIONS: Array<{ id: SectionId; labelKey: string; icon: IconName }> = [
+  { id: 'general', labelKey: 'settings.sectionGeneral', icon: 'sliders' },
+  { id: 'accounts', labelKey: 'settings.sectionConnections', icon: 'link' },
+  { id: 'ai', labelKey: 'settings.sectionLlm', icon: 'sparkle' },
+  { id: 'appearance', labelKey: 'settings.sectionAppearance', icon: 'palette' },
+  { id: 'automation', labelKey: 'settings.sectionAutomation', icon: 'clock' },
+  { id: 'reports', labelKey: 'settings.sectionReports', icon: 'document' },
+  { id: 'about', labelKey: 'settings.sectionAbout', icon: 'shield' }
+]
+
+/** Tiles for the accounts, in order. */
+const ACCOUNT_TILES = ['#9db4ff', '#6fd8a0', '#f0b85a', '#f28cc0', '#b79bff', '#5cc8d0']
 
 /** Deep link to the API Integration page of the user's own Tempo instance. */
 function tempoTokenUrl(jiraBaseUrl: string): string {
@@ -64,10 +73,16 @@ function tempoTokenUrl(jiraBaseUrl: string): string {
   return `${base}/plugins/servlet/ac/io.tempo.jira/tempo-app#!/configuration/api-integration`
 }
 
+function hostOf(url: string): string {
+  return url.replace(/^https?:\/\//, '').replace(/\/+$/, '')
+}
+
 interface ConnectionTest {
   jira?: { name?: string; error?: AppError }
   tempo?: { skipped?: boolean; error?: AppError }
 }
+
+type SaveState = 'idle' | 'saving' | 'saved' | 'blocked' | 'failed'
 
 export function SettingsView(): JSX.Element {
   const { t } = useTranslation()
@@ -81,14 +96,23 @@ export function SettingsView(): JSX.Element {
   const [draft, setDraft] = useState<AppConfig>(() => structuredClone(saved))
   const [tests, setTests] = useState<Record<string, ConnectionTest>>({})
   const [testingId, setTestingId] = useState<string | null>(null)
-  const [savedFlash, setSavedFlash] = useState(false)
-  const [showBlockReason, setShowBlockReason] = useState(false)
+  const [saveState, setSaveState] = useState<SaveState>('idle')
   const [error, setError] = useState<AppError | null>(null)
   const [configPath, setConfigPath] = useState('')
   const [logPath, setLogPath] = useState('')
 
-  const [activeSection, setActiveSection] = useState<string>(SETTINGS_SECTIONS[0].id)
+  const [section, setSection] = useState<SectionId>('general')
   const [revealHiddenThemes, setRevealHiddenThemes] = useState(false)
+  // Account cards start open when there is just one, or one needs attention.
+  const [openAccounts, setOpenAccounts] = useState<Set<string>>(
+    () =>
+      new Set(
+        saved.connections
+          .filter((c, _, all) => all.length === 1 || !c.jira.apiToken || !c.tempo.apiToken)
+          .map((c) => c.id)
+      )
+  )
+  const [openFields, setOpenFields] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     void window.api.config.getFilePath().then(setConfigPath)
@@ -96,7 +120,7 @@ export function SettingsView(): JSX.Element {
   }, [])
 
   // Type the code anywhere on this screen to add the `hidden` themes to the
-  // dropdown for the rest of the session. Deliberately not persisted: whoever
+  // gallery for the rest of the session. Deliberately not persisted: whoever
   // wants one permanently either keeps it selected or edits config.json.
   useEffect(() => {
     if (revealHiddenThemes) return
@@ -114,47 +138,22 @@ export function SettingsView(): JSX.Element {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [revealHiddenThemes])
 
-  // Highlight the section currently scrolled into view in the side nav. The
-  // scroll container is `.app-main`; the bottom margin biases toward the
-  // section near the top of the viewport rather than whatever is centred.
-  useEffect(() => {
-    const root = document.querySelector('.app-main')
-    if (!root) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const onScreen = entries.filter((e) => e.isIntersecting)
-        if (onScreen.length === 0) return
-        const topmost = onScreen.reduce((a, b) =>
-          a.boundingClientRect.top <= b.boundingClientRect.top ? a : b
-        )
-        setActiveSection(topmost.target.id.replace('settings-section-', ''))
-      },
-      { root, rootMargin: '0px 0px -65% 0px', threshold: 0 }
-    )
-    for (const section of SETTINGS_SECTIONS) {
-      const el = document.getElementById(`settings-section-${section.id}`)
-      if (el) observer.observe(el)
-    }
-    return () => observer.disconnect()
-  }, [])
-
-  const goToSection = (id: string): void =>
-    document
-      .getElementById(`settings-section-${id}`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
-  const [autoLoggerHour = '17', autoLoggerMinute = '00'] = draft.autoLogger.runAt.split(':')
-
   const patch = (changes: Partial<AppConfig>): void => setDraft((d) => ({ ...d, ...changes }))
   const patchSection = <K extends keyof AppConfig>(key: K, changes: SectionPatch<K>): void =>
     setDraft((d) => ({ ...d, [key]: { ...(d[key] as object), ...changes } }))
 
-  const patchConnection = (id: string, update: (c: JiraConnection) => JiraConnection): void =>
+  const patchConnection = (id: string, change: (c: JiraConnection) => JiraConnection): void =>
     setDraft((d) => ({
       ...d,
-      connections: d.connections.map((c) => (c.id === id ? update(c) : c))
+      connections: d.connections.map((c) => (c.id === id ? change(c) : c))
     }))
+
+  const toggleIn = (set: Set<string>, id: string): Set<string> => {
+    const next = new Set(set)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    return next
+  }
 
   const addConnection = (): void => {
     const connection: JiraConnection = {
@@ -168,6 +167,7 @@ export function SettingsView(): JSX.Element {
       connections: [...d.connections, connection],
       activeConnectionIds: [...d.activeConnectionIds, connection.id]
     }))
+    setOpenAccounts((open) => new Set(open).add(connection.id))
   }
 
   const removeConnection = (id: string): void =>
@@ -182,12 +182,122 @@ export function SettingsView(): JSX.Element {
     if (path) patchSection('reports', { outputDirectory: path })
   }
 
+  // ---------- Custom fields ----------
+
+  const [workAttributes, setWorkAttributes] = useState<Record<string, TempoWorkAttribute[]>>({})
+  const [importingConnectionId, setImportingConnectionId] = useState<string | null>(null)
+  const [importError, setImportError] = useState<AppError | null>(null)
+
+  const newField = (connectionId: string, changes: Partial<CustomFieldConfig>): CustomFieldConfig => ({
+    id: crypto.randomUUID(),
+    connectionId,
+    key: '',
+    label: '',
+    type: 'string',
+    autoFill: true,
+    instruction: '',
+    showInCalendar: false,
+    calendarIcon: '',
+    ...changes
+  })
+
+  const addFieldFromAttribute = (connectionId: string, attribute: TempoWorkAttribute): void =>
+    patch({
+      customFields: [
+        ...draft.customFields,
+        newField(connectionId, {
+          key: attribute.key,
+          label: attribute.name,
+          type: attribute.type === 'CHECKBOX' ? 'boolean' : 'string'
+        })
+      ]
+    })
+
+  const addFieldManually = (connectionId: string): void => {
+    const field = newField(connectionId, {})
+    patch({ customFields: [...draft.customFields, field] })
+    setOpenFields((open) => new Set(open).add(field.id))
+  }
+
+  const patchField = (id: string, changes: Partial<CustomFieldConfig>): void =>
+    patch({ customFields: draft.customFields.map((f) => (f.id === id ? { ...f, ...changes } : f)) })
+
+  const removeField = (id: string): void =>
+    patch({ customFields: draft.customFields.filter((f) => f.id !== id) })
+
+  const invalidCustomFields = draft.customFields.filter(
+    (f) => !f.key.trim() || !f.label.trim() || !draft.connections.some((c) => c.id === f.connectionId)
+  )
+
+  /** Fields whose connection was removed - shown for cleanup. */
+  const orphanedFields = draft.customFields.filter(
+    (f) => !draft.connections.some((c) => c.id === f.connectionId)
+  )
+
+  const reportFilenameError = validateReportFilenameTemplate(draft.reports.filenameTemplate)
+  const now = new Date()
+  const reportFilenameMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const reportFilenamePreview = reportFilenameError
+    ? ''
+    : formatReportFilename(draft.reports.filenameTemplate, reportFilenameMonth, draft.reports.defaultLayout)
+  const reportFilenameErrorText = reportFilenameError ? t(`reports.filenameError.${reportFilenameError}`) : ''
+  const saveBlocked = invalidCustomFields.length > 0 || Boolean(reportFilenameError)
+  const saveBlockedReason = invalidCustomFields.length > 0 ? t('settings.fieldRequired') : reportFilenameErrorText
+
+  // ---------- Saving: every change is saved shortly after it is made ----------
+
+  const draftJson = useMemo(() => JSON.stringify(draft), [draft])
+  const savedJson = useMemo(() => JSON.stringify(saved), [saved])
+  const dirty = draftJson !== savedJson
+  /** The config this screen last wrote, to tell its own saves from outside ones. */
+  const lastWritten = useRef(savedJson)
+
+  // A change made elsewhere (the Reports screen picking a folder, the tray)
+  // flows in while nothing is being edited here.
+  useEffect(() => {
+    if (savedJson === lastWritten.current) return
+    lastWritten.current = savedJson
+    setDraft(structuredClone(saved))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedJson])
+
+  useEffect(() => {
+    if (!dirty) return
+    if (saveBlocked) {
+      setSaveState('blocked')
+      return
+    }
+    setSaveState('saving')
+    const timer = setTimeout(() => {
+      const snapshot = JSON.parse(draftJson) as AppConfig
+      lastWritten.current = draftJson
+      void saveConfig(snapshot).then((result) => {
+        if (result.ok) {
+          setSaveState('saved')
+          setError(null)
+        } else {
+          setSaveState('failed')
+          setError(result.error)
+        }
+      })
+    }, AUTOSAVE_DELAY_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftJson, saveBlocked])
+
+  /** Saves right away - for actions that read the config from the backend. */
+  const saveNow = async (): Promise<boolean> => {
+    if (saveBlocked) return false
+    lastWritten.current = draftJson
+    const result = await saveConfig(draft)
+    if (!result.ok) setError(result.error)
+    return result.ok
+  }
+
   const testConnection = async (connection: JiraConnection): Promise<void> => {
     setTests((all) => ({ ...all, [connection.id]: {} }))
     setTestingId(connection.id)
-    // Test with the draft values, not the saved ones.
-    await saveConfig(draft)
-
+    await saveNow()
     const jiraResult = await window.api.jira.testConnection(connection.id)
     if (!jiraResult.ok) {
       // Tempo needs the Jira accountId, so there is nothing more to test.
@@ -195,7 +305,6 @@ export function SettingsView(): JSX.Element {
       setTestingId(null)
       return
     }
-
     const result: ConnectionTest = { jira: { name: jiraResult.value.displayName } }
     if (connection.tempo.apiToken) {
       const tempoResult = await window.api.tempo.testConnection(connection.id)
@@ -207,17 +316,10 @@ export function SettingsView(): JSX.Element {
     setTestingId(null)
   }
 
-  // ---------- Custom fields ----------
-
-  const [workAttributes, setWorkAttributes] = useState<Record<string, TempoWorkAttribute[]>>({})
-  const [importingConnectionId, setImportingConnectionId] = useState<string | null>(null)
-  const [importError, setImportError] = useState<AppError | null>(null)
-
   const importWorkAttributes = async (connectionId: string): Promise<void> => {
     setImportingConnectionId(connectionId)
     setImportError(null)
-    // Fetch with the draft credentials, not the saved ones.
-    await saveConfig(draft)
+    await saveNow()
     const result = await window.api.tempo.getWorkAttributes(connectionId)
     setImportingConnectionId(null)
     if (result.ok) {
@@ -227,102 +329,19 @@ export function SettingsView(): JSX.Element {
     }
   }
 
-  const addFieldFromAttribute = (connectionId: string, attribute: TempoWorkAttribute): void =>
-    patch({
-      customFields: [
-        ...draft.customFields,
-        {
-          id: crypto.randomUUID(),
-          connectionId,
-          key: attribute.key,
-          label: attribute.name,
-          type: attribute.type === 'CHECKBOX' ? 'boolean' : 'string',
-          autoFill: true,
-          instruction: '',
-          showInCalendar: false,
-          calendarIcon: ''
-        }
-      ]
-    })
-
-  const addFieldManually = (connectionId: string): void =>
-    patch({
-      customFields: [
-        ...draft.customFields,
-        {
-          id: crypto.randomUUID(),
-          connectionId,
-          key: '',
-          label: '',
-          type: 'string',
-          autoFill: true,
-          instruction: '',
-          showInCalendar: false,
-          calendarIcon: ''
-        }
-      ]
-    })
-
-  const patchField = (id: string, changes: Partial<CustomFieldConfig>): void =>
-    patch({ customFields: draft.customFields.map((f) => (f.id === id ? { ...f, ...changes } : f)) })
-
-  const removeField = (id: string): void =>
-    patch({ customFields: draft.customFields.filter((f) => f.id !== id) })
-
-  const invalidCustomFields = draft.customFields.filter(
-    (f) =>
-      !f.key.trim() ||
-      !f.label.trim() ||
-      !draft.connections.some((c) => c.id === f.connectionId)
-  )
-
-  /** Fields whose connection was removed in this draft - shown for cleanup. */
-  const orphanedFields = draft.customFields.filter(
-    (f) => !draft.connections.some((c) => c.id === f.connectionId)
-  )
-
-  const reportFilenameError = validateReportFilenameTemplate(draft.reports.filenameTemplate)
-  const now = new Date()
-  const reportFilenameMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  const reportFilenamePreview = reportFilenameError
-    ? ''
-    : formatReportFilename(
-        draft.reports.filenameTemplate,
-        reportFilenameMonth,
-        draft.reports.defaultLayout
-      )
-  const reportFilenameErrorText = reportFilenameError
-    ? t(`reports.filenameError.${reportFilenameError}`)
-    : ''
-  const saveBlocked = invalidCustomFields.length > 0 || Boolean(reportFilenameError)
-  const saveBlockedReason =
-    invalidCustomFields.length > 0
-      ? t('settings.fieldRequired')
-      : reportFilenameErrorText || undefined
-
   const checkForUpdates = async (): Promise<void> => {
-    // Persist the selected mode first so the check honours it.
-    if (dirty) await saveConfig(draft)
+    await saveNow()
     await window.api.updates.check()
   }
 
   const runAutoLoggerNow = async (): Promise<void> => {
-    if (saveBlocked) {
-      setShowBlockReason(true)
-      return
-    }
     setAutoLoggerRunning(true)
     setAutoLoggerResult('')
     setError(null)
-
-    // Persist all visible automation choices before the main process reads them.
-    const savedResult = await saveConfig(draft)
-    if (!savedResult.ok) {
-      setError(savedResult.error)
+    if (!(await saveNow())) {
       setAutoLoggerRunning(false)
       return
     }
-
     const result = await window.api.autoLogger.runNow()
     setAutoLoggerRunning(false)
     if (!result.ok) {
@@ -341,296 +360,281 @@ export function SettingsView(): JSX.Element {
     }
   }
 
-  const save = async (): Promise<void> => {
-    // The button stays clickable even when blocked so the reason is reachable;
-    // clicking while blocked just surfaces why instead of silently doing nothing.
-    if (saveBlocked) {
-      setShowBlockReason(true)
-      return
-    }
-    setError(null)
-    const result = await saveConfig(draft)
-    if (!result.ok) {
-      setError(result.error)
-      return
-    }
-    setSavedFlash(true)
-    setTimeout(() => setSavedFlash(false), 2500)
+  // ---------- Small building blocks ----------
+
+  const toggleRow = (label: string, checked: boolean, onChange: (value: boolean) => void, hint?: string): JSX.Element => (
+    <label className="settings-row">
+      <span className="settings-row-label">
+        {label}
+        {hint && <HelpTip label={label}>{hint}</HelpTip>}
+      </span>
+      <span className="switch">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      </span>
+    </label>
+  )
+
+  const accountStatus = (connection: JiraConnection): { kind: 'ok' | 'warn' | 'error'; text: string } => {
+    const test = tests[connection.id]
+    if (test?.jira?.error || test?.tempo?.error) return { kind: 'error', text: t('settings.statusFailed') }
+    if (!connection.jira.baseUrl || !connection.jira.email || !connection.jira.apiToken)
+      return { kind: 'warn', text: t('settings.statusIncomplete') }
+    if (!connection.tempo.apiToken) return { kind: 'warn', text: t('settings.statusNoTempo') }
+    return { kind: 'ok', text: test?.jira ? t('settings.statusConnected') : t('settings.statusReady') }
   }
 
-  /** Reverts every unsaved edit back to the persisted config. */
-  const discard = (): void => {
-    setDraft(structuredClone(saved))
-    setError(null)
-    setShowBlockReason(false)
-  }
+  const accountsNeedAttention = draft.connections.some((c) => accountStatus(c).kind !== 'ok')
+  const updateAvailable = !!update?.status && UPDATE_NOTIFYING_STATUSES.has(update.status)
 
-  return (
-    <div className="settings-layout">
-      <nav className="settings-nav" aria-label={t('settings.title')}>
-        {SETTINGS_SECTIONS.map((section) => (
+  // ---------- Sections ----------
+
+  const renderField = (field: CustomFieldConfig): JSX.Element => {
+    const invalid = invalidCustomFields.includes(field)
+    const open = openFields.has(field.id) || invalid
+    return (
+      <div key={field.id} className={`settings-field ${invalid ? 'invalid' : ''}`}>
+        <div className="settings-field-row">
+          <span className="settings-field-name">
+            {field.calendarIcon && field.showInCalendar && <span aria-hidden>{field.calendarIcon}</span>}
+            <strong>{field.label || field.key || t('settings.fieldUnnamed')}</strong>
+            <span className="muted">
+              {field.type === 'boolean' ? t('settings.fieldTypeBoolean') : t('settings.fieldTypeString')}
+            </span>
+          </span>
+          <label className="switch">
+            <input type="checkbox" checked={field.autoFill} onChange={(e) => patchField(field.id, { autoFill: e.target.checked })} />
+            {t('settings.fieldAutoFillShort')}
+          </label>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={field.showInCalendar}
+              onChange={(e) =>
+                patchField(field.id, {
+                  showInCalendar: e.target.checked,
+                  // A default so the marker is visible right away.
+                  calendarIcon: e.target.checked && !field.calendarIcon ? CALENDAR_ICONS[0] : field.calendarIcon
+                })
+              }
+            />
+            {t('settings.fieldShowInCalendar')}
+          </label>
           <button
-            key={section.id}
-            className={`settings-nav-item ${activeSection === section.id ? 'active' : ''}`}
-            onClick={() => goToSection(section.id)}
+            className="btn btn-ghost btn-icon btn-sm"
+            aria-expanded={open}
+            aria-label={t('settings.fieldEdit')}
+            title={t('settings.fieldEdit')}
+            onClick={() => setOpenFields((all) => toggleIn(all, field.id))}
           >
-            {t(section.labelKey)}
+            <Icon name="more" />
           </button>
-        ))}
-      </nav>
-
-      <div className={`settings ${showBlockReason && saveBlocked ? 'save-attempted' : ''}`}>
-      <UpdateCheckButton onCheck={checkForUpdates} />
-      {error && <ErrorBanner error={error} />}
-
-      <section id="settings-section-connections" className="card settings-section">
-        <h3>{t('settings.sectionConnections')}</h3>
-        <p className="hint">{t('settings.connectionsHint')}</p>
-        {draft.connections.map((connection) => {
-          const test = tests[connection.id]
-          const fields = draft.customFields.filter((f) => f.connectionId === connection.id)
-          const attributes = workAttributes[connection.id]
-          const importable = (attributes ?? []).filter((a) => !fields.some((f) => f.key === a.key))
-          return (
-            <div key={connection.id} className="connection-card">
-              <div className="field-row">
-                <div className="field">
-                  <label>{t('settings.connectionName')}</label>
-                  <input
-                    value={connection.name}
-                    placeholder={t('settings.connectionNamePlaceholder')}
-                    onChange={(e) =>
-                      patchConnection(connection.id, (c) => ({ ...c, name: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="field">
-                  <label>{t('settings.jiraBaseUrl')}</label>
-                  <input
-                    value={connection.jira.baseUrl}
-                    onChange={(e) =>
-                      patchConnection(connection.id, (c) => ({
-                        ...c,
-                        jira: { ...c.jira, baseUrl: e.target.value.trim() }
-                      }))
-                    }
-                    spellCheck={false}
-                  />
-                </div>
-              </div>
-              <div className="field-row">
-                <div className="field">
-                  <label>{t('settings.jiraEmail')}</label>
-                  <input
-                    value={connection.jira.email}
-                    onChange={(e) =>
-                      patchConnection(connection.id, (c) => ({
-                        ...c,
-                        jira: { ...c.jira, email: e.target.value.trim() }
-                      }))
-                    }
-                    spellCheck={false}
-                  />
-                </div>
-                <div className="field">
-                  <div className="wizard-label-row">
-                    <label>
-                      {t('settings.jiraApiToken')}
-                      <HelpTip label={t('settings.jiraTokenHelp.title')}>
-                        <TokenHelp kind="jira" />
-                      </HelpTip>
-                    </label>
-                    <button className="btn btn-ghost btn-sm" onClick={() => openExternal(JIRA_TOKEN_URL)}>
-                      {t('settings.getToken')}
-                    </button>
-                  </div>
-                  <input
-                    type="password"
-                    value={connection.jira.apiToken}
-                    onChange={(e) =>
-                      patchConnection(connection.id, (c) => ({
-                        ...c,
-                        jira: { ...c.jira, apiToken: e.target.value.trim() }
-                      }))
-                    }
-                  />
-                </div>
-                <div className="field">
-                  <div className="wizard-label-row">
-                    <label>
-                      {t('settings.tempoApiToken')}
-                      <HelpTip label={t('settings.tempoTokenHelp.title')}>
-                        <TokenHelp kind="tempo" />
-                      </HelpTip>
-                    </label>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => openExternal(tempoTokenUrl(connection.jira.baseUrl))}
-                    >
-                      {t('settings.getToken')}
-                    </button>
-                  </div>
-                  <input
-                    type="password"
-                    value={connection.tempo.apiToken}
-                    onChange={(e) =>
-                      patchConnection(connection.id, (c) => ({
-                        ...c,
-                        tempo: { apiToken: e.target.value.trim() }
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-              <div className="settings-test-row">
-                <button
-                  className="btn"
-                  onClick={() => testConnection(connection)}
-                  disabled={testingId !== null}
+        </div>
+        {open && (
+          <div className="settings-field-editor">
+            <div className="settings-grid">
+              <label className="field">
+                <span>{t('settings.fieldLabel')}</span>
+                <input
+                  className={!field.label.trim() ? 'input-error' : undefined}
+                  value={field.label}
+                  onChange={(e) => patchField(field.id, { label: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>{t('settings.fieldKey')}</span>
+                <input
+                  className={`mono ${!field.key.trim() ? 'input-error' : ''}`}
+                  value={field.key}
+                  placeholder="_Attribute_"
+                  spellCheck={false}
+                  onChange={(e) => patchField(field.id, { key: e.target.value.trim() })}
+                />
+              </label>
+              <label className="field">
+                <span>{t('settings.fieldType')}</span>
+                <select
+                  value={field.type}
+                  onChange={(e) => patchField(field.id, { type: e.target.value as CustomFieldConfig['type'] })}
                 >
-                  {testingId === connection.id && <span className="spinner" />}
-                  {t('settings.testConnection')}
-                </button>
-                {test?.jira && !test.jira.error && (
-                  <span className="settings-test-ok">
-                    ✓ {t('settings.connectionOk', { name: test.jira.name })}
-                  </span>
-                )}
-                {test?.tempo && !test.tempo.error && !test.tempo.skipped && (
-                  <span className="settings-test-ok">✓ {t('settings.tempoOk')}</span>
-                )}
-                {test?.tempo?.skipped && <span className="hint">{t('settings.tempoSkipped')}</span>}
-                <span style={{ flex: 1 }} />
-                <button
-                  className="btn btn-ghost btn-sm btn-danger"
-                  onClick={() => removeConnection(connection.id)}
-                >
-                  {t('settings.removeConnection')}
-                </button>
-              </div>
-              {test?.jira?.error && <ErrorBanner error={test.jira.error} />}
-              {test?.tempo?.error && <ErrorBanner error={test.tempo.error} />}
-
-              <div className="custom-fields-group">
-                <h4>{t('settings.sectionCustomFields')}</h4>
-                <p className="hint">{t('settings.customFieldsHint')}</p>
-                {fields.map((field) => (
-                <div
-                  key={field.id}
-                  className={`connection-card ${invalidCustomFields.includes(field) ? 'invalid' : ''}`}
-                >
-                  <div className="field-row">
-                    <div className="field">
-                      <label>{t('settings.fieldKey')}</label>
-                      <input
-                        className={showBlockReason && !field.key.trim() ? 'input-error' : undefined}
-                        value={field.key}
-                        placeholder="_Attribute_"
-                        spellCheck={false}
-                        onChange={(e) => patchField(field.id, { key: e.target.value.trim() })}
-                      />
-                    </div>
-                    <div className="field">
-                      <label>{t('settings.fieldLabel')}</label>
-                      <input
-                        className={showBlockReason && !field.label.trim() ? 'input-error' : undefined}
-                        value={field.label}
-                        onChange={(e) => patchField(field.id, { label: e.target.value })}
-                      />
-                    </div>
-                    <div className="field">
-                      <label>{t('settings.fieldType')}</label>
-                      <select
-                        value={field.type}
-                        onChange={(e) =>
-                          patchField(field.id, { type: e.target.value as CustomFieldConfig['type'] })
-                        }
-                      >
-                        <option value="string">{t('settings.fieldTypeString')}</option>
-                        <option value="boolean">{t('settings.fieldTypeBoolean')}</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label>{t('settings.fieldInstruction')}</label>
-                    <textarea
-                      className="custom-field-instruction"
-                      value={field.instruction}
-                      placeholder={t('settings.fieldInstructionPlaceholder')}
-                      onChange={(e) => patchField(field.id, { instruction: e.target.value })}
-                    />
-                  </div>
-                  <div className="settings-test-row">
-                    <label className="settings-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={field.autoFill}
-                        onChange={(e) => patchField(field.id, { autoFill: e.target.checked })}
-                      />
-                      {t('settings.fieldAutoFill')}
-                    </label>
-                    <label className="settings-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={field.showInCalendar}
-                        onChange={(e) =>
-                          patchField(field.id, {
-                            showInCalendar: e.target.checked,
-                            // Sensible default so the marker is visible right away.
-                            calendarIcon:
-                              e.target.checked && !field.calendarIcon
-                                ? CALENDAR_ICONS[0]
-                                : field.calendarIcon
-                          })
-                        }
-                      />
-                      {t('settings.fieldShowInCalendar')}
-                    </label>
-                    {field.showInCalendar && (
-                      <label className="settings-checkbox" title={t('settings.fieldCalendarIcon')}>
-                        {t('settings.fieldCalendarIcon')}
-                        <select
-                          className="emoji-select"
-                          value={field.calendarIcon}
-                          onChange={(e) => patchField(field.id, { calendarIcon: e.target.value })}
-                        >
-                          {/* Keep a legacy manually-typed icon selectable. */}
-                          {field.calendarIcon && !CALENDAR_ICONS.includes(field.calendarIcon) && (
-                            <option value={field.calendarIcon}>{field.calendarIcon}</option>
-                          )}
-                          {CALENDAR_ICONS.map((icon) => (
-                            <option key={icon} value={icon}>
-                              {icon}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                  <option value="string">{t('settings.fieldTypeString')}</option>
+                  <option value="boolean">{t('settings.fieldTypeBoolean')}</option>
+                </select>
+              </label>
+              {field.showInCalendar && (
+                <label className="field">
+                  <span>{t('settings.fieldCalendarIcon')}</span>
+                  <select value={field.calendarIcon} onChange={(e) => patchField(field.id, { calendarIcon: e.target.value })}>
+                    {/* Keep a legacy manually-typed icon selectable. */}
+                    {field.calendarIcon && !CALENDAR_ICONS.includes(field.calendarIcon) && (
+                      <option value={field.calendarIcon}>{field.calendarIcon}</option>
                     )}
-                    <span style={{ flex: 1 }} />
-                    <button
-                      className="btn btn-ghost btn-sm btn-danger"
-                      onClick={() => removeField(field.id)}
-                    >
-                      {t('settings.removeFolder')}
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <div className="settings-test-row">
-                <button className="btn btn-sm" onClick={() => addFieldManually(connection.id)}>
-                  + {t('settings.addField')}
-                </button>
-                <button
-                  className="btn btn-sm"
-                  onClick={() => importWorkAttributes(connection.id)}
-                  disabled={importingConnectionId !== null}
-                >
+                    {CALENDAR_ICONS.map((icon) => (
+                      <option key={icon} value={icon}>
+                        {icon}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+            <label className="field">
+              <span>{t('settings.fieldInstruction')}</span>
+              <textarea
+                rows={2}
+                value={field.instruction}
+                placeholder={t('settings.fieldInstructionPlaceholder')}
+                onChange={(e) => patchField(field.id, { instruction: e.target.value })}
+              />
+            </label>
+            <button className="link link-danger" onClick={() => removeField(field.id)}>
+              {t('settings.fieldRemove')}
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderAccount = (connection: JiraConnection, index: number): JSX.Element => {
+    const open = openAccounts.has(connection.id)
+    const status = accountStatus(connection)
+    const test = tests[connection.id]
+    const fields = draft.customFields.filter((f) => f.connectionId === connection.id)
+    const attributes = workAttributes[connection.id]
+    const importable = (attributes ?? []).filter((a) => !fields.some((f) => f.key === a.key))
+    const name = connection.name || hostOf(connection.jira.baseUrl) || t('settings.newAccount')
+    return (
+      <div key={connection.id} className="settings-card settings-account">
+        <button
+          className="settings-account-head"
+          aria-expanded={open}
+          onClick={() => setOpenAccounts((all) => toggleIn(all, connection.id))}
+        >
+          <span className="settings-tile" style={{ background: ACCOUNT_TILES[index % ACCOUNT_TILES.length] }} aria-hidden>
+            {name.charAt(0).toUpperCase()}
+          </span>
+          <span className="settings-account-name">
+            <strong>{name}</strong>
+            <span className="mono muted">{hostOf(connection.jira.baseUrl) || '—'}</span>
+          </span>
+          <span className={`settings-pill ${status.kind}`}>{status.text}</span>
+          <span className={`settings-chevron ${open ? 'open' : ''}`} aria-hidden>
+            <Icon name="chevronDown" />
+          </span>
+        </button>
+
+        {open && (
+          <div className="settings-account-body">
+            <div className="settings-grid">
+              <label className="field">
+                <span>{t('settings.connectionName')}</span>
+                <input
+                  value={connection.name}
+                  placeholder={t('settings.connectionNamePlaceholder')}
+                  onChange={(e) => patchConnection(connection.id, (c) => ({ ...c, name: e.target.value }))}
+                />
+              </label>
+              <label className="field">
+                <span>{t('settings.jiraBaseUrl')}</span>
+                <input
+                  className="mono"
+                  value={connection.jira.baseUrl}
+                  placeholder="https://company.atlassian.net"
+                  spellCheck={false}
+                  onChange={(e) =>
+                    patchConnection(connection.id, (c) => ({ ...c, jira: { ...c.jira, baseUrl: e.target.value.trim() } }))
+                  }
+                />
+              </label>
+              <label className="field settings-grid-wide">
+                <span>{t('settings.jiraEmail')}</span>
+                <input
+                  value={connection.jira.email}
+                  spellCheck={false}
+                  onChange={(e) =>
+                    patchConnection(connection.id, (c) => ({ ...c, jira: { ...c.jira, email: e.target.value.trim() } }))
+                  }
+                />
+              </label>
+              <div className="field">
+                <span className="settings-label-row">
+                  {t('settings.jiraApiToken')}
+                  <HelpTip label={t('settings.jiraTokenHelp.title')}>
+                    <TokenHelp kind="jira" />
+                  </HelpTip>
+                  <button className="link" onClick={() => openExternal(JIRA_TOKEN_URL)}>
+                    {t('settings.getToken')} ↗
+                  </button>
+                </span>
+                <input
+                  type="password"
+                  aria-label={t('settings.jiraApiToken')}
+                  value={connection.jira.apiToken}
+                  onChange={(e) =>
+                    patchConnection(connection.id, (c) => ({ ...c, jira: { ...c.jira, apiToken: e.target.value.trim() } }))
+                  }
+                />
+              </div>
+              <div className="field">
+                <span className="settings-label-row">
+                  {t('settings.tempoApiToken')}
+                  <HelpTip label={t('settings.tempoTokenHelp.title')} align="end">
+                    <TokenHelp kind="tempo" />
+                  </HelpTip>
+                  <button className="link" onClick={() => openExternal(tempoTokenUrl(connection.jira.baseUrl))}>
+                    {t('settings.getToken')} ↗
+                  </button>
+                </span>
+                <input
+                  type="password"
+                  aria-label={t('settings.tempoApiToken')}
+                  className={connection.tempo.apiToken ? undefined : 'input-warning'}
+                  value={connection.tempo.apiToken}
+                  placeholder={t('settings.tempoTokenPlaceholder')}
+                  onChange={(e) => patchConnection(connection.id, (c) => ({ ...c, tempo: { apiToken: e.target.value.trim() } }))}
+                />
+              </div>
+            </div>
+
+            <div className="settings-actions">
+              <button className="btn" onClick={() => testConnection(connection)} disabled={testingId !== null}>
+                {testingId === connection.id && <span className="spinner" />}
+                {t('settings.testConnection')}
+              </button>
+              {test?.jira && !test.jira.error && (
+                <span className="settings-ok">
+                  ✓ {t('settings.connectionOk', { name: test.jira.name })}
+                  {test.tempo && !test.tempo.error && !test.tempo.skipped && ` · ${t('settings.tempoOk')}`}
+                </span>
+              )}
+              {test?.tempo?.skipped && <span className="settings-warn">{t('settings.tempoSkipped')}</span>}
+              <span className="spacer" />
+              <button className="btn btn-ghost btn-danger" onClick={() => removeConnection(connection.id)}>
+                {t('settings.removeConnection')}
+              </button>
+            </div>
+            {test?.jira?.error && <ErrorBanner error={test.jira.error} />}
+            {test?.tempo?.error && <ErrorBanner error={test.tempo.error} />}
+
+            <div className="settings-fields">
+              <div className="settings-fields-head">
+                <h3>
+                  {t('settings.sectionCustomFields')}
+                  <HelpTip label={t('settings.sectionCustomFields')}>{t('settings.customFieldsHint')}</HelpTip>
+                </h3>
+                <span className="spacer" />
+                <button className="link" onClick={() => importWorkAttributes(connection.id)} disabled={importingConnectionId !== null}>
                   {importingConnectionId === connection.id && <span className="spinner" />}
                   {t('settings.importFields')}
                 </button>
+                <button className="link" onClick={() => addFieldManually(connection.id)}>
+                  + {t('settings.addField')}
+                </button>
               </div>
+              {fields.length === 0 && !attributes && <p className="muted settings-empty">{t('settings.fieldsEmpty')}</p>}
+              {fields.map(renderField)}
               {attributes && (
-                <div className="chip-list" style={{ marginTop: 8 }}>
+                <div className="chip-list">
                   {importable.length === 0 ? (
                     <span className="hint">{t('settings.importFieldsEmpty')}</span>
                   ) : (
@@ -647,530 +651,596 @@ export function SettingsView(): JSX.Element {
                   )}
                 </div>
               )}
-              </div>
             </div>
-          )
-        })}
-
-        {importError && <ErrorBanner error={importError} />}
-
-        {orphanedFields.length > 0 && (
-          <div className="custom-fields-group">
-            <h4>{t('settings.fieldOrphaned')}</h4>
-            {orphanedFields.map((field) => (
-              <div key={field.id} className="connection-card invalid">
-                <div className="settings-test-row">
-                  <span>
-                    <strong>{field.label || field.key}</strong>{' '}
-                    <span className="hint">{field.key}</span>
-                  </span>
-                  <span style={{ flex: 1 }} />
-                  <button
-                    className="btn btn-ghost btn-sm btn-danger"
-                    onClick={() => removeField(field.id)}
-                  >
-                    {t('settings.removeFolder')}
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         )}
+      </div>
+    )
+  }
 
-        {invalidCustomFields.length > 0 && (
-          <p className="hint settings-folder-warning">{t('settings.fieldRequired')}</p>
-        )}
+  const renderAccounts = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>
+          {t('settings.sectionConnections')}
+          <HelpTip label={t('settings.sectionConnections')}>{t('settings.connectionsHint')}</HelpTip>
+        </h2>
+      </header>
+      {draft.connections.map(renderAccount)}
+      {importError && <ErrorBanner error={importError} />}
+      {orphanedFields.length > 0 && (
+        <div className="settings-card settings-card-pad">
+          <h3>{t('settings.fieldOrphaned')}</h3>
+          {orphanedFields.map((field) => (
+            <div key={field.id} className="settings-actions">
+              <span>
+                <strong>{field.label || field.key}</strong> <span className="muted mono">{field.key}</span>
+              </span>
+              <span className="spacer" />
+              <button className="link link-danger" onClick={() => removeField(field.id)}>
+                {t('settings.fieldRemove')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button className="settings-add" onClick={addConnection}>
+        <Icon name="plus" />
+        {t('settings.addConnection')}
+      </button>
+    </>
+  )
 
-        <button className="btn" onClick={addConnection}>
-          + {t('settings.addConnection')}
-        </button>
-      </section>
+  const providers: Array<{ id: LlmBackendId; name: string; note: string }> = [
+    { id: 'claude-cli', name: t('settings.backendClaude'), note: t('settings.backendClaudeNote') },
+    { id: 'copilot-cli', name: t('settings.backendCopilot'), note: t('settings.backendCopilotNote') },
+    { id: 'openai-api', name: t('settings.backendOpenAi'), note: t('settings.backendOpenAiNote') }
+  ]
 
-      <section id="settings-section-llm" className="card settings-section">
-        <h3>{t('settings.sectionLlm')}</h3>
-        <div className="field">
-          <label>{t('settings.llmBackend')}</label>
-          <select
-            value={draft.llm.backend}
-            onChange={(e) => patchSection('llm', { backend: e.target.value as LlmBackendId })}
-          >
-            <option value="claude-cli">{t('settings.backendClaude')}</option>
-            <option value="copilot-cli">{t('settings.backendCopilot')}</option>
-            <option value="openai-api">{t('settings.backendOpenAi')}</option>
-          </select>
+  const renderAi = (): JSX.Element => {
+    const backend = draft.llm.backend
+    const cli = backend !== 'openai-api'
+    return (
+      <>
+        <header className="settings-head">
+          <h2>{t('settings.sectionLlm')}</h2>
+          <p className="muted">{t('settings.llmLead')}</p>
+        </header>
+        <div className="settings-tiles" role="radiogroup" aria-label={t('settings.llmBackend')}>
+          {providers.map((provider) => (
+            <button
+              key={provider.id}
+              role="radio"
+              aria-checked={backend === provider.id}
+              className={`settings-choice ${backend === provider.id ? 'selected' : ''}`}
+              onClick={() => patchSection('llm', { backend: provider.id })}
+            >
+              <span className="settings-choice-title">
+                {provider.name}
+                <span className="settings-radio" aria-hidden />
+              </span>
+              <span className="muted">{provider.note}</span>
+            </button>
+          ))}
         </div>
 
-        {draft.llm.backend === 'claude-cli' && (
-          <div className="field-row">
-            <div className="field">
-              <label>{t('settings.claudeCliPath')}</label>
-              <input
-                value={draft.llm.claudeCliPath}
-                onChange={(e) => patchSection('llm', { claudeCliPath: e.target.value.trim() })}
-                spellCheck={false}
-              />
-            </div>
-            <div className="field">
-              <label>{t('settings.cliModel')}</label>
-              <ModelSelect
-                value={draft.llm.claudeModel}
-                models={BACKEND_MODELS['claude-cli']}
-                allowDefault
-                onChange={(model) => patchSection('llm', { claudeModel: model })}
-              />
-            </div>
-          </div>
-        )}
-        {draft.llm.backend === 'copilot-cli' && (
-          <div className="field-row">
-            <div className="field">
-              <label>{t('settings.copilotCliPath')}</label>
-              <input
-                value={draft.llm.copilotCliPath}
-                onChange={(e) => patchSection('llm', { copilotCliPath: e.target.value.trim() })}
-                spellCheck={false}
-              />
-            </div>
-            <div className="field">
-              <label>{t('settings.cliModel')}</label>
-              <ModelSelect
-                value={draft.llm.copilotModel}
-                models={BACKEND_MODELS['copilot-cli']}
-                allowDefault
-                onChange={(model) => patchSection('llm', { copilotModel: model })}
-              />
-            </div>
-          </div>
-        )}
-        {draft.llm.backend === 'openai-api' && (
-          <>
-            <div className="field-row">
-              <div className="field">
-                <label>{t('settings.openAiApiKey')}</label>
+        <div className="settings-card settings-card-pad">
+          {cli ? (
+            <>
+              <div className="settings-grid">
+                <div className="field">
+                  <span>{t('settings.cliModel')}</span>
+                  <ModelSelect
+                    value={backend === 'claude-cli' ? draft.llm.claudeModel : draft.llm.copilotModel}
+                    models={BACKEND_MODELS[backend]}
+                    allowDefault
+                    onChange={(model) =>
+                      patchSection('llm', backend === 'claude-cli' ? { claudeModel: model } : { copilotModel: model })
+                    }
+                  />
+                </div>
+                <label className="field">
+                  <span className="settings-label-row">
+                    {backend === 'claude-cli' ? t('settings.claudeCliPath') : t('settings.copilotCliPath')}
+                    <HelpTip label={t('settings.cliPathHelpLabel')}>{t('settings.cliPathHint')}</HelpTip>
+                  </span>
+                  <input
+                    className="mono"
+                    value={backend === 'claude-cli' ? draft.llm.claudeCliPath : draft.llm.copilotCliPath}
+                    spellCheck={false}
+                    onChange={(e) =>
+                      patchSection(
+                        'llm',
+                        backend === 'claude-cli'
+                          ? { claudeCliPath: e.target.value.trim() }
+                          : { copilotCliPath: e.target.value.trim() }
+                      )
+                    }
+                  />
+                </label>
+              </div>
+              <div className="settings-actions">
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={draft.llm.enableThinking}
+                    onChange={(e) => patchSection('llm', { enableThinking: e.target.checked })}
+                  />
+                  {t('settings.enableThinking')}
+                </label>
+                <HelpTip label={t('settings.enableThinking')}>{t('settings.enableThinkingHint')}</HelpTip>
+                <span className="spacer" />
+                {backend === 'claude-cli' && (
+                  <button className="link" onClick={() => void window.api.llm.startClaudeLogin()}>
+                    {t('settings.claudeSignIn')}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="field">
+                <span className="settings-label-row">
+                  {t('settings.openAiApiKey')}
+                  <button className="link" onClick={() => openExternal('https://platform.openai.com/api-keys')}>
+                    {t('settings.getKey')} ↗
+                  </button>
+                </span>
                 <input
                   type="password"
                   value={draft.llm.openAi.apiKey}
-                  onChange={(e) =>
-                    patchSection('llm', { openAi: { ...draft.llm.openAi, apiKey: e.target.value.trim() } })
-                  }
+                  onChange={(e) => patchSection('llm', { openAi: { ...draft.llm.openAi, apiKey: e.target.value.trim() } })}
                 />
+              </label>
+              <div className="settings-grid">
+                <div className="field">
+                  <span>{t('settings.openAiModel')}</span>
+                  <ModelSelect
+                    value={draft.llm.openAi.model}
+                    models={BACKEND_MODELS['openai-api']}
+                    onChange={(model) => patchSection('llm', { openAi: { ...draft.llm.openAi, model } })}
+                  />
+                </div>
+                <label className="field">
+                  <span className="settings-label-row">
+                    {t('settings.openAiBaseUrl')}
+                    <HelpTip label={t('settings.openAiBaseUrl')} align="end">
+                      {t('settings.openAiBaseUrlHint')}
+                    </HelpTip>
+                  </span>
+                  <input
+                    className="mono"
+                    value={draft.llm.openAi.baseUrl}
+                    spellCheck={false}
+                    onChange={(e) =>
+                      patchSection('llm', { openAi: { ...draft.llm.openAi, baseUrl: e.target.value.trim() } })
+                    }
+                  />
+                </label>
               </div>
-              <div className="field">
-                <label>{t('settings.openAiModel')}</label>
-                <ModelSelect
-                  value={draft.llm.openAi.model}
-                  models={BACKEND_MODELS['openai-api']}
-                  onChange={(model) =>
-                    patchSection('llm', { openAi: { ...draft.llm.openAi, model } })
-                  }
-                />
-              </div>
-            </div>
-            <div className="field">
-              <label>{t('settings.openAiBaseUrl')}</label>
+            </>
+          )}
+        </div>
+
+        <div className="settings-card">
+          <div className="settings-row">
+            <span className="settings-row-label">
+              {t('settings.issuePoolTitle')}
+              <HelpTip label={t('settings.issuePoolTitle')}>{t('settings.issuePoolHint')}</HelpTip>
+            </span>
+            <span className="settings-sentence">
+              {t('settings.issuePoolUpTo')}
               <input
-                value={draft.llm.openAi.baseUrl}
-                onChange={(e) =>
-                  patchSection('llm', { openAi: { ...draft.llm.openAi, baseUrl: e.target.value.trim() } })
-                }
-                spellCheck={false}
+                type="number"
+                min={1}
+                max={500}
+                step={10}
+                aria-label={t('settings.issueMaxCount')}
+                value={draft.issuePool.maxIssues}
+                onChange={(e) => patchSection('issuePool', { maxIssues: Number(e.target.value) || 100 })}
               />
-            </div>
-          </>
-        )}
-
-        <div className="field">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.llm.enableThinking}
-              onChange={(e) => patchSection('llm', { enableThinking: e.target.checked })}
+              {t('settings.issuePoolUpdated')}
+              <input
+                type="number"
+                min={1}
+                max={365}
+                aria-label={t('settings.issueLookbackDays')}
+                value={draft.issuePool.lookbackDays}
+                onChange={(e) => patchSection('issuePool', { lookbackDays: Number(e.target.value) || 60 })}
+              />
+              {t('settings.issuePoolDays')}
+            </span>
+          </div>
+          <label className="settings-row settings-row-column">
+            <span className="settings-row-label">
+              {t('settings.additionalInstructions')}
+              <HelpTip label={t('settings.additionalInstructions')}>{t('settings.additionalInstructionsHint')}</HelpTip>
+            </span>
+            <textarea
+              rows={3}
+              value={draft.llm.additionalInstructions}
+              placeholder={t('settings.additionalInstructionsPlaceholder')}
+              spellCheck={false}
+              onChange={(e) => patchSection('llm', { additionalInstructions: e.target.value })}
             />
-            {t('settings.enableThinking')}
           </label>
-          <span className="hint">{t('settings.enableThinkingHint')}</span>
         </div>
+      </>
+    )
+  }
 
-        <div className="field-row">
-          <div className="field">
-            <label>{t('settings.issueLookbackDays')}</label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              step={1}
-              value={draft.issuePool.lookbackDays}
-              onChange={(e) =>
-                patchSection('issuePool', { lookbackDays: Number(e.target.value) || 60 })
-              }
-            />
-          </div>
-          <div className="field">
-            <label>{t('settings.issueMaxCount')}</label>
-            <input
-              type="number"
-              min={1}
-              max={500}
-              step={10}
-              value={draft.issuePool.maxIssues}
-              onChange={(e) => patchSection('issuePool', { maxIssues: Number(e.target.value) || 100 })}
-            />
-          </div>
-        </div>
-        <p className="hint" style={{ marginTop: -6 }}>
-          {t('settings.issuePoolHint')}
-        </p>
-
-        <div className="field">
-          <label>{t('settings.additionalInstructions')}</label>
-          <textarea
-            className="settings-prompt"
-            value={draft.llm.additionalInstructions}
-            placeholder={t('settings.additionalInstructionsPlaceholder')}
-            onChange={(e) => patchSection('llm', { additionalInstructions: e.target.value })}
-            spellCheck={false}
-          />
-          <span className="hint">{t('settings.additionalInstructionsHint')}</span>
-        </div>
-      </section>
-
-      <section id="settings-section-appearance" className="card settings-section">
-        <h3>{t('settings.sectionAppearance')}</h3>
-        <div className="field-row">
-          <div className="field">
-            <label>{t('settings.language')}</label>
-            <select
-              value={draft.language}
-              onChange={(e) => patch({ language: e.target.value as AppConfig['language'] })}
+  const renderAppearance = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionAppearance')}</h2>
+      </header>
+      <div className="settings-themes" role="radiogroup" aria-label={t('settings.theme')}>
+        {THEMES.filter((theme) => !theme.hidden || revealHiddenThemes || theme.id === draft.themeId).map((theme) => {
+          const tokens = theme.tokens
+          return (
+            <button
+              key={theme.id}
+              role="radio"
+              aria-checked={draft.themeId === theme.id}
+              className={`settings-theme ${draft.themeId === theme.id ? 'selected' : ''}`}
+              onClick={() => patch({ themeId: theme.id })}
             >
-              <option value="pl">Polski</option>
-              <option value="en">English</option>
-            </select>
+              <span className="settings-theme-preview" style={{ background: tokens.ground }} aria-hidden>
+                <span style={{ background: tokens.surface }} />
+                <span className="settings-theme-body">
+                  <span style={{ background: tokens.ink }} />
+                  <span style={{ background: tokens.surface }} />
+                </span>
+                <span className="settings-theme-accent" style={{ background: tokens.accent }} />
+              </span>
+              <span className="settings-theme-name">{t(theme.nameKey)}</span>
+            </button>
+          )
+        })}
+      </div>
+
+    </>
+  )
+
+  const renderGeneral = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionGeneral')}</h2>
+      </header>
+      <div className="settings-card">
+        <div className="settings-row">
+          <span className="settings-row-label">{t('settings.language')}</span>
+          <div className="segmented" role="group" aria-label={t('settings.language')}>
+            {(['pl', 'en'] as const).map((language) => (
+              <button
+                key={language}
+                className={draft.language === language ? 'active' : ''}
+                onClick={() => patch({ language })}
+              >
+                {language === 'pl' ? 'Polski' : 'English'}
+              </button>
+            ))}
           </div>
-          <div className="field">
-            <label>{t('settings.theme')}</label>
-            <select value={draft.themeId} onChange={(e) => patch({ themeId: e.target.value })}>
-              {THEMES.filter(
-                (theme) => !theme.hidden || revealHiddenThemes || theme.id === draft.themeId
-              ).map((theme) => (
-                <option key={theme.id} value={theme.id}>
-                  {t(theme.nameKey)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>{t('settings.workingHours')}</label>
+        </div>
+        <div className="settings-row">
+          <span className="settings-row-label">
+            {t('settings.workingDay')}
+            <span className="muted settings-row-note">{t('settings.workingDayNote')}</span>
+          </span>
+          <span className="settings-sentence">
             <input
               type="number"
               min={1}
               max={24}
               step={0.5}
+              aria-label={t('settings.workingHours')}
               value={draft.workingHoursPerDay}
               onChange={(e) => patch({ workingHoursPerDay: Number(e.target.value) || 8 })}
             />
-          </div>
-          <div className="field">
-            <label>{t('settings.workdayStart')}</label>
+            {t('settings.workingDayHours')}
             <input
               type="time"
+              aria-label={t('settings.workdayStart')}
               value={draft.workdayStart}
               onChange={(e) => patch({ workdayStart: e.target.value || '09:00' })}
             />
-          </div>
+          </span>
         </div>
-        <div className="field">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.showWeekends}
-              onChange={(e) => patch({ showWeekends: e.target.checked })}
-            />
-            {t('settings.showWeekends')}
-          </label>
-        </div>
-      </section>
+        {toggleRow(t('settings.showWeekends'), draft.showWeekends, (value) => patch({ showWeekends: value }))}
+      </div>
+    </>
+  )
 
-      <section id="settings-section-automation" className="card settings-section">
-        <h3>{t('settings.sectionAutomation')}</h3>
-        <p className="hint">{t('settings.autoLoggerHint')}</p>
-        <div className="field-row">
-          <div className="field">
-            <label>{t('settings.autoLoggerMode')}</label>
-            <select
-              value={draft.autoLogger.mode}
-              onChange={(e) =>
-                patchSection('autoLogger', {
-                  mode: e.target.value as AppConfig['autoLogger']['mode']
-                })
-              }
-            >
-              <option value="off">{t('settings.autoLoggerOff')}</option>
-              <option value="notify">{t('settings.autoLoggerNotify')}</option>
-              <option value="confirm">{t('settings.autoLoggerConfirm')}</option>
-              <option value="auto">{t('settings.autoLoggerAuto')}</option>
-            </select>
-          </div>
-          <div className="field">
-            <label>{t('settings.autoLoggerRunAt')}</label>
-            <div className="settings-time-24h">
-              <select
-                value={autoLoggerHour}
-                disabled={draft.autoLogger.mode === 'off'}
-                aria-label={t('settings.autoLoggerHour')}
-                onChange={(e) =>
-                  patchSection('autoLogger', {
-                    runAt: `${e.target.value}:${autoLoggerMinute}`
-                  })
-                }
-              >
-                {Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0')).map(
-                  (hour) => (
-                    <option key={hour} value={hour}>
-                      {hour}
-                    </option>
-                  )
-                )}
-              </select>
-              <span aria-hidden>:</span>
-              <select
-                value={autoLoggerMinute}
-                disabled={draft.autoLogger.mode === 'off'}
-                aria-label={t('settings.autoLoggerMinute')}
-                onChange={(e) =>
-                  patchSection('autoLogger', {
-                    runAt: `${autoLoggerHour}:${e.target.value}`
-                  })
-                }
-              >
-                {Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0')).map(
-                  (minute) => (
-                    <option key={minute} value={minute}>
-                      {minute}
-                    </option>
-                  )
-                )}
-              </select>
-              <span className="hint">24h</span>
-            </div>
-          </div>
-        </div>
-        {draft.autoLogger.mode === 'notify' && (
-          <p className="hint">{t('settings.autoLoggerNotifyHint')}</p>
-        )}
-        {/* Notify-only asks the user to pick projects itself, so the remembered
-            selection only matters to the modes that generate. */}
-        {(draft.autoLogger.mode === 'confirm' || draft.autoLogger.mode === 'auto') && (
-          <p className="hint">
-            {draft.lastUsed.selections.length > 0
-              ? t('settings.autoLoggerRecentReady', { count: draft.lastUsed.selections.length })
-              : t('settings.autoLoggerRecentMissing')}
-          </p>
-        )}
-        <p className="hint">{t('settings.autoLoggerScheduleHint')}</p>
-        <div className="settings-test-row">
-          <button
-            className="btn"
-            onClick={runAutoLoggerNow}
-            disabled={draft.autoLogger.mode === 'off' || autoLoggerRunning}
-          >
-            {autoLoggerRunning && <span className="spinner" />}
-            {autoLoggerRunning
-              ? t('settings.autoLoggerRunning')
-              : t('settings.autoLoggerRunNow')}
-          </button>
-          {autoLoggerResult && <span className="settings-test-ok">{autoLoggerResult}</span>}
-        </div>
-        <div className="field">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.autoLogger.launchAtLogin}
-              onChange={(e) => patchSection('autoLogger', { launchAtLogin: e.target.checked })}
-            />
-            {t('settings.launchAtLogin')}
-          </label>
-        </div>
-        <div className="field">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.autoLogger.minimizeToTray}
-              onChange={(e) => patchSection('autoLogger', { minimizeToTray: e.target.checked })}
-            />
-            {t('settings.minimizeToTray')}
-          </label>
-          <span className="hint">{t('settings.minimizeToTrayHint')}</span>
-        </div>
-      </section>
+  const [autoLoggerHour = '17', autoLoggerMinute = '00'] = draft.autoLogger.runAt.split(':')
+  const modes: Array<{ id: AppConfig['autoLogger']['mode']; title: string; note: string }> = [
+    { id: 'off', title: t('settings.autoLoggerOff'), note: t('settings.autoLoggerOffNote') },
+    { id: 'notify', title: t('settings.autoLoggerNotify'), note: t('settings.autoLoggerNotifyNote') },
+    { id: 'confirm', title: t('settings.autoLoggerConfirm'), note: t('settings.autoLoggerConfirmNote') },
+    { id: 'auto', title: t('settings.autoLoggerAuto'), note: t('settings.autoLoggerAutoNote') }
+  ]
 
-      <section id="settings-section-reports" className="card settings-section">
-        <h3>{t('settings.sectionReports')}</h3>
-        <p className="hint">{t('settings.reportsHint')}</p>
-        <div className="field">
-          <label>{t('settings.reportOutputDirectory')}</label>
-          <div className="settings-path-picker">
-            <input
-              value={draft.reports.outputDirectory}
-              placeholder={t('settings.reportOutputDefault')}
-              onChange={(e) => patchSection('reports', { outputDirectory: e.target.value })}
-              spellCheck={false}
-            />
-            <button className="btn" onClick={pickReportsFolder}>
-              {t('settings.chooseFolder')}
-            </button>
-            {draft.reports.outputDirectory && (
-              <button
-                className="btn btn-ghost"
-                onClick={() => patchSection('reports', { outputDirectory: '' })}
-              >
-                {t('settings.useDefaultFolder')}
-              </button>
-            )}
-          </div>
-        </div>
-        <div className={`field settings-report-filename ${reportFilenameError ? 'invalid' : ''}`}>
-          <label>{t('reports.filenameTemplate')}</label>
-          <input
-            value={draft.reports.filenameTemplate}
-            onChange={(e) => patchSection('reports', { filenameTemplate: e.target.value })}
-            placeholder="{MM}.{YYYY}.pdf"
-            spellCheck={false}
-            aria-invalid={reportFilenameError ? 'true' : 'false'}
-          />
-          <div className="settings-report-filename-meta">
-            <span className="hint">
-              {t('reports.filenameTokens')}{' '}
-              <code>{'{MM}'}</code> <code>{'{YYYY}'}</code>{' '}
-              <code>{'{YYYY-MM}'}</code> <code>{'{layout}'}</code>
-            </span>
-            {reportFilenamePreview && (
-              <span>
-                {t('reports.filenamePreview')} <code>{reportFilenamePreview}</code>
-              </span>
-            )}
-          </div>
-          {reportFilenameErrorText && (
-            <span className="settings-report-filename-error">{reportFilenameErrorText}</span>
-          )}
-        </div>
-        <div className="field-row settings-report-options-row">
-          <div className="field">
-            <label>{t('settings.reportReminder')}</label>
+  const renderAutomation = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionAutomation')}</h2>
+      </header>
+      <div className="settings-card settings-card-pad">
+        <p className="settings-sentence settings-sentence-lead">
+          {t('settings.autoLoggerEvery')}
+          <span className="settings-time-24h">
             <select
-              value={
-                draft.reports.reminderOffsetDays === null
-                  ? 'off'
-                  : String(draft.reports.reminderOffsetDays)
-              }
-              onChange={(e) =>
-                patchSection('reports', {
-                  reminderOffsetDays: e.target.value === 'off' ? null : Number(e.target.value)
-                })
-              }
+              value={autoLoggerHour}
+              aria-label={t('settings.autoLoggerHour')}
+              onChange={(e) => patchSection('autoLogger', { runAt: `${e.target.value}:${autoLoggerMinute}` })}
             >
-              <option value="off">{t('settings.reportReminderOff')}</option>
-              {Array.from({ length: 15 }, (_, index) => index - 7).map((offset) => (
-                <option key={offset} value={offset}>
-                  {offset < 0
-                    ? t('settings.reportReminderBefore', { count: Math.abs(offset) })
-                    : offset > 0
-                      ? t('settings.reportReminderAfter', { count: offset })
-                      : t('settings.reportReminderMonthEnd')}
+              {Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0')).map((hour) => (
+                <option key={hour} value={hour}>
+                  {hour}
                 </option>
               ))}
             </select>
-          </div>
-          <div className="field">
-            <label>{t('settings.reportDefaultLayout')}</label>
+            <span aria-hidden>:</span>
             <select
-              value={draft.reports.defaultLayout}
-              onChange={(e) =>
-                patchSection('reports', {
-                  defaultLayout: e.target.value as AppConfig['reports']['defaultLayout']
-                })
-              }
+              value={autoLoggerMinute}
+              aria-label={t('settings.autoLoggerMinute')}
+              onChange={(e) => patchSection('autoLogger', { runAt: `${autoLoggerHour}:${e.target.value}` })}
             >
-              <option value="summary">{t('reports.layoutSummary')}</option>
-              <option value="detailed">{t('reports.layoutDetailed')}</option>
+              {Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
+                .concat(Number(autoLoggerMinute) % 5 ? [autoLoggerMinute] : [])
+                .sort()
+                .map((minute) => (
+                  <option key={minute} value={minute}>
+                    {minute}
+                  </option>
+                ))}
             </select>
-            <span className="hint">{t('settings.reportAdvancedDefaultsHint')}</span>
-          </div>
+          </span>
+          {t('settings.autoLoggerTheApp')}
+        </p>
+        <div className="settings-modes" role="radiogroup" aria-label={t('settings.autoLoggerMode')}>
+          {modes.map((mode) => (
+            <button
+              key={mode.id}
+              role="radio"
+              aria-checked={draft.autoLogger.mode === mode.id}
+              className={`settings-choice settings-mode ${draft.autoLogger.mode === mode.id ? 'selected' : ''}`}
+              onClick={() => patchSection('autoLogger', { mode: mode.id })}
+            >
+              <span className="settings-radio" aria-hidden />
+              <span className="settings-mode-text">
+                <strong>{mode.title}</strong>
+                <span className="muted">{mode.note}</span>
+              </span>
+            </button>
+          ))}
         </div>
-      </section>
+        {(draft.autoLogger.mode === 'confirm' || draft.autoLogger.mode === 'auto') &&
+          draft.lastUsed.selections.length === 0 && (
+            <p className="settings-warn">{t('settings.autoLoggerRecentMissing')}</p>
+          )}
+        <div className="settings-actions settings-actions-top">
+          <span className="muted">{t('settings.autoLoggerScheduleShort')}</span>
+          <span className="spacer" />
+          {autoLoggerResult && <span className="settings-ok">{autoLoggerResult}</span>}
+          <button className="btn" onClick={runAutoLoggerNow} disabled={draft.autoLogger.mode === 'off' || autoLoggerRunning}>
+            {autoLoggerRunning && <span className="spinner" />}
+            {autoLoggerRunning ? t('settings.autoLoggerRunning') : t('settings.autoLoggerRunNow')}
+          </button>
+        </div>
+      </div>
+      <div className="settings-card">
+        {toggleRow(t('settings.launchAtLogin'), draft.autoLogger.launchAtLogin, (value) =>
+          patchSection('autoLogger', { launchAtLogin: value })
+        )}
+        {toggleRow(
+          t('settings.minimizeToTray'),
+          draft.autoLogger.minimizeToTray,
+          (value) => patchSection('autoLogger', { minimizeToTray: value }),
+          t('settings.minimizeToTrayHint')
+        )}
+      </div>
+    </>
+  )
 
-      <section id="settings-section-updates" className="card settings-section">
-        <h3>{t('settings.sectionUpdates')}</h3>
-        <div className="field-row">
-          <div className="field">
-            <label>{t('settings.updateMode')}</label>
-            <select
-              value={draft.updates.mode}
-              onChange={(e) =>
-                patchSection('updates', { mode: e.target.value as AppConfig['updates']['mode'] })
-              }
-            >
-              <option value="ask">{t('settings.updateModeAsk')}</option>
-              <option value="auto">{t('settings.updateModeAuto')}</option>
-              <option value="off">{t('settings.updateModeOff')}</option>
-            </select>
-          </div>
-          <div className="field">
-            <label>{t('settings.currentVersion')}</label>
-            <input value={update?.currentVersion ?? ''} readOnly spellCheck={false} />
+  const renderReports = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionReports')}</h2>
+      </header>
+      <div className="settings-card">
+        <div className="settings-row">
+          <span className="settings-row-label">{t('settings.reportOutputDirectory')}</span>
+          <span className="mono muted settings-path">{draft.reports.outputDirectory || t('settings.reportOutputDefault')}</span>
+          <button className="btn btn-sm" onClick={pickReportsFolder}>
+            {t('settings.chooseFolder')}
+          </button>
+          {draft.reports.outputDirectory && (
+            <button className="link" onClick={() => patchSection('reports', { outputDirectory: '' })}>
+              {t('settings.useDefaultFolder')}
+            </button>
+          )}
+        </div>
+        <label className={`settings-row settings-row-column ${reportFilenameError ? 'invalid' : ''}`}>
+          <span className="settings-row-label">
+            {t('reports.filenameTemplate')}
+            <HelpTip label={t('reports.filenameTemplate')}>
+              {t('reports.filenameTokens')} <code>{'{MM}'}</code> <code>{'{YYYY}'}</code> <code>{'{YYYY-MM}'}</code>{' '}
+              <code>{'{layout}'}</code>
+            </HelpTip>
+          </span>
+          <input
+            className={`mono ${reportFilenameError ? 'input-error' : ''}`}
+            value={draft.reports.filenameTemplate}
+            placeholder="{MM}.{YYYY}.pdf"
+            spellCheck={false}
+            aria-invalid={reportFilenameError ? 'true' : 'false'}
+            onChange={(e) => patchSection('reports', { filenameTemplate: e.target.value })}
+          />
+          {reportFilenameErrorText ? (
+            <span className="settings-error">{reportFilenameErrorText}</span>
+          ) : (
+            <span className="muted settings-row-note">
+              {t('settings.forExample')} <span className="mono">{reportFilenamePreview}</span>
+            </span>
+          )}
+        </label>
+        <div className="settings-row">
+          <span className="settings-row-label">{t('settings.reportDefaultLayout')}</span>
+          <div className="segmented" role="group" aria-label={t('settings.reportDefaultLayout')}>
+            {(['summary', 'detailed'] as const).map((layout) => (
+              <button
+                key={layout}
+                className={draft.reports.defaultLayout === layout ? 'active' : ''}
+                onClick={() => patchSection('reports', { defaultLayout: layout })}
+              >
+                {t(layout === 'summary' ? 'reports.layoutSummary' : 'reports.layoutDetailed')}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="settings-test-row">
-          <button className="btn btn-ghost" onClick={() => setShowHistory(true)}>
+        <div className="settings-row">
+          <span className="settings-row-label">
+            {t('settings.reportReminder')}
+            <span className="muted settings-row-note">{t('settings.reportReminderNote')}</span>
+          </span>
+          <select
+            value={draft.reports.reminderOffsetDays === null ? 'off' : String(draft.reports.reminderOffsetDays)}
+            onChange={(e) =>
+              patchSection('reports', { reminderOffsetDays: e.target.value === 'off' ? null : Number(e.target.value) })
+            }
+          >
+            <option value="off">{t('settings.reportReminderOff')}</option>
+            {Array.from({ length: 15 }, (_, index) => index - 7).map((offset) => (
+              <option key={offset} value={offset}>
+                {offset < 0
+                  ? t('settings.reportReminderBefore', { count: Math.abs(offset) })
+                  : offset > 0
+                    ? t('settings.reportReminderAfter', { count: offset })
+                    : t('settings.reportReminderMonthEnd')}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </>
+  )
+
+  const renderAbout = (): JSX.Element => (
+    <>
+      <header className="settings-head">
+        <h2>{t('settings.sectionAbout')}</h2>
+      </header>
+      <div className={`settings-card settings-card-pad settings-version ${updateAvailable ? 'available' : ''}`}>
+        <span className="settings-version-text">
+          <strong>
+            {updateAvailable
+              ? t('settings.versionReady', { version: update?.availableVersion })
+              : t('settings.versionCurrent', { version: update?.currentVersion ?? '' })}
+          </strong>
+          {updateAvailable && (
+            <span className="muted">{t('settings.versionYouHave', { version: update?.currentVersion ?? '' })}</span>
+          )}
+        </span>
+        <UpdateCheckButton onCheck={checkForUpdates} />
+      </div>
+      <div className="settings-card">
+        <div className="settings-row">
+          <span className="settings-row-label">{t('settings.updateMode')}</span>
+          <div className="segmented" role="group" aria-label={t('settings.updateMode')}>
+            {(['auto', 'ask', 'off'] as const).map((mode) => (
+              <button
+                key={mode}
+                className={draft.updates.mode === mode ? 'active' : ''}
+                onClick={() => patchSection('updates', { mode })}
+              >
+                {t(mode === 'auto' ? 'settings.updateModeAuto' : mode === 'ask' ? 'settings.updateModeAsk' : 'settings.updateModeOff')}
+              </button>
+            ))}
+          </div>
+        </div>
+        {update && !update.canAutoUpdate && <p className="muted settings-row">{t('settings.updateManualOnly')}</p>}
+        {toggleRow(
+          t('settings.telemetryEnabled'),
+          draft.telemetry.enabled,
+          (value) => patchSection('telemetry', { enabled: value }),
+          t('settings.telemetryHint')
+        )}
+        <div className="settings-row settings-links">
+          {configPath && (
+            <button className="link" onClick={() => window.api.reports.reveal(configPath)} title={configPath}>
+              {t('settings.openConfigFile')}
+            </button>
+          )}
+          {logPath && (
+            <button className="link" onClick={() => window.api.reports.reveal(logPath)} title={logPath}>
+              {t('settings.openLogFile')}
+            </button>
+          )}
+          <button className="link" onClick={() => setShowHistory(true)}>
             {t('settings.versionHistory')}
           </button>
         </div>
-        {update && !update.canAutoUpdate && (
-          <p className="hint">{t('settings.updateManualOnly')}</p>
-        )}
-        {showHistory && <VersionHistoryModal onClose={() => setShowHistory(false)} />}
-      </section>
+      </div>
+      {showHistory && <VersionHistoryModal onClose={() => setShowHistory(false)} />}
+    </>
+  )
 
-      <section id="settings-section-privacy" className="card settings-section">
-        <h3>{t('settings.sectionPrivacy')}</h3>
-        <p className="hint">{t('settings.telemetryHint')}</p>
-        <div className="field">
-          <label className="settings-checkbox">
-            <input
-              type="checkbox"
-              checked={draft.telemetry.enabled}
-              onChange={(e) => patchSection('telemetry', { enabled: e.target.checked })}
-            />
-            {t('settings.telemetryEnabled')}
-          </label>
+  const statusText =
+    saveState === 'blocked'
+      ? saveBlockedReason
+      : saveState === 'saving'
+        ? t('settings.saving')
+        : saveState === 'failed'
+          ? t('settings.saveFailed')
+          : t('settings.autosaved')
+
+  return (
+    <div className="master-detail settings-screen">
+      <nav className="md-list settings-nav" aria-label={t('settings.title')}>
+        <div className="md-list-head">
+          <h1 className="page-title">{t('settings.title')}</h1>
         </div>
-      </section>
-
-      <div className="settings-save-bar">
-        {savedFlash && !dirty && <span className="settings-test-ok">✓ {t('settings.saved')}</span>}
-        {saveBlocked && showBlockReason && (
-          <span className="settings-save-blocked">{saveBlockedReason}</span>
-        )}
-        {dirty && (
-          <button className="btn btn-ghost" onClick={discard}>
-            {t('settings.discardChanges')}
+        {SECTIONS.map((item) => (
+          <button
+            key={item.id}
+            className={`md-item settings-nav-item ${section === item.id ? 'active' : ''}`}
+            aria-current={section === item.id ? 'page' : undefined}
+            onClick={() => setSection(item.id)}
+          >
+            <span className="settings-nav-icon" aria-hidden>
+              <Icon name={item.icon} size={18} />
+            </span>
+            <span className="settings-nav-label">{t(item.labelKey)}</span>
+            {item.id === 'accounts' && accountsNeedAttention && <span className="dot dot-warning" />}
+            {item.id === 'about' && updateAvailable && (
+              <span className="dot settings-nav-update" title={update?.availableVersion} />
+            )}
           </button>
-        )}
-        <button
-          className={`btn btn-primary ${saveBlocked ? 'blocked' : ''}`}
-          onClick={save}
-          disabled={!dirty && !saveBlocked}
-          title={saveBlockedReason}
-        >
-          {t('app.save')}
-        </button>
-      </div>
+        ))}
+        <p className={`settings-save-status ${saveState}`} role="status">
+          {saveState === 'blocked' || saveState === 'failed' ? (
+            <span className="dot dot-danger" />
+          ) : saveState === 'saving' ? (
+            <span className="spinner" />
+          ) : (
+            <Icon name="check" size={14} />
+          )}
+          {statusText}
+        </p>
+      </nav>
 
-      <div className="settings-paths">
-        {configPath && <p className="hint">{t('settings.configLocation', { path: configPath })}</p>}
-        {logPath && <p className="hint">{t('settings.logLocation', { path: logPath })}</p>}
-      </div>
-      </div>
+      <main className="md-detail settings-detail">
+        <div className="settings-content">
+          {error && <ErrorBanner error={error} />}
+          {section === 'general' && renderGeneral()}
+          {section === 'accounts' && renderAccounts()}
+          {section === 'ai' && renderAi()}
+          {section === 'appearance' && renderAppearance()}
+          {section === 'automation' && renderAutomation()}
+          {section === 'reports' && renderReports()}
+          {section === 'about' && renderAbout()}
+        </div>
+      </main>
     </div>
   )
 }

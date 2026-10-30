@@ -5,7 +5,6 @@ import type { CalendarEntry } from './useCalendar'
 
 interface Props {
   entries: CalendarEntry[]
-  multipleActive: boolean
   onEditEntry: (entry: CalendarEntry) => void
   /** Open the day view so the hidden entries become reachable. */
   onShowMore: () => void
@@ -51,7 +50,6 @@ function useVisibleCount(ref: React.RefObject<HTMLElement>, total: number): numb
 
 export function MonthDayEntries({
   entries,
-  multipleActive,
   onEditEntry,
   onShowMore,
   matchEntry
@@ -78,18 +76,12 @@ export function MonthDayEntries({
           onMouseDown={(e) => e.stopPropagation()}
           onClick={() => onEditEntry(worklog)}
         >
-          <span className="calendar-entry-key">
-            {multipleActive && (
-              <span className="calendar-entry-conn">
-                {(worklog.connectionName || '?').charAt(0).toUpperCase()}
-              </span>
-            )}
-            {worklog.issueKey}
-          </span>
+          <span className="calendar-entry-dot" aria-hidden />
+          <span className="calendar-entry-key mono">{worklog.issueKey}</span>
           {worklog.fieldIcons.length > 0 && (
             <span className="calendar-entry-icons">{worklog.fieldIcons.join('')}</span>
           )}
-          <span className="calendar-entry-hours">
+          <span className="calendar-entry-hours mono">
             {formatHours(worklog.timeSpentSeconds)}
             {t('app.hoursShort')}
           </span>

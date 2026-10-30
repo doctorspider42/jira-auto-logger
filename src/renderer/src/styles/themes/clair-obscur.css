@@ -1,0 +1,708 @@
+/*
+ * Clair Obscur - the Expedition 33 skin, sampled off the game's own menu
+ * screens: a black oil canvas with a faint art-nouveau lattice showing through,
+ * panels that are ink blots framed by hand-drawn corner brackets, an old-style
+ * serif in small caps, and pale champagne gold on headings with the richer gold
+ * on anything emphasised.
+ *
+ * Two idioms carry it. Selection is a dark plum fill behind a bone or gold
+ * stroke, never gold - gold is the colour of type in this game, not of
+ * surfaces. And a value is a thin bar with pointed caps, which is what the
+ * loading indicator becomes. Nothing is rounded: rectangles, elongated hexagons
+ * and rhombuses only.
+ *
+ * Scoped under `[data-theme='clairObscur']`; tokens live in themes.ts.
+ */
+
+[data-theme='clairObscur'] {
+  --co-gold: #f6c037;
+  --co-gold-pale: #eccfa3;
+  --co-bone: #f2efe9;
+  --co-bone-dim: rgba(242, 239, 233, 0.4);
+  --co-plum: #3a2132;
+  --co-ink: #0b0a09;
+
+  /* The canvas: a low-frequency pass for the blotches oil paint leaves and a
+     fine one for the tooth of the canvas. `stitchTiles` keeps the tile seamless. */
+  --co-oil: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='blot' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.009' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0.2'/%3E%3C/filter%3E%3Cfilter id='tooth' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23blot)' opacity='0.13'/%3E%3Crect width='300' height='300' filter='url(%23tooth)' opacity='0.06'/%3E%3C/svg%3E");
+
+  /* The diamond damask the game keeps in the corners of its menus, at the
+     opacity of something painted under the varnish. */
+  --co-damask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='none' stroke='%23e8dcc4' stroke-width='1' opacity='0.05'%3E%3Cpath d='M60 0 L120 60 L60 120 L0 60 Z'/%3E%3Cpath d='M60 34 L86 60 L60 86 L34 60 Z'/%3E%3Ccircle cx='60' cy='60' r='6'/%3E%3Cpath d='M0 0 L26 26 M120 0 L94 26 M0 120 L26 94 M120 120 L94 94'/%3E%3C/g%3E%3C/svg%3E");
+
+  /*
+   * Three tiles of drifting matter, coarse to fine: petals, smaller petals and
+   * dust, each on its own layer so each travels a different distance in the same
+   * time - the near ones fall fast, the far ones barely move. Two colours only,
+   * off the key art: scarlet and a warm off-white, never a dusty pink between.
+   */
+  --co-petals-near: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cg fill='%23d8232a' opacity='0.62'%3E%3Cpath d='M48 66 q5-6 10 0 q-5 6-10 0z' transform='rotate(24 53 66)'/%3E%3Cpath d='M226 206 q6-8 12 0 q-6 8-12 0z' transform='rotate(68 232 206)'/%3E%3C/g%3E%3Cg fill='%23f4efe6' opacity='0.55'%3E%3Cpath d='M138 284 q4-6 9 0 q-5 6-9 0z' transform='rotate(-20 142 284)'/%3E%3C/g%3E%3C/svg%3E");
+  --co-petals-far: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='%23d8232a' opacity='0.44'%3E%3Cpath d='M34 52 q3-4 7 0 q-4 4-7 0z' transform='rotate(38 37 52)'/%3E%3C/g%3E%3Cg fill='%23f4efe6' opacity='0.4'%3E%3Cpath d='M166 26 q3-4 7 0 q-4 4-7 0z' transform='rotate(-28 169 26)'/%3E%3Cpath d='M104 168 q3-5 8 0 q-4 5-8 0z' transform='rotate(74 108 168)'/%3E%3C/g%3E%3C/svg%3E");
+  --co-dust: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cg fill='%23f4ecd8' opacity='0.25'%3E%3Ccircle cx='22' cy='32' r='0.9'/%3E%3Ccircle cx='92' cy='16' r='0.7'/%3E%3Ccircle cx='160' cy='52' r='1'/%3E%3Ccircle cx='56' cy='104' r='0.8'/%3E%3Ccircle cx='132' cy='128' r='0.9'/%3E%3Ccircle cx='36' cy='176' r='0.8'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* The hand-drawn corner bracket, top-left orientation. */
+  --co-bracket: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Cg fill='none' stroke='%23f2efe9' stroke-width='1.5' stroke-linecap='round' opacity='0.82'%3E%3Cpath d='M1.5 24.5 L1.2 7.5 Q1.4 2.2 6.5 1.6 L23 1.4'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ---------- The canvas ---------- */
+
+[data-theme='clairObscur'] body,
+[data-theme='clairObscur'] .wizard-screen {
+  background-color: #070606;
+  background-image:
+    var(--co-oil),
+    var(--co-damask),
+    /* One ochre smear where the paint was laid on thickest, off-centre, so it
+       reads as a brush pass rather than a glow. */
+    radial-gradient(48% 34% at 34% 44%, rgba(120, 96, 47, 0.16), transparent 72%),
+    radial-gradient(60% 44% at 88% 92%, rgba(58, 33, 50, 0.24), transparent 74%),
+    linear-gradient(180deg, #0d0b0a 0%, #070606 46%, #040303 100%);
+  background-size: 300px 300px, 120px 120px, auto, auto, auto;
+  background-attachment: fixed;
+}
+
+/*
+ * The petals: matter always drifting through frame, which is what the game is
+ * remembered for. In front of the whole picture, dialogs included, and never
+ * clickable. Each depth is its own fixed layer, oversized by exactly the
+ * distance it travels and moved by `transform` - animating a background
+ * position would repaint the whole window every frame. Travel distances are
+ * whole tiles (near 1×3, far 1×6, dust 1×8), or the loop would jump.
+ */
+html[data-theme='clairObscur']::before,
+html[data-theme='clairObscur']::after,
+[data-theme='clairObscur'] body::after {
+  content: '';
+  position: fixed;
+  z-index: 9998;
+  pointer-events: none;
+  will-change: transform;
+  animation: linear infinite;
+}
+
+html[data-theme='clairObscur']::before {
+  top: -960px;
+  left: -320px;
+  width: calc(100% + 320px);
+  height: calc(100% + 960px);
+  background: var(--co-petals-near) 0 0 / 320px 320px;
+  --co-travel: translate3d(320px, 960px, 0);
+  animation-name: co-fall;
+  animation-duration: 90s;
+}
+
+html[data-theme='clairObscur']::after {
+  top: -1440px;
+  left: 0;
+  width: calc(100% + 240px);
+  height: calc(100% + 1440px);
+  background: var(--co-petals-far) 0 0 / 240px 240px;
+  --co-travel: translate3d(-240px, 1440px, 0);
+  animation-name: co-fall;
+  animation-duration: 90s;
+}
+
+[data-theme='clairObscur'] body::after {
+  top: -1600px;
+  left: -200px;
+  width: calc(100% + 200px);
+  height: calc(100% + 1600px);
+  background: var(--co-dust) 0 0 / 200px 200px;
+  --co-travel: translate3d(200px, 1600px, 0);
+  animation-name: co-fall;
+  animation-duration: 90s;
+}
+
+@keyframes co-fall {
+  to {
+    transform: var(--co-travel);
+  }
+}
+
+/* The vignette, pinned under the petals; it replaces the shared texture layer. */
+[data-theme='clairObscur'] body::before {
+  z-index: 9997;
+  background: radial-gradient(128% 100% at 50% 46%, transparent 54%, rgba(0, 0, 0, 0.72) 100%);
+}
+
+/* ---------- Type: old-style serif, headings in gold small caps ---------- */
+
+[data-theme='clairObscur'] .page-title,
+[data-theme='clairObscur'] .wizard-heading h1,
+[data-theme='clairObscur'] .modal-header h2,
+[data-theme='clairObscur'] .inspector-title,
+[data-theme='clairObscur'] .wizard-card-head h2,
+[data-theme='clairObscur'] .wizard-group-head h2,
+[data-theme='clairObscur'] .form-section-intro h3,
+[data-theme='clairObscur'] .custom-fields-group h4 {
+  color: var(--co-gold-pale);
+  font-weight: 400;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+/* The first letter run up a size, as the game sets every screen title.
+   `::first-letter` needs a block container, which each of these is. */
+[data-theme='clairObscur'] .page-title,
+[data-theme='clairObscur'] .wizard-heading h1,
+[data-theme='clairObscur'] .modal-header h2 {
+  display: block;
+}
+
+[data-theme='clairObscur'] .page-title::first-letter,
+[data-theme='clairObscur'] .wizard-heading h1::first-letter,
+[data-theme='clairObscur'] .modal-header h2::first-letter {
+  font-size: 1.32em;
+}
+
+[data-theme='clairObscur'] .page-title {
+  font-size: 30px;
+}
+
+[data-theme='clairObscur'] .page-title .soft {
+  color: var(--muted);
+}
+
+[data-theme='clairObscur'] .eyebrow {
+  color: var(--co-gold);
+  font-variant: small-caps;
+  text-transform: none;
+  letter-spacing: 0.14em;
+  font-size: 13px;
+}
+
+[data-theme='clairObscur'] .app-version,
+[data-theme='clairObscur'] .app-nav-item,
+[data-theme='clairObscur'] .calendar-weekdays span,
+[data-theme='clairObscur'] .wizard-steps li,
+[data-theme='clairObscur'] .settings-nav-item {
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+}
+
+[data-theme='clairObscur'] .app-nav-item {
+  font-size: 12px;
+}
+
+/* ---------- Rail ---------- */
+
+[data-theme='clairObscur'] .app-rail {
+  background: rgba(7, 6, 6, 0.72);
+  border-right: 1px solid var(--co-bone-dim);
+}
+
+/*
+ * The elongated hexagon the game uses for its tabs, on the segmented controls. Drawn as two
+ * stacked clipped layers - a bone one at full size and an ink one exactly 1px
+ * inside it - because a clip-path cuts a border off along the diagonals, so the
+ * outline has to BE a shape. The inner polygon is the outer one offset 1px
+ * along each edge's normal (slant vertices at s + (hypot(s, h) - s) / h, the
+ * points at hypot(s, h) / h, for slant s and half-height h); a plain `inset:
+ * 1px` would taper the stroke towards the points.
+ *
+ * The layers sit at negative z-index so the label paints over them; the item
+ * gets `z-index: 0` to become their stacking context.
+ */
+[data-theme='clairObscur'] .segmented button {
+  position: relative;
+  z-index: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+[data-theme='clairObscur'] .segmented button::before,
+[data-theme='clairObscur'] .segmented button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+[data-theme='clairObscur'] .segmented button {
+  padding: 0 18px;
+}
+
+[data-theme='clairObscur'] .segmented button::before {
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
+}
+
+/* s = 9, h = 14 */
+[data-theme='clairObscur'] .segmented button::after {
+  clip-path: polygon(
+    9.55px 1px,
+    calc(100% - 9.55px) 1px,
+    calc(100% - 1.19px) 50%,
+    calc(100% - 9.55px) calc(100% - 1px),
+    9.55px calc(100% - 1px),
+    1.19px 50%
+  );
+}
+
+[data-theme='clairObscur'] .segmented button::before {
+  z-index: -2;
+  background: var(--co-bone-dim);
+}
+
+[data-theme='clairObscur'] .segmented button::after {
+  z-index: -1;
+  background: var(--co-ink);
+}
+
+[data-theme='clairObscur'] .segmented button:hover {
+  background: transparent;
+  color: var(--co-bone);
+}
+
+[data-theme='clairObscur'] .segmented button:hover::before,
+[data-theme='clairObscur'] .segmented button:hover::after,
+[data-theme='clairObscur'] .segmented button.active::before,
+[data-theme='clairObscur'] .segmented button.active::after {
+  opacity: 1;
+}
+
+[data-theme='clairObscur'] .segmented button.active {
+  background: transparent;
+  color: var(--co-gold-pale);
+  font-weight: 400;
+}
+
+[data-theme='clairObscur'] .segmented button.active::before {
+  background: var(--co-gold);
+}
+
+[data-theme='clairObscur'] .segmented button.active::after {
+  background: var(--co-plum);
+}
+
+[data-theme='clairObscur'] .segmented {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  gap: 4px;
+}
+
+/*
+ * The rail is a list, not a row of tabs: plain small caps, and the current item
+ * lit gold with the game's gauge under it - a thin rule with pointed caps.
+ */
+[data-theme='clairObscur'] .app-nav-item {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  letter-spacing: 0.02em;
+}
+
+[data-theme='clairObscur'] .app-nav-item:hover {
+  background: rgba(58, 33, 50, 0.42);
+  color: var(--co-bone);
+}
+
+[data-theme='clairObscur'] .app-nav-item.active {
+  background: radial-gradient(70% 60% at 50% 55%, rgba(58, 33, 50, 0.9), transparent 75%);
+  color: var(--co-gold-pale);
+  font-weight: 400;
+}
+
+[data-theme='clairObscur'] .app-nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 2px;
+  height: 3px;
+  clip-path: polygon(0 50%, 5px 0, calc(100% - 5px) 0, 100% 50%, calc(100% - 5px) 100%, 5px 100%);
+  background: linear-gradient(90deg, rgba(246, 192, 55, 0.35), var(--co-gold) 50%, rgba(246, 192, 55, 0.35));
+}
+
+[data-theme='clairObscur'] .app-nav-badge {
+  border-radius: 0;
+  background: var(--co-gold);
+  transform: rotate(45deg);
+}
+
+/* ---------- Panels are ink blots in a hand-drawn frame ---------- */
+
+[data-theme='clairObscur'] .card,
+[data-theme='clairObscur'] .settings-card,
+[data-theme='clairObscur'] .modal,
+[data-theme='clairObscur'] .inspector,
+[data-theme='clairObscur'] .month-summary,
+[data-theme='clairObscur'] .wizard-card {
+  position: relative;
+  background-color: var(--co-ink);
+  background-image: var(--co-damask);
+  background-size: 120px 120px;
+  border: 1px solid rgba(242, 239, 233, 0.14);
+}
+
+/*
+ * Corner brackets, top-left and bottom-right: the game frames its tooltips with
+ * two painted L-strokes on opposite corners rather than a closed box.
+ */
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::before,
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::after {
+  content: '';
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  pointer-events: none;
+  background: var(--co-bracket) no-repeat 0 0 / 26px 26px;
+}
+
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::before {
+  top: -1px;
+  left: -1px;
+}
+
+[data-theme='clairObscur'] :is(.card, .settings-card, .modal, .inspector, .month-summary, .wizard-card)::after {
+  right: -1px;
+  bottom: -1px;
+  transform: rotate(180deg);
+}
+
+/* One frame per panel, not per nesting level: the outermost one wins. */
+[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .settings-card, .wizard-card)::before,
+[data-theme='clairObscur'] :is(.card, .modal, .inspector) :is(.card, .settings-card, .wizard-card)::after {
+  display: none;
+}
+
+/* A dialog and a sticky bar float over live UI, not over the canvas, so they
+   stay opaque. */
+[data-theme='clairObscur'] .modal,
+[data-theme='clairObscur'] .save-bar,
+[data-theme='clairObscur'] .wizard-footer {
+  background-color: #0a0908;
+}
+
+[data-theme='clairObscur'] .modal-header,
+[data-theme='clairObscur'] .wizard-header {
+  background: rgba(58, 33, 50, 0.32);
+  border-bottom: 1px solid var(--co-bone-dim);
+}
+
+[data-theme='clairObscur'] .save-bar,
+[data-theme='clairObscur'] .wizard-footer {
+  border-top: 1px solid var(--co-bone-dim);
+}
+
+/* ---------- Controls ---------- */
+
+[data-theme='clairObscur'] .btn {
+  background: rgba(11, 10, 9, 0.86);
+  border-color: var(--co-bone-dim);
+  color: var(--co-bone);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-size: 14px;
+}
+
+[data-theme='clairObscur'] .btn:hover:not(:disabled) {
+  background: rgba(58, 33, 50, 0.5);
+  border-color: var(--co-bone);
+}
+
+[data-theme='clairObscur'] .btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+[data-theme='clairObscur'] .btn-ghost:hover:not(:disabled) {
+  background: rgba(58, 33, 50, 0.42);
+  border-color: var(--co-bone-dim);
+}
+
+/* The confirm action: plum behind a gold stroke with the label in gold - filling
+   it with gold would break the rule that gold is type, not surface.
+   `:not(.blocked)` so the red validation state still wins. */
+[data-theme='clairObscur'] .btn-primary:not(.blocked) {
+  background: var(--co-plum);
+  border-color: var(--co-gold);
+  color: var(--co-gold-pale);
+  font-weight: 400;
+}
+
+[data-theme='clairObscur'] .btn-primary:not(.blocked):hover:not(:disabled) {
+  background: #4c2b41;
+  border-color: var(--co-gold-pale);
+  filter: none;
+}
+
+[data-theme='clairObscur'] .btn-danger-solid,
+[data-theme='clairObscur'] .btn-danger-solid:hover:not(:disabled) {
+  background: #952b26;
+  border-color: #d9584c;
+  color: #fdf3f1;
+}
+
+[data-theme='clairObscur'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='clairObscur'] textarea,
+[data-theme='clairObscur'] select,
+[data-theme='clairObscur'] .search-field {
+  background: rgba(4, 3, 3, 0.85);
+  border-color: var(--co-bone-dim);
+}
+
+[data-theme='clairObscur'] input:not([type='checkbox']):not([type='radio']):focus,
+[data-theme='clairObscur'] textarea:focus,
+[data-theme='clairObscur'] select:focus,
+[data-theme='clairObscur'] .search-field:focus-within {
+  border-color: var(--co-gold);
+  box-shadow: none;
+}
+
+[data-theme='clairObscur'] .search-field input {
+  background: transparent;
+}
+
+[data-theme='clairObscur'] .switch input:checked {
+  background: var(--co-plum);
+  box-shadow: inset 0 0 0 1px var(--co-gold);
+}
+
+[data-theme='clairObscur'] .switch input:checked::after {
+  background: var(--co-gold);
+}
+
+[data-theme='clairObscur'] .chip {
+  background: rgba(11, 10, 9, 0.8);
+  border-color: var(--co-bone-dim);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+[data-theme='clairObscur'] .chip.selected,
+[data-theme='clairObscur'] .settings-nav-item.active,
+[data-theme='clairObscur'] .md-item.active {
+  background: var(--co-plum);
+  color: var(--co-gold-pale);
+  box-shadow: inset 0 0 0 1px var(--co-gold);
+  border-color: var(--co-gold);
+}
+
+[data-theme='clairObscur'] .wizard-step-mark {
+  border-radius: 0;
+}
+
+[data-theme='clairObscur'] .wizard-steps li.current .wizard-step-mark {
+  background: var(--co-plum);
+  color: var(--co-gold-pale);
+  border-color: var(--co-gold);
+}
+
+/* ---------- Calendar ---------- */
+
+[data-theme='clairObscur'] .calendar-grid {
+  background: rgba(242, 239, 233, 0.12);
+  border-color: rgba(242, 239, 233, 0.12);
+}
+
+[data-theme='clairObscur'] .calendar-day {
+  background: rgba(11, 10, 9, 0.82);
+}
+
+[data-theme='clairObscur'] .calendar-day.weekend {
+  background: rgba(4, 3, 3, 0.86);
+}
+
+[data-theme='clairObscur'] .calendar-day:hover {
+  background: rgba(29, 26, 23, 0.9);
+}
+
+[data-theme='clairObscur'] .calendar-day.selected {
+  background: var(--co-plum);
+  box-shadow: inset 0 0 0 1px var(--co-gold);
+}
+
+/* ---------- Numbered tiles, after the expedition journals ---------- */
+
+/*
+ * A day with nothing logged carries its date as one big numeral filling the
+ * tile, the way the expedition journals are numbered - a volume nobody has
+ * written yet, which fills in as you work. Days with entries keep the small
+ * date: the tile has a job, and a numeral behind "+3 more" fights it.
+ *
+ * Sized off the tile, not off a fixed px value, since the grid rows flex with
+ * the window. `container-type: size` is safe only because the tile is empty -
+ * its height comes from the grid, never from its contents.
+ */
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) {
+  container-type: size;
+}
+
+/*
+ * Constantia's figures are old-style (3/4/7/9 hang below the baseline), so
+ * `lining-nums` gives every day one height on the baseline. `text-box` trims the
+ * line box to cap-height..baseline, which with lining figures is exactly the
+ * ink, so the numeral centres on its own shape.
+ */
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-number {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  transform: translateY(-50%);
+  padding: 0;
+  min-width: 0;
+  height: auto;
+  display: block;
+  text-align: center;
+  font-variant-numeric: lining-nums;
+  /* Two digits set the width limit. */
+  font-size: min(100cqh, 66cqw);
+  font-weight: 400;
+  line-height: 1;
+  text-box: trim-both cap alphabetic;
+  color: rgba(242, 239, 233, 0.32);
+  background: transparent;
+  pointer-events: none;
+}
+
+/* The head row has just lost its left-hand child to the absolute numeral. */
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-head {
+  justify-content: flex-end;
+  min-height: 18px;
+}
+
+[data-theme='clairObscur'] .calendar-day:not(:has(.calendar-day-entries > *)) .calendar-day-missing {
+  position: relative;
+  color: rgba(255, 122, 106, 0.85);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* Today is the volume lying open: lit gold rather than ghosted. */
+[data-theme='clairObscur'] .calendar-day.today .calendar-day-number {
+  border-radius: 0;
+  background: var(--co-plum);
+  color: var(--co-gold-pale);
+  box-shadow: inset 0 0 0 1px var(--co-gold);
+}
+
+[data-theme='clairObscur'] .calendar-day.today:not(:has(.calendar-day-entries > *)) .calendar-day-number {
+  background: transparent;
+  box-shadow: none;
+  color: rgba(246, 192, 55, 0.62);
+}
+
+[data-theme='clairObscur'] .calendar-day.selected:not(:has(.calendar-day-entries > *)) .calendar-day-number {
+  color: rgba(236, 207, 163, 0.42);
+}
+
+[data-theme='clairObscur'] .calendar-entry {
+  border-radius: 0;
+  border-left: 2px solid var(--entry-color, var(--co-gold));
+  margin-left: 0;
+  padding-left: 5px;
+}
+
+[data-theme='clairObscur'] .calendar-entry-dot {
+  display: none;
+}
+
+[data-theme='clairObscur'] .calendar-day-bar,
+[data-theme='clairObscur'] .calendar-day-bar span,
+[data-theme='clairObscur'] .meter,
+[data-theme='clairObscur'] .meter > span {
+  border-radius: 0;
+}
+
+[data-theme='clairObscur'] .calendar-day-bar .complete,
+[data-theme='clairObscur'] .meter > span {
+  background: var(--co-gold-pale);
+}
+
+[data-theme='clairObscur'] .month-summary-big,
+[data-theme='clairObscur'] .inspector-total {
+  color: var(--co-gold-pale);
+  font-size: 24px;
+}
+
+[data-theme='clairObscur'] .day-lane {
+  background-color: rgba(11, 10, 9, 0.82);
+}
+
+[data-theme='clairObscur'] .day-entry {
+  border-radius: 0;
+}
+
+/* ---------- Waiting: the bar with pointed caps ---------- */
+
+[data-theme='clairObscur'] .funny-loader {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%);
+  background: rgba(4, 3, 3, 0.9);
+  color: var(--co-gold-pale);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+[data-theme='clairObscur'] .funny-loader::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 44%;
+  background: linear-gradient(90deg, rgba(236, 207, 163, 0.05), rgba(236, 207, 163, 0.42) 70%, rgba(246, 192, 55, 0.6));
+  animation: co-gauge 2.1s ease-in-out infinite;
+}
+
+/* The gauge would paint over the in-flow spinner and text otherwise. */
+[data-theme='clairObscur'] .funny-loader > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes co-gauge {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(228%);
+  }
+}
+
+[data-theme='clairObscur'] .spinner {
+  border-color: rgba(242, 239, 233, 0.18);
+  border-top-color: var(--co-gold);
+}
+
+/* ---------- Chrome ---------- */
+
+[data-theme='clairObscur'] ::selection {
+  background: rgba(246, 192, 55, 0.32);
+  color: #fffdf7;
+}
+
+[data-theme='clairObscur'] ::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+[data-theme='clairObscur'] ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='clairObscur'] ::-webkit-scrollbar-thumb {
+  background: rgba(242, 239, 233, 0.2);
+  background-clip: border-box;
+  border: 1px solid var(--co-bone-dim);
+  border-radius: 0;
+}
+
+[data-theme='clairObscur'] ::-webkit-scrollbar-thumb:hover {
+  background: var(--co-gold-pale);
+}
+
+/* The petals are the whole atmosphere, so they are also the first thing anyone
+   asking for less motion wants stopped. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='clairObscur']::before,
+  html[data-theme='clairObscur']::after,
+  [data-theme='clairObscur'] body::after,
+  [data-theme='clairObscur'] .funny-loader::before {
+    animation: none;
+  }
+}

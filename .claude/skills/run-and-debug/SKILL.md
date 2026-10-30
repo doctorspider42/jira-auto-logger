@@ -1,6 +1,6 @@
 ---
 name: run-and-debug
-description: How to run, debug and manually test the Jira Auto Logger Electron app - dev mode, mock mode with fake data, screenshot automation, diagnostic logs and config locations. Use this whenever you need to start the app, reproduce a bug, verify a UI change, work without real Jira/Tempo credentials, or regenerate the README screenshots.
+description: How to run, debug and manually test the Jira Auto Logger Tauri app - dev mode, mock mode with fake data, driving the window over DevTools, diagnostic logs and config locations. Use this whenever you need to start the app, reproduce a bug, verify a UI change, work without real Jira/Tempo credentials, or regenerate the README screenshots.
 ---
 
 # Running and debugging Jira Auto Logger
@@ -8,97 +8,88 @@ description: How to run, debug and manually test the Jira Auto Logger Electron a
 ## Commands
 
 ```bash
-npm run dev          # dev mode with HMR (real config and real APIs)
-npm run dev:mock     # dev mode on deterministic FAKE data - no tokens, no network
-npm run screenshots  # mock mode + automated UI drive, refreshes screenshots/*.png, then quits
-npm run typecheck    # tsc for main+preload (tsconfig.node.json) and renderer (tsconfig.web.json)
-npm run build        # production bundles into out/
-npm run dist:win     # local installer (also dist:mac, dist:linux)
+npm run dev          # Vite + the Rust backend in debug mode (real config and real APIs)
+npm run dev:mock     # same on deterministic FAKE data - no tokens, no network
+npm run typecheck    # tsc for vite.config.ts (tsconfig.node.json) and the renderer (tsconfig.web.json)
+npm run test:rust    # cargo test for the backend
+npm run build        # installer for this OS into src-tauri/target/release/bundle/
+npx tauri build --no-bundle   # release exe only (src-tauri/target/release/jira-auto-logger.exe)
+npm run screenshots  # README images from the release exe in mock mode (Windows)
 ```
 
-Always run `npm run typecheck` (and usually `npm run build`) before committing - this repo treats a clean typecheck as the definition of done for a change.
+Run `npm run typecheck` and `cargo build` (or `npm run test:rust`) before
+committing - a clean build on both sides is the definition of done for a change.
+The first Rust build takes several minutes; later ones are incremental.
 
 ## Mock mode - prefer it for UI work
 
-`JAL_MOCK=1` (or `--mock`) swaps every external service for an in-memory fake:
-two connections, three projects, six weeks of Tempo history, fake commits and a
-fake LLM with a realistic delay. Implementation lives in
-`src/main/services/mock/` (`data.ts` = fixtures, `clients.ts` = fake
-implementations of the `JiraApi`/`TempoApi`/`CommitSource`/`LlmProvider`
-interfaces).
+`JAL_MOCK=1` (or `--mock` on the exe) swaps every external service for an
+in-memory fake: two connections, three projects, six weeks of Tempo history,
+fake commits and a fake LLM with a realistic delay. Implementation lives in
+`src-tauri/src/mock/` (`data.rs` = fixtures, `clients.rs` = fake `JiraApi` /
+`TempoApi` / `CommitSource`) and `src-tauri/src/llm/mock.rs`.
 
 Two rules that keep mock mode healthy:
-- Mock mode never reads or writes the real `config.json` (`ConfigService` short-circuits), so it is always safe to run.
-- When you add a field to `AppConfig`, update `mockConfig()` in `src/main/services/mock/data.ts` too, or mock mode stops compiling - that is intentional, it keeps the fixtures honest.
+- Mock mode never reads or writes the real `config.json` (`ConfigService` short-circuits), and never sends telemetry, so it is always safe to run.
+- When you add a field to `AppConfig`, update `mock_config()` in `src-tauri/src/mock/data.rs` too.
 
-Data is seeded (mulberry32), so screenshots and manual tests are reproducible.
+Data is seeded (mulberry32, same sequence as the old TypeScript fixtures), so
+screenshots and manual tests are reproducible.
 
-## Forcing a theme at launch
+## Forcing a theme or backdrop at launch
 
-`JAL_THEME=<id>` overrides the saved theme when the app boots, so you can test a
-theme without clicking through Settings. It is read once in `ConfigService.get()`
-and applied to whatever config was loaded (mock or real); an unknown id falls
-back to the default theme in `applyTheme`, so typos degrade gracefully.
+`JAL_THEME=<id>` overrides the saved theme when the app boots (read in
+`ConfigService::get`); an unknown id falls back to the default theme in
+`applyTheme`. Valid ids come from `THEMES` in `src/renderer/src/theme/themes.ts`.
+`maaSnEk` is `hidden` in that registry: reach it with `JAL_THEME=maaSnEk`, by
+hand-editing `themeId`, or by typing `maasnek` on the Settings screen.
 
-Valid ids come from `THEMES` in `src/renderer/src/theme/themes.ts`: `dark`,
-`light`, `iteoLight`, `iteoDark`, `win95`, `fallout`, `falloutNV`, `ps1`,
-`helloKitty`, `y2k`, `maaSnEk`, `clairObscur`.
-
-`maaSnEk` is flagged `hidden` in that registry, so it is **not** in the Settings
-dropdown. Three ways in, all equivalent - the theme itself is not gated, only its
-listing: `JAL_THEME=maaSnEk` at launch, `"themeId": "maaSnEk"` hand-edited into
-config.json, or typing `maasnek` anywhere on the Settings screen (which adds
-hidden themes to the dropdown for that session only). Once it is the active
-theme the dropdown lists it again, so it can be switched away from normally.
-
-Prefer mock mode — it never persists, so a forced theme can't leak into your
-real `config.json` even if you hit Save in Settings. `cross-env` (already a dev
-dependency) makes it cross-platform:
+`JAL_BACKDROP=mica|acrylic|blur|none` forces the window effect (default: Mica
+on Windows 11, Acrylic on Windows 10, vibrancy on macOS).
 
 ```bash
 npx cross-env JAL_THEME=y2k npm run dev:mock     # any OS
-```
-
-Native shells work too:
-
-```bash
-JAL_THEME=y2k npm run dev:mock                    # bash / zsh
 ```
 ```powershell
 $env:JAL_THEME='y2k'; npm run dev:mock            # PowerShell (clear later: Remove-Item Env:JAL_THEME)
 ```
 
-It composes with the screenshot driver as well
-(`npx cross-env JAL_THEME=y2k npm run screenshots`) if you want theme-specific
-captures. Point `JAL_SCREENSHOTS` at a scratch directory when you only want to
-look - the default `screenshots/` holds the committed README images.
+A theme can also change **wording** (`Theme.copy`, see the `architecture`
+skill) - check both languages; `clairObscur` is the one that uses it today.
 
-A theme can also change **wording**, not just colours (`Theme.copy` → the
-`themeCopy.<themeId>` subtree in the locale files; see the `architecture` skill).
-To check that, force the theme and look at the strings in **both** languages -
-`clairObscur` is the one that uses it today: its own loading messages while
-suggestions generate, and "We Continue" / "Przemy naprzód" on the wizard's
-log-time button. The language switch sits next to the theme in
-Settings → Appearance and takes effect on Save, no restart - and in mock mode
-nothing is persisted, so switching either is free.
+## Driving the window over DevTools
 
-## Screenshot automation
+WebView2 exposes the Chrome DevTools Protocol when started with a debugging
+port, which is how to test without clicking by hand:
 
-`npm run screenshots` drives the UI from the main process
-(`src/main/screenshotMode.ts`): captures calendar, projects, settings, then
-opens the wizard, selects projects, generates suggestions with the mock LLM and
-captures both wizard steps. The README embeds these images - regenerate them
-after visible UI changes and commit the PNGs.
+```powershell
+$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9333'
+src-tauri\target\release\jira-auto-logger.exe --mock
+```
 
-Gotcha encoded in that file: simulated `mousedown`/`mouseup` must be separated
-by a pause, because the calendar attaches its `mouseup` listener in a React
-effect after the `mousedown` re-render.
+Then `http://127.0.0.1:9333/json` lists the page; connect to its
+`webSocketDebuggerUrl` (Node 22+ has a global `WebSocket`) and use
+`Runtime.evaluate` (e.g. `await window.api.llm.generateSuggestions(...)`) or
+`Page.captureScreenshot`. The CDP capture shows the page only - the window
+backdrop behind it is not in the image.
+
+`npm run screenshots` (`scripts/screenshots.mjs`) does this for the README: it
+starts the release exe in mock mode with `JAL_BACKDROP=none`, fixes the
+viewport at 1280×820 and captures calendar, day view, both wizard steps,
+projects, reports and settings into `screenshots/` (`JAL_SCREENSHOTS=<dir>`
+for a scratch folder). Build first with `npx tauri build --no-bundle`. Clicks
+on the calendar go through `Input.dispatchMouseEvent`, not synthetic DOM
+events - a real cursor resting over the grid otherwise turns a click into a
+drag across several days.
+
+Reports land in the configured output folder (default `Documents/Jira Auto
+Logger Reports`) even in mock mode - move test PDFs out afterwards.
 
 ## Where things live at runtime
 
-- Config: `%APPDATA%/jira-auto-logger/config.json` (userData dir; path shown at the bottom of the Settings tab). API tokens inside are encrypted via `safeStorage`.
-- Diagnostic log: `userData/logs/main.log` - every IPC call with duration, git/CLI/LLM calls with sizes and exit codes, full errors with stack traces. Read this first when someone reports "it failed". Never log secrets or full prompts there.
-- Debug prompt preview: in the wizard (step 1) the `{ } Preview context` button shows the exact per-project prompt and a token estimate - useful to verify what the LLM actually receives.
+- Config: `%APPDATA%/jira-auto-logger/config.json` (macOS `~/Library/Application Support/jira-auto-logger`, Linux `~/.config/jira-auto-logger`; path shown at the bottom of Settings). Tokens inside are encrypted (`secrets.rs`) with the key in `Local State` next to it - the same scheme the Electron builds used.
+- Diagnostic log: `userData/logs/main.log` - every command with duration, git/CLI/LLM calls with sizes and exit codes, full errors. Read this first when someone reports "it failed". Never log secrets or full prompts there.
+- Debug prompt preview: in the wizard (step 1) the `{ } Preview context` button shows the exact per-project prompt and a token estimate.
 
 ## Verifying a change end to end
 

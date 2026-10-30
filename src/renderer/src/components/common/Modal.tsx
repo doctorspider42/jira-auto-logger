@@ -10,14 +10,15 @@ interface ModalProps {
   wide?: boolean
 }
 
-/** Stack of open modals so Escape only closes the topmost one. */
+/** Stack of open dialogs so Escape only closes the topmost one. */
 const modalStack: symbol[] = []
 
-export function Modal({ title, onClose, children, footer, wide }: ModalProps): JSX.Element {
-  const modalId = useRef(Symbol('modal'))
+/** Escape closes this dialog, but only while no dialog was opened on top of it. */
+export function useDialogEscape(onClose: () => void): void {
+  const dialogId = useRef(Symbol('dialog'))
 
   useEffect(() => {
-    const id = modalId.current
+    const id = dialogId.current
     modalStack.push(id)
     const onKeyDown = (e: KeyboardEvent): void => {
       if (e.key === 'Escape' && modalStack[modalStack.length - 1] === id) onClose()
@@ -28,6 +29,10 @@ export function Modal({ title, onClose, children, footer, wide }: ModalProps): J
       window.removeEventListener('keydown', onKeyDown)
     }
   }, [onClose])
+}
+
+export function Modal({ title, onClose, children, footer, wide }: ModalProps): JSX.Element {
+  useDialogEscape(onClose)
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>

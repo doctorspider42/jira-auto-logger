@@ -355,6 +355,22 @@ export interface JiraIssue {
   isSubtask: boolean
 }
 
+export interface JiraIssueType {
+  id: string
+  name: string
+  subtask: boolean
+}
+
+export interface CreateIssueRequest {
+  connectionId: string
+  projectKey: string
+  /** '' = the project's Task type (or its first non-subtask type). */
+  issueTypeId: string
+  summary: string
+  description: string
+  assignToMe: boolean
+}
+
 export interface JiraUser {
   accountId: string
   displayName: string
@@ -442,6 +458,8 @@ export interface ProjectSelection {
   note: string
   /** Include commits from the project's repository (when it has one). */
   useCommits: boolean
+  /** The model may propose a new issue when no existing one fits. */
+  allowNewIssues?: boolean
 }
 
 export interface SuggestionRequest {
@@ -480,6 +498,17 @@ export interface WorklogSuggestion {
   hours: number
   /** Values of configured custom fields, keyed by work-attribute key. */
   customFields: Record<string, string | boolean>
+  /** An issue to create when the time is logged, instead of `issueKey`. */
+  newIssue?: NewIssueDraft
+}
+
+/** A Jira issue that doesn't exist yet: created right before its time is logged. */
+export interface NewIssueDraft {
+  summary: string
+  description: string
+  /** '' = the project's default (Task) type. */
+  issueTypeId: string
+  issueTypeName: string
 }
 
 /** Debug preview of the exact prompt that would be sent for one project. */
@@ -521,22 +550,4 @@ export interface AppError {
   details?: string
 }
 
-export class AppException extends Error {
-  constructor(
-    readonly code: AppErrorCode,
-    message: string,
-    readonly details?: string
-  ) {
-    super(message)
-    this.name = 'AppException'
-  }
-
-  toAppError(): AppError {
-    return { code: this.code, message: this.message, details: this.details }
-  }
-}
-
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }
-
-export const ok = <T>(value: T): Result<T> => ({ ok: true, value })
-export const err = <T>(error: AppError): Result<T> => ({ ok: false, error })
