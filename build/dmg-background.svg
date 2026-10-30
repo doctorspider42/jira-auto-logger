@@ -1,0 +1,80 @@
+<!--
+  macOS DMG window background. The installer window is the first screen of the
+  product, so it wears the app icon's graphite and iteo orange, and the
+  "drag to install" gesture is the icon's own commit rail turning into a
+  logged bar.
+
+  Sized in points to the Finder window's content area. The window size and
+  both icon positions live in src-tauri/tauri.conf.json (bundle.macOS.dmg):
+  680x448 window (28pt title bar), icons centred at (180, 214) and
+  (500, 214). Keep the cards and label plates below in step with those.
+  Tauri's DMG script sets 128pt icons and 16pt labels, and Finder shows the
+  app as "Jira Auto Logger.app", so the plates are sized for that.
+
+  This SVG is the source of truth; `npm run dmg-background` renders it to the
+  Retina TIFF Tauri puts in the DMG. Finder draws icon labels in dark text
+  over a background image, so each label sits on a light plate of its own.
+-->
+<svg viewBox="0 0 680 420" width="680" height="420" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#26262d" />
+      <stop offset="1" stop-color="#121216" />
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3a3a44" />
+      <stop offset="1" stop-color="#141418" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff6500" stop-opacity="0.16" />
+      <stop offset="1" stop-color="#ff6500" stop-opacity="0" />
+    </radialGradient>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="10" cy="10" r="0.8" fill="#ffffff" fill-opacity="0.045" />
+    </pattern>
+  </defs>
+
+  <style>
+    text { font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; }
+    .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-weight: 500; letter-spacing: 1.2px; }
+  </style>
+
+  <rect width="680" height="420" fill="url(#field)" />
+  <rect width="680" height="340" fill="url(#grid)" />
+  <ellipse cx="500" cy="214" rx="190" ry="140" fill="url(#glow)" />
+
+  <!-- header: the icon in miniature, the name and what it does -->
+  <g transform="translate(40 30) scale(0.0703125)">
+    <rect width="512" height="512" rx="116" fill="url(#tile)" stroke="#ffffff" stroke-opacity="0.12" stroke-width="10" />
+    <path d="M140 152 V 360" stroke="#ffffff" stroke-width="26" stroke-linecap="round" />
+    <circle cx="140" cy="152" r="24" fill="#1c1c22" stroke="#ffffff" stroke-width="24" />
+    <circle cx="140" cy="256" r="24" fill="#1c1c22" stroke="#ffffff" stroke-width="24" />
+    <circle cx="140" cy="360" r="24" fill="#1c1c22" stroke="#ffffff" stroke-width="24" />
+    <rect x="206" y="128" width="214" height="48" rx="24" fill="#ff6500" />
+    <rect x="206" y="232" width="142" height="48" rx="24" fill="#ff8c3d" />
+    <rect x="206" y="336" width="180" height="48" rx="24" fill="#ffb27a" />
+  </g>
+  <text x="88" y="47" font-size="18" font-weight="600" fill="#f4f4f6">Jira Auto Logger</text>
+  <text x="88" y="66" font-size="12.5" fill="#a5a5af">Worklogs from your git commits, ready for Tempo.</text>
+
+  <!-- a quiet card under each icon, with a light plate for Finder's label -->
+  <g>
+    <rect x="80" y="124" width="200" height="208" rx="18" fill="#1d1d23" fill-opacity="0.92" stroke="#30303a" />
+    <rect x="400" y="124" width="200" height="208" rx="18" fill="#1d1d23" fill-opacity="0.92" stroke="#ff6500" stroke-opacity="0.35" />
+    <rect x="92" y="289" width="176" height="26" rx="13" fill="#ececf0" />
+    <rect x="412" y="289" width="176" height="26" rx="13" fill="#ececf0" />
+  </g>
+
+  <!-- the gesture: commits along a rail, turning into a logged bar that
+       points at Applications -->
+  <text class="mono" x="340" y="186" font-size="9.5" font-weight="600" fill="#7c7c87" text-anchor="middle">DRAG TO INSTALL</text>
+  <path d="M296 214 H 334" stroke="#5a5a66" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.1 6" />
+  <circle cx="300" cy="214" r="3.5" fill="#1d1d23" stroke="#c9c9d1" stroke-width="2" />
+  <circle cx="318" cy="214" r="3.5" fill="#1d1d23" stroke="#c9c9d1" stroke-width="2" />
+  <rect x="330" y="209" width="38" height="10" rx="5" fill="#ff6500" />
+  <path d="M374 206 L 384 214 L 374 222" fill="none" stroke="#ff6500" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- footer -->
+  <rect x="40" y="348" width="600" height="1" fill="#2a2a33" />
+  <text x="40" y="381" font-size="12.5" fill="#a5a5af">Then open <tspan fill="#f4f4f6" font-weight="600">Jira Auto Logger</tspan> from Applications and add your Jira account.</text>
+</svg>

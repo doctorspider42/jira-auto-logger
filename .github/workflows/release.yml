@@ -129,19 +129,107 @@ jobs:
       - name: Rust tests
         run: npm run test:rust
 
+      - name: Check macOS signing configuration
+        # Same Developer ID and App Store Connect key as Entangled Desktop,
+        # under the same secret names. A missing one must stop the build: an
+        # unsigned DMG would quietly ship and Gatekeeper would block it.
+        if: runner.os == 'macOS'
+        env:
+          P12: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+          KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          for name in P12 P12_PASSWORD TEAM KEY KEY_ID ISSUER; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing Apple signing configuration: $name"
+              exit 1
+            fi
+          done
+          key="$RUNNER_TEMP/notary.p8"
+          echo "$KEY" | base64 --decode > "$key"
+          chmod 600 "$key"
+          echo "APPLE_API_KEY_PATH=$key" >> "$GITHUB_ENV"
+        shell: bash
+
       - name: Build and upload
-        # Builds the installers (unsigned - no code-signing certificates in
-        # CI), signs the updater artifacts with TAURI_SIGNING_PRIVATE_KEY and
-        # uploads them to the release made above, merging this platform into
-        # its latest.json - the feed the in-app updater reads.
+        # Builds the installers, signs the updater artifacts with
+        # TAURI_SIGNING_PRIVATE_KEY and uploads them to the release made above,
+        # merging this platform into its latest.json - the feed the in-app
+        # updater reads. On macOS Tauri also imports the Developer ID into a
+        # temporary keychain, signs the app with the hardened runtime, has
+        # Apple notarize it and staples the ticket before packing the DMG and
+        # the updater .app.tar.gz. Windows and Linux stay unsigned.
+        id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ github.token }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
+
+      - name: Notarize, staple and re-upload the DMG
+        # Tauri notarizes the app inside the DMG but not the disk image itself.
+        # Notarize and staple the DMG too, as Entangled does, so it opens
+        # without a network check, then replace the copy already uploaded.
+        if: runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          ARTIFACTS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: |
+          set -euo pipefail
+          dmg=$(jq -r '.[] | select(endswith(".dmg"))' <<<"$ARTIFACTS" | head -1)
+          test -f "$dmg"
+          codesign --verify --strict --verbose=2 "$dmg"
+          auth=(--key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID")
+          mkdir -p notarization
+          xcrun notarytool submit "$dmg" "${auth[@]}" --wait --timeout 30m \
+            --output-format json > notarization/request.json
+          if ! jq -e '.status == "Accepted"' notarization/request.json; then
+            id=$(jq -r '.id // empty' notarization/request.json)
+            if [ -n "$id" ]; then
+              xcrun notarytool log "$id" "${auth[@]}" notarization/apple-log.json || true
+            fi
+            echo '::error::Apple did not accept the DMG; refusing to publish it.'
+            exit 1
+          fi
+          xcrun stapler staple "$dmg"
+          xcrun stapler validate "$dmg"
+          spctl --assess --type open --context context:primary-signature --verbose "$dmg"
+          hdiutil verify "$dmg"
+          # Upload under the name tauri-action gave the asset (GitHub turns
+          # spaces into dots), so the release keeps a single DMG.
+          tag="v${{ needs.version.outputs.version }}"
+          name=$(gh release view "$tag" --json assets -q '.assets[].name | select(endswith(".dmg"))' | head -1)
+          test -n "$name"
+          cp "$dmg" "$RUNNER_TEMP/$name"
+          gh release upload "$tag" "$RUNNER_TEMP/$name" --clobber
+        shell: bash
+
+      - name: Preserve notarization diagnostics
+        if: always() && runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-notarization
+          path: notarization/
+          if-no-files-found: ignore
+
+      - name: Remove the notary key
+        if: always() && runner.os == 'macOS'
+        run: rm -f "$RUNNER_TEMP/notary.p8"
+        shell: bash
 
   electron-update-feed:
     # Installed Electron builds still poll latest.yml / latest-linux.yml.
