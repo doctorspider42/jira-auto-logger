@@ -10,6 +10,12 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.4 — 2026-10-30
+
+- **Long button labels fit again.** In the day panel, labels such as
+  "Suggest entries from these" wrap onto a second line instead of
+  spilling past the button (most visible in the Clair Obscur theme).
+
 ## 1.0.3 — 2026-10-30
 
 - **macOS updates itself.** Like on Windows and Linux, a new version now

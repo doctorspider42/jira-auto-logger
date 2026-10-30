@@ -544,6 +544,14 @@
   border-top: 1px solid var(--line-soft);
 }
 
+/* Long labels (and wide theme fonts) wrap instead of spilling out. */
+.inspector-section > .btn {
+  min-width: 0;
+  padding-block: 8px;
+  white-space: normal;
+  text-align: center;
+}
+
 .inspector-section h3 {
   display: flex;
   align-items: center;
