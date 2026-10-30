@@ -1,6 +1,6 @@
 {
   "name": "jira-auto-logger",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Desktop app that suggests Jira/Tempo worklogs from git commits using an LLM",
   "author": "doctorspider42",
   "license": "MIT",

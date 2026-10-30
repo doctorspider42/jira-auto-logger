@@ -1,7 +1,7 @@
 # Moving to Tauri and the new designs
 
 Working branch: `tauri-redesign`. Electron keeps shipping from `main` until this branch
-replaces it in one release (0.2.0). Creating Jira issues comes after the switch.
+replaces it in one release (1.0.0). Creating Jira issues comes after the switch.
 
 The renderer talks to the backend through the same `IpcApi` contract
 (`src/shared/ipc.ts`); its implementation moved from the Electron main process to

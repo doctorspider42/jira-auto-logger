@@ -10,7 +10,7 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
-## 0.2.0 — 2026-10-29
+## 1.0.0 — 2026-10-30
 
 **Updating from 0.1.x.** On Windows and Linux the app updates itself into
 this version as usual - after the restart it is the new app, with your
