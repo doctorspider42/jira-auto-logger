@@ -115,7 +115,10 @@ the same version. `workflow_dispatch` behaves the same as a push (publishes).
 
 ## Facts about the build
 
-- Installers are **not code-signed** - SmartScreen/Gatekeeper will warn users. (The updater signature above only proves an update came from us; it is not OS code signing.) Do not pretend builds are signed.
+- **macOS is Developer ID signed and notarized**; Windows and Linux are **not code-signed** (SmartScreen warns). The updater signature above only proves an update came from us; it is not OS code signing.
+  - The Apple secrets are the same as Entangled Desktop's, under the same names: `APPLE_DEVELOPER_ID_P12_BASE64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_API_KEY_P8_BASE64`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`. The macOS job fails if any is missing rather than shipping an unsigned DMG.
+  - The workflow maps them onto Tauri's own variables (`APPLE_CERTIFICATE`, `APPLE_API_KEY`, `APPLE_API_ISSUER`, `APPLE_API_KEY_PATH`), so `tauri-action` signs the app with the hardened runtime, notarizes and staples it. A follow-up step notarizes and staples the DMG itself and re-uploads it over tauri-action's copy. A rejected submission leaves Apple's log in the `macos-notarization` run artifact.
+  - The DMG window artwork is `build/dmg-background.svg`; `npm run dmg-background` (macOS + Chrome) renders it to `src-tauri/macos/dmg-background.tiff`. Window size and icon positions are in `bundle.macOS.dmg` in `tauri.conf.json` and must match the SVG.
 - Packaging config lives in `src-tauri/tauri.conf.json` (identifier `com.doctorspider42.jira-auto-logger`, bundle targets, updater). macOS cannot self-install unsigned updates, so `updates.rs` only links to the release there.
 - Linux builds run on `ubuntu-22.04` and need `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`.
 - `npm ci` in CI retries twice with pauses - hosted runners occasionally throw `ECONNRESET` from the npm registry. A single red job that died in `npm ci` within seconds is almost certainly that flake: `gh run rerun <id> --failed` first, investigate only if it fails repeatedly.

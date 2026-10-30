@@ -14,6 +14,7 @@
     "web:dev": "vite",
     "web:build": "vite build",
     "icon": "tauri icon build/icon.svg -o src-tauri/icons",
+    "dmg-background": "node scripts/dmg-background.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml"
   },

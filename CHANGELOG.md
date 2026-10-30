@@ -10,6 +10,12 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.2 — 2026-10-30
+
+- macOS: the app is now signed and notarized by Apple, so it opens straight
+  away - no more Gatekeeper warning or right-click → Open on the first launch.
+- macOS: a redesigned installer window that shows where to drag the app.
+
 ## 1.0.1 — 2026-10-30
 
 - **Intel Macs are supported again.** The macOS download is now one app that

@@ -42,6 +42,15 @@
       "icons/icon.ico"
     ],
     "createUpdaterArtifacts": true,
+    "macOS": {
+      "hardenedRuntime": true,
+      "dmg": {
+        "background": "./macos/dmg-background.tiff",
+        "windowSize": { "width": 680, "height": 448 },
+        "appPosition": { "x": 180, "y": 214 },
+        "applicationFolderPosition": { "x": 500, "y": 214 }
+      }
+    },
     "windows": {
       "nsis": {
         "installerHooks": "./windows/installer-hooks.nsh"
