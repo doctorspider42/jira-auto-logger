@@ -1,6 +1,7 @@
 //! Drives auto-update through the Tauri updater against the public GitHub
-//! releases. macOS builds are unsigned and cannot self-update, so there only
-//! the version is compared and the user gets a link to the releases page.
+//! releases on every platform - the macOS build is Developer ID signed, so
+//! it installs its own updates like the others. A build that cannot
+//! self-install only compares the version and links to the releases page.
 //! Every state change is pushed to the renderer (`updates:stateChange`).
 //! Port of `UpdateService.ts`.
 
@@ -72,9 +73,9 @@ impl UpdateService {
         }
     }
 
-    /// Self-install works on installed, non-mac builds.
+    /// Self-install works on installed builds.
     fn can_auto_update() -> bool {
-        !cfg!(target_os = "macos") && !cfg!(debug_assertions)
+        !cfg!(debug_assertions)
     }
 
     /// Whether the updater does anything at all (never in dev or mock mode).
@@ -276,7 +277,7 @@ impl UpdateService {
         });
     }
 
-    /// macOS: version-only check against the public releases API.
+    /// Builds that cannot self-install: version-only check against the public releases API.
     async fn check_via_github(self: &Arc<Self>, app: &AppHandle) -> Result<(), String> {
         self.set_state(app, |s| {
             s.status = "checking".into();

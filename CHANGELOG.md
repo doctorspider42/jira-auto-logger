@@ -10,6 +10,13 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.3 — 2026-10-30
+
+- **macOS updates itself.** Like on Windows and Linux, a new version now
+  downloads in the background and installs with one click on restart. This
+  starts with the next update after 1.0.3 - to get 1.0.3 itself, download it
+  from the release page once more.
+
 ## 1.0.2 — 2026-10-30
 
 - macOS: the app is now signed and notarized by Apple, so it opens straight
