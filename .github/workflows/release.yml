@@ -82,7 +82,10 @@ jobs:
       matrix:
         include:
           - os: windows-latest
+          # One universal app for Apple Silicon and Intel Macs alike.
           - os: macos-latest
+            args: --target universal-apple-darwin
+            rust_targets: aarch64-apple-darwin,x86_64-apple-darwin
           # The oldest supported Ubuntu keeps the AppImage running on older distros.
           - os: ubuntu-22.04
     runs-on: ${{ matrix.os }}
@@ -107,6 +110,8 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -136,6 +141,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
 
   electron-update-feed:
     # Installed Electron builds still poll latest.yml / latest-linux.yml.
