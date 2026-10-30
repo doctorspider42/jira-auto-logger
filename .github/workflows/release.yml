@@ -37,7 +37,9 @@ jobs:
   # Create the (empty) release up front so the platform builds don't race to
   # create it - previously whichever build finished first won, and the slower
   # Windows build ended up appending its installer last. Now all three build
-  # jobs run in parallel and only upload to this pre-made tag.
+  # jobs run in parallel and only upload to this pre-made tag. It starts as a
+  # draft and is published by the last job, so a failed build never leaves an
+  # empty "latest" release that installed apps would try to update from.
   create-release:
     needs: version
     runs-on: ubuntu-latest
@@ -71,6 +73,7 @@ jobs:
           name: v${{ needs.version.outputs.version }}
           body: ${{ steps.notes.outputs.body }}
           generate_release_notes: ${{ steps.notes.outputs.has_notes != 'true' }}
+          draft: true
 
   build:
     needs: [version, create-release]
@@ -149,4 +152,16 @@ jobs:
           gh release download "$tag" --pattern '*-setup.exe' --pattern '*.AppImage' --dir assets
           node .github/scripts/electron-update-feed.js "${{ needs.version.outputs.version }}" assets
           gh release upload "$tag" assets/latest.yml assets/latest-linux.yml --clobber
+        shell: bash
+
+  publish:
+    # Only now, with every installer and feed uploaded, does the release become
+    # visible - to people and to the updaters of installed apps.
+    needs: [version, electron-update-feed]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "v${{ needs.version.outputs.version }}" --repo "${{ github.repository }}" --draft=false --latest
         shell: bash

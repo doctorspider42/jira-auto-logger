@@ -1,5 +1,7 @@
 // Computes the version for the next release and writes `version=X.Y.Z` to
-// $GITHUB_OUTPUT. The version is the latest published GitHub release with its
+// $GITHUB_OUTPUT. Drafts don't count: a release stays a draft until every
+// platform has uploaded, so a failed run leaves nothing that would bump the
+// next number. The version is the latest published GitHub release with its
 // patch bumped by one - unless package.json declares a higher version, which
 // wins (the escape hatch for jumping a minor/major). With no releases yet,
 // package.json's version is used as-is for the first release.
@@ -13,7 +15,7 @@ const pkgVersion = require(join(process.cwd(), 'package.json')).version
 
 function latestReleaseVersion() {
   try {
-    const out = execSync('gh release list --limit 1 --json tagName -q ".[0].tagName"', {
+    const out = execSync('gh release list --exclude-drafts --limit 1 --json tagName -q ".[0].tagName"', {
       encoding: 'utf8'
     }).trim()
     return out ? out.replace(/^v/, '') : null
