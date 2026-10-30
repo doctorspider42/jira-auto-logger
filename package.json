@@ -6,6 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
+    "tauri": "tauri",
     "dev": "tauri dev",
     "dev:mock": "cross-env JAL_MOCK=1 tauri dev",
     "screenshots": "node scripts/screenshots.mjs",
