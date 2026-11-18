@@ -142,6 +142,7 @@ impl JiraApi for MockJira {
             if chrono::Datelike::day(&day) % 2 == 0 {
                 out.push(JiraActivity {
                     date: day.format("%Y-%m-%d").to_string(),
+                    time: "11:20".into(),
                     issue_id: issue.id.clone(),
                     issue_key: issue.key.clone(),
                     summary: issue.summary.clone(),

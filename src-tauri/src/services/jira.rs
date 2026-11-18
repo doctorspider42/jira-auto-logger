@@ -124,9 +124,11 @@ fn quote(value: &str) -> String {
 }
 
 /// One thing the user did on an issue on a given day.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct JiraActivity {
     pub date: String,
+    /// Local "HH:MM" of the change, as Jira reports it; empty when unknown.
+    pub time: String,
     pub issue_id: String,
     pub issue_key: String,
     pub summary: String,
@@ -161,14 +163,15 @@ fn parse_activity(issue: &Value, account_id: &str, from: &str, to: &str) -> Vec<
     let key = issue["key"].as_str().unwrap_or_default();
     let id = issue["id"].as_str().unwrap_or_default();
     let summary = issue["fields"]["summary"].as_str().unwrap_or_default();
-    let in_range = |created: &str| -> Option<String> {
+    let in_range = |created: &str| -> Option<(String, String)> {
         let date = created.get(..10)?;
-        (date >= from && date <= to).then(|| date.to_string())
+        let time = created.get(11..16).unwrap_or_default().to_string();
+        (date >= from && date <= to).then(|| (date.to_string(), time))
     };
     let mine = |author: &Value| author["accountId"].as_str() == Some(account_id);
     let mut out = Vec::new();
-    let mut push = |date: String, action: String| {
-        let entry = JiraActivity { date, issue_id: id.into(), issue_key: key.into(), summary: summary.into(), action };
+    let mut push = |(date, time): (String, String), action: String| {
+        let entry = JiraActivity { date, time, issue_id: id.into(), issue_key: key.into(), summary: summary.into(), action };
         if !out.contains(&entry) {
             out.push(entry);
         }

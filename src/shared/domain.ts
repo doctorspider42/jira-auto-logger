@@ -611,6 +611,8 @@ export interface ProjectActivity {
   recentLoggedDays: number
   /** ...out of this many (up to 5). */
   recentDayCount: number
+  /** Last few days before the requested ones logged to this project, oldest first. */
+  recentDays: RecentDay[]
   /** One per requested date, same order as `ActivityScanResult.days`. */
   days: ProjectDayActivity[]
 }
@@ -630,6 +632,30 @@ export interface ProjectDayActivity {
   jiraIssueKeys: string[]
   /** Soft hint: this project's share of the day's remaining hours (quarter hours). */
   hoursHint: number
+  /** Branch of the day's latest commit; empty without commits. */
+  branch: string
+  /** Every trace of the day, newest first. */
+  events: ActivityEvent[]
+}
+
+export interface RecentDay {
+  date: string
+  hours: number
+  /** The issue that got most of that day's hours. */
+  issueKey: string
+}
+
+export interface ActivityEvent {
+  /** Local "HH:MM"; empty for uncommitted work (it is "now"). */
+  time: string
+  kind: 'commit' | 'jira' | 'uncommitted'
+  /** Commit subject or Jira action; empty for uncommitted work. */
+  text: string
+  issueKey: string
+  additions: number
+  deletions: number
+  /** Files touched (uncommitted work only). */
+  files: number
 }
 
 export interface UncommittedSummary {

@@ -15,7 +15,7 @@ use crate::services::git::{CommitSource, WorkingChanges};
 use crate::services::jira::JiraActivity;
 use chrono::{Datelike, NaiveDate, Weekday};
 use serde_json::json;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
 /// How many recent days with any worklog define the user's habits.
@@ -248,12 +248,21 @@ impl ActivityService {
         }
         let window = previous_logged_days(worklogs.values().flatten().map(|w| &w.start_date), &first, RECENT_DAY_COUNT);
         let mut habits: HashMap<&str, (BTreeSet<&str>, f64)> = HashMap::new();
+        // project id -> date -> issue key -> hours, for the continuation hint.
+        let mut recent: HashMap<&str, BTreeMap<&str, HashMap<&str, f64>>> = HashMap::new();
         for (connection_id, list) in &worklogs {
             for w in list.iter().filter(|w| window.contains(&w.start_date)) {
                 for project in projects_of_worklog(&projects, connection_id, &w.issue_key) {
                     let entry = habits.entry(project.id.as_str()).or_default();
                     entry.0.insert(w.start_date.as_str());
                     entry.1 += hours(w.time_spent_seconds);
+                    *recent
+                        .entry(project.id.as_str())
+                        .or_default()
+                        .entry(w.start_date.as_str())
+                        .or_default()
+                        .entry(w.issue_key.as_str())
+                        .or_insert(0.0) += hours(w.time_spent_seconds);
                 }
             }
         }
@@ -277,6 +286,7 @@ impl ActivityService {
                 status: NONE.into(),
                 recent_logged_days: recent_days,
                 recent_day_count: window.len() as u32,
+                recent_days: recent.get(project.id.as_str()).map(recent_day_list).unwrap_or_default(),
                 days: dates.iter().map(|d| day_activity(d, &commits, if *d == today { &working } else { &[] }, &project_activity)).collect(),
             });
         }
@@ -378,6 +388,24 @@ impl ActivityService {
     }
 }
 
+/// How many recent days a thin day's continuation hint shows.
+const CONTINUATION_DAYS: usize = 3;
+
+/// Per-date hours of one project, newest `CONTINUATION_DAYS`, oldest first.
+fn recent_day_list(by_date: &BTreeMap<&str, HashMap<&str, f64>>) -> Vec<RecentDay> {
+    let mut days: Vec<RecentDay> = by_date
+        .iter()
+        .rev()
+        .take(CONTINUATION_DAYS)
+        .map(|(date, issues)| {
+            let top = issues.iter().max_by(|a, b| a.1.total_cmp(b.1).then_with(|| b.0.cmp(a.0))).map(|(k, _)| k.to_string()).unwrap_or_default();
+            RecentDay { date: date.to_string(), hours: round2(issues.values().sum()), issue_key: top }
+        })
+        .collect();
+    days.reverse();
+    days
+}
+
 /// The evidence of one project on one date.
 fn day_activity(date: &str, commits: &[CommitInfo], working: &[WorkingChanges], activity: &[&JiraActivity]) -> ProjectDayActivity {
     let day: Vec<&CommitInfo> = commits.iter().filter(|c| c.date.get(..10) == Some(date)).collect();
@@ -395,8 +423,34 @@ fn day_activity(date: &str, commits: &[CommitInfo], working: &[WorkingChanges], 
             keys.push(a.issue_key.clone());
         }
     }
+    let mut events: Vec<ActivityEvent> = day
+        .iter()
+        .map(|c| ActivityEvent {
+            time: c.date.get(11..16).unwrap_or_default().to_string(),
+            kind: "commit".into(),
+            text: c.message.clone(),
+            additions: c.additions,
+            deletions: c.deletions,
+            ..Default::default()
+        })
+        .collect();
+    events.extend(on_date.iter().map(|a| ActivityEvent {
+        time: a.time.clone(),
+        kind: "jira".into(),
+        text: a.action.clone(),
+        issue_key: a.issue_key.clone(),
+        ..Default::default()
+    }));
+    // Newest first; uncommitted work is "now", so it leads.
+    events.sort_by(|a, b| b.time.cmp(&a.time));
+    if let Some(u) = &uncommitted {
+        events.insert(0, ActivityEvent { kind: "uncommitted".into(), additions: u.additions, deletions: u.deletions, files: u.files, ..Default::default() });
+    }
+    let branch = day.iter().max_by(|a, b| a.date.cmp(&b.date)).map(|c| c.branch.clone()).unwrap_or_default();
     ProjectDayActivity {
         date: date.to_string(),
+        branch,
+        events,
         status: NONE.into(),
         commit_count: day.len() as u32,
         additions: day.iter().map(|c| c.additions).sum(),
@@ -423,6 +477,34 @@ mod tests {
             jira_activity_count: jira,
             ..Default::default()
         }
+    }
+
+    #[test]
+    fn events_run_newest_first_with_uncommitted_work_on_top() {
+        let commit = |time: &str, message: &str| CommitInfo {
+            date: format!("2026-11-18T{time}:00+01:00"),
+            message: message.into(),
+            branch: "feature/A-1".into(),
+            additions: 10,
+            ..Default::default()
+        };
+        let jira = JiraActivity { date: "2026-11-18".into(), time: "12:00".into(), issue_key: "A-1".into(), action: "status: To Do -> Done".into(), ..Default::default() };
+        let working = WorkingChanges { files: vec!["a.rs".into()], additions: 3, ..Default::default() };
+        let day = day_activity("2026-11-18", &[commit("09:00", "first"), commit("15:30", "last")], &[working], &[&jira]);
+        let kinds: Vec<(&str, &str)> = day.events.iter().map(|e| (e.kind.as_str(), e.time.as_str())).collect();
+        assert_eq!(kinds, vec![("uncommitted", ""), ("commit", "15:30"), ("jira", "12:00"), ("commit", "09:00")]);
+        assert_eq!(day.branch, "feature/A-1");
+    }
+
+    #[test]
+    fn recent_days_keep_the_newest_and_name_the_main_issue() {
+        let mut by_date: BTreeMap<&str, HashMap<&str, f64>> = BTreeMap::new();
+        for (date, issue, hours) in [("2026-11-10", "A-1", 8.0), ("2026-11-11", "A-1", 2.0), ("2026-11-11", "A-2", 5.0), ("2026-11-12", "A-2", 6.0), ("2026-11-13", "A-2", 4.0)] {
+            *by_date.entry(date).or_default().entry(issue).or_insert(0.0) += hours;
+        }
+        let days = recent_day_list(&by_date);
+        let summary: Vec<(&str, f64, &str)> = days.iter().map(|d| (d.date.as_str(), d.hours, d.issue_key.as_str())).collect();
+        assert_eq!(summary, vec![("2026-11-11", 7.0, "A-2"), ("2026-11-12", 6.0, "A-2"), ("2026-11-13", 4.0, "A-2")]);
     }
 
     #[test]

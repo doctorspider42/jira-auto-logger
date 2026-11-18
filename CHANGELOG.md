@@ -12,6 +12,16 @@ Write for users, not for the commit log — see the `release` skill.
 
 ## 1.0.8 — 2026-11-18
 
+- **Auto mode when adding entries.** The first step of "New entries" now
+  starts in Auto: it ticks the projects you worked on that day (from your
+  commits, uncommitted changes, Jira activity and what you usually log),
+  shows each one's day on a small timeline and suggests how the hours split
+  between them. Adjust the hours with − / +, untick what's wrong, or switch
+  to Manual to pick projects the old way. Projects you only usually log to
+  are marked as likely.
+- **Rebased commits count once.** After a rebase or amend the old copies
+  of commits (a backup branch, the remote's version) no longer double a
+  day's work.
 - **The scheduled auto logger finds your projects by itself.** Instead of
   repeating your last manual selection, it looks at that day's commits,
   uncommitted changes and Jira activity, plus what you usually log, and

@@ -7,6 +7,8 @@ mod commands;
 mod config;
 mod desktop;
 mod domain;
+#[cfg(test)]
+mod dry_run;
 mod error;
 mod llm;
 mod logger;

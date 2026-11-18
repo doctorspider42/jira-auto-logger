@@ -496,7 +496,36 @@ pub struct ProjectActivity {
     /// Recent days (with any worklog) the user logged to this project, out of `recentDayCount`.
     pub recent_logged_days: u32,
     pub recent_day_count: u32,
+    /// The last few days before the requested ones the user logged to this
+    /// project, oldest first - what a thin day most likely continues.
+    pub recent_days: Vec<RecentDay>,
     pub days: Vec<ProjectDayActivity>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RecentDay {
+    pub date: String,
+    pub hours: f64,
+    /// The issue that got most of that day's hours.
+    pub issue_key: String,
+}
+
+/// One trace of work on a day, for the auto-mode timeline.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ActivityEvent {
+    /// Local "HH:MM"; empty for uncommitted work (it is "now").
+    pub time: String,
+    /// "commit" | "jira" | "uncommitted".
+    pub kind: String,
+    /// Commit subject, Jira action, or nothing for uncommitted work.
+    pub text: String,
+    pub issue_key: String,
+    pub additions: u32,
+    pub deletions: u32,
+    /// Files touched (uncommitted work only).
+    pub files: u32,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -518,6 +547,10 @@ pub struct ProjectDayActivity {
     pub jira_issue_keys: Vec<String>,
     /// Soft hint: this project's share of the day's remaining hours.
     pub hours_hint: f64,
+    /// Branch of the day's latest commit; empty without commits.
+    pub branch: String,
+    /// Every trace of the day, newest first.
+    pub events: Vec<ActivityEvent>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
