@@ -6,6 +6,7 @@ import { ErrorBanner } from '@/components/common/ErrorBanner'
 import { HelpTip } from '@/components/common/HelpTip'
 import { Icon } from '@/components/common/Icon'
 import { Modal } from '@/components/common/Modal'
+import { ImportFromWorklogsModal } from './ImportFromWorklogsModal'
 import { useAppStore } from '@/store/appStore'
 import './projects.css'
 
@@ -25,6 +26,7 @@ export function ProjectsView(): JSX.Element {
   const [savedFlash, setSavedFlash] = useState(false)
   const [showBlockReason, setShowBlockReason] = useState(false)
   const [error, setError] = useState<AppError | null>(null)
+  const [importOpen, setImportOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(() => config.projects[0]?.id ?? null)
 
   const dirty = useMemo(
@@ -213,6 +215,11 @@ export function ProjectsView(): JSX.Element {
             <Icon name="plus" />
           </button>
         </div>
+        {config.connections.length > 0 && (
+          <button className="link md-list-import" onClick={() => setImportOpen(true)}>
+            <Icon name="history" size={14} /> {t('projects.importFromWorklogs')}
+          </button>
+        )}
         {projects.map((p) => {
           const invalid = invalidProjects.includes(p)
           return (
@@ -472,6 +479,21 @@ export function ProjectsView(): JSX.Element {
           </div>
         )}
       </main>
+
+      {importOpen && (
+        <ImportFromWorklogsModal
+          connections={config.connections}
+          projects={projects}
+          onClose={() => setImportOpen(false)}
+          onImport={(imported) => {
+            setImportOpen(false)
+            if (imported.length === 0) return
+            // Lands in the draft like a manually added project; Save persists it.
+            setProjects((all) => [...all, ...imported])
+            setSelectedId(imported[0].id)
+          }}
+        />
+      )}
 
       {confirmDelete && (
         <Modal

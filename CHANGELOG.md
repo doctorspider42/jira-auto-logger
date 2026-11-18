@@ -10,6 +10,13 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.5 — 2026-11-18
+
+- **Projects from logged time.** Projects → "Import from logged time" looks
+  through your Tempo worklogs in a date range you pick, lists the Jira
+  projects you logged to (with hours), and adds the ones you tick as projects
+  - no more typing every project key by hand.
+
 ## 1.0.4 — 2026-10-30
 
 - **Long button labels fit again.** In the day panel, labels such as
