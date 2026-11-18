@@ -15,6 +15,7 @@ mod report_filename;
 mod reports;
 mod secrets;
 mod services;
+mod shell_path;
 mod telemetry;
 mod updates;
 
@@ -41,6 +42,7 @@ fn runtime_info(app: tauri::AppHandle, backdrop: State<Backdrop>) -> Value {
 }
 
 fn main() {
+    shell_path::extend_from_login_shell();
     let config = Arc::new(ConfigService::new());
     let http = reqwest::Client::builder()
         .user_agent(concat!("jira-auto-logger/", env!("CARGO_PKG_VERSION")))

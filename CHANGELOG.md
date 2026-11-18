@@ -16,6 +16,10 @@ Write for users, not for the commit log — see the `release` skill.
   through your Tempo worklogs in a date range you pick, lists the Jira
   projects you logged to (with hours), and adds the ones you tick as projects
   - no more typing every project key by hand.
+- **Claude and Copilot CLIs are found again.** When the app was started
+  from Finder, the Dock or at login on macOS, it could say "CLI not found"
+  even though the CLI was installed - it now looks wherever your terminal
+  does (e.g. `~/.local/bin`, Homebrew).
 
 ## 1.0.4 — 2026-10-30
 
