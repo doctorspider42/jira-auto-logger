@@ -23,6 +23,11 @@ pub trait JiraApi: Send + Sync {
     /// Issue types a new issue in this project can have.
     async fn get_issue_types(&self, project_key: &str) -> AppResult<Vec<JiraIssueType>>;
     async fn create_issue(&self, request: &CreateIssueRequest) -> AppResult<JiraIssue>;
+    /// What the user did in a project between two dates (inclusive): status
+    /// changes, comments, edits. Evidence of work that left no commit.
+    async fn get_my_activity(&self, _account_id: &str, _project_key: &str, _from: &str, _to: &str) -> AppResult<Vec<JiraActivity>> {
+        Ok(Vec::new())
+    }
 }
 
 /// The type a new issue gets when none was picked: Task, else the first type
@@ -95,6 +100,87 @@ fn clamp(value: f64, min: f64, max: f64) -> f64 {
 /// JQL string literal, the way `JSON.stringify` quotes it.
 fn quote(value: &str) -> String {
     serde_json::to_string(value).unwrap_or_default()
+}
+
+/// One thing the user did on an issue on a given day.
+#[derive(Clone, Debug, PartialEq)]
+pub struct JiraActivity {
+    pub date: String,
+    pub issue_id: String,
+    pub issue_key: String,
+    pub summary: String,
+    pub action: String,
+}
+
+/// Issues pulled for activity; more is noise for one project and a few days.
+const ACTIVITY_ISSUE_LIMIT: usize = 30;
+
+/// Plain text of an Atlassian Document Format node (comment bodies in v3).
+fn adf_text(node: &Value) -> String {
+    let mut out = String::new();
+    fn walk(node: &Value, out: &mut String) {
+        if let Some(text) = node["text"].as_str() {
+            out.push_str(text);
+        }
+        if let Some(children) = node["content"].as_array() {
+            for child in children {
+                walk(child, out);
+            }
+            if matches!(node["type"].as_str(), Some("paragraph" | "listItem" | "heading")) {
+                out.push(' ');
+            }
+        }
+    }
+    walk(node, &mut out);
+    out.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// The user's own changelog entries and comments within [from, to].
+fn parse_activity(issue: &Value, account_id: &str, from: &str, to: &str) -> Vec<JiraActivity> {
+    let key = issue["key"].as_str().unwrap_or_default();
+    let id = issue["id"].as_str().unwrap_or_default();
+    let summary = issue["fields"]["summary"].as_str().unwrap_or_default();
+    let in_range = |created: &str| -> Option<String> {
+        let date = created.get(..10)?;
+        (date >= from && date <= to).then(|| date.to_string())
+    };
+    let mine = |author: &Value| author["accountId"].as_str() == Some(account_id);
+    let mut out = Vec::new();
+    let mut push = |date: String, action: String| {
+        let entry = JiraActivity { date, issue_id: id.into(), issue_key: key.into(), summary: summary.into(), action };
+        if !out.contains(&entry) {
+            out.push(entry);
+        }
+    };
+    for history in issue["changelog"]["histories"].as_array().into_iter().flatten() {
+        let Some(date) = history["created"].as_str().and_then(in_range) else { continue };
+        if !mine(&history["author"]) {
+            continue;
+        }
+        for item in history["items"].as_array().into_iter().flatten() {
+            let field = item["field"].as_str().unwrap_or_default();
+            let from_s = item["fromString"].as_str().unwrap_or_default();
+            let to_s = item["toString"].as_str().unwrap_or_default();
+            let action = match field {
+                "status" => format!("status: {from_s} -> {to_s}"),
+                "assignee" => format!("assignee: {to_s}"),
+                // Time tracking moves with every worklog - says nothing new.
+                "timespent" | "timeestimate" | "WorklogId" | "WorklogTimeSpent" => continue,
+                _ => format!("edited {field}"),
+            };
+            push(date.clone(), action);
+        }
+    }
+    for comment in issue["fields"]["comment"]["comments"].as_array().into_iter().flatten() {
+        let Some(date) = comment["created"].as_str().and_then(in_range) else { continue };
+        if !mine(&comment["author"]) {
+            continue;
+        }
+        let text = adf_text(&comment["body"]);
+        let text = if text.chars().count() > 200 { format!("{}…", text.chars().take(199).collect::<String>()) } else { text };
+        push(date, format!("comment: {text}"));
+    }
+    out
 }
 
 pub type JiraConfigSource = Arc<dyn Fn() -> AppResult<JiraConfig> + Send + Sync>;
@@ -296,6 +382,33 @@ impl JiraApi for JiraClient {
         })
     }
 
+    async fn get_my_activity(&self, account_id: &str, project_key: &str, from: &str, to: &str) -> AppResult<Vec<JiraActivity>> {
+        // JQL date ranges end at midnight, so the last day needs the next one as the bound.
+        let until = chrono::NaiveDate::parse_from_str(to, "%Y-%m-%d")
+            .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|_| to.to_string());
+        let scope = format!("project = {}", quote(project_key));
+        let account = quote(account_id);
+        // updatedBy() catches comments and edits too; status CHANGED BY is the
+        // narrower fallback for instances that reject it.
+        let queries = [
+            format!("{scope} AND issue in updatedBy({account}, \"{from}\", \"{until}\") ORDER BY updated DESC"),
+            format!("{scope} AND status CHANGED BY {account} DURING (\"{from}\", \"{until}\") ORDER BY updated DESC"),
+        ];
+        let mut last_error = None;
+        for jql in queries {
+            let body = json!({ "jql": jql, "maxResults": ACTIVITY_ISSUE_LIMIT, "fields": ["summary", "comment"], "expand": "changelog" });
+            match self.request("/rest/api/3/search/jql", Some(body)).await {
+                Ok(page) => {
+                    let issues = page["issues"].as_array().cloned().unwrap_or_default();
+                    return Ok(issues.iter().flat_map(|i| parse_activity(i, account_id, from, to)).collect());
+                }
+                Err(e) => last_error = Some(e),
+            }
+        }
+        Err(last_error.unwrap())
+    }
+
     async fn get_issues_by_ids(&self, ids: &[String]) -> AppResult<Vec<JiraIssue>> {
         let mut unique: Vec<String> = Vec::new();
         for id in ids {
@@ -323,4 +436,29 @@ pub fn url_encode(value: &str) -> String {
             _ => format!("%{b:02X}"),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keeps_only_own_activity_in_range() {
+        let issue = json!({
+            "key": "FOP-7", "fields": { "summary": "Filters",
+                "comment": { "comments": [
+                    { "created": "2026-11-18T10:00:00.000+0100", "author": { "accountId": "me" },
+                      "body": { "type": "doc", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Done, see PR" }] }] } },
+                    { "created": "2026-11-18T11:00:00.000+0100", "author": { "accountId": "other" }, "body": {} }
+                ] } },
+            "changelog": { "histories": [
+                { "created": "2026-11-18T09:00:00.000+0100", "author": { "accountId": "me" },
+                  "items": [{ "field": "status", "fromString": "To Do", "toString": "In Progress" }, { "field": "timespent" }] },
+                { "created": "2026-11-17T09:00:00.000+0100", "author": { "accountId": "me" },
+                  "items": [{ "field": "status", "fromString": "Backlog", "toString": "To Do" }] }
+            ] }
+        });
+        let actions: Vec<String> = parse_activity(&issue, "me", "2026-11-18", "2026-11-18").into_iter().map(|a| a.action).collect();
+        assert_eq!(actions, vec!["status: To Do -> In Progress", "comment: Done, see PR"]);
+    }
 }

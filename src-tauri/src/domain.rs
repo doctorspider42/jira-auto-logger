@@ -48,6 +48,9 @@ pub struct LlmConfig {
     pub copilot_model: String,
     pub additional_instructions: String,
     pub enable_thinking: bool,
+    /// Claude CLI only: let the model run read-only git commands in the
+    /// project's repositories when the commits it was given are not enough.
+    pub git_tools: bool,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -377,6 +380,11 @@ pub struct CommitInfo {
     /// Paths the commit touched.
     #[serde(default)]
     pub files: Vec<String>,
+    /// Lines added and removed across all files (binary files count 0).
+    #[serde(default)]
+    pub additions: u32,
+    #[serde(default)]
+    pub deletions: u32,
 }
 
 // ---------- LLM suggestions ----------

@@ -68,7 +68,7 @@ pub fn mock_config() -> AppConfig {
             "backend": "claude-cli",
             "openAi": { "apiKey": "", "model": "gpt-4o-mini", "baseUrl": "" },
             "claudeCliPath": "claude", "claudeModel": "", "copilotCliPath": "copilot", "copilotModel": "",
-            "additionalInstructions": "", "enableThinking": true
+            "additionalInstructions": "", "enableThinking": true, "gitTools": false
         },
         "language": "en",
         "themeId": "dark",

@@ -769,6 +769,19 @@ export function SettingsView(): JSX.Element {
                   {t('settings.enableThinking')}
                 </label>
                 <HelpTip label={t('settings.enableThinking')}>{t('settings.enableThinkingHint')}</HelpTip>
+                {backend === 'claude-cli' && (
+                  <>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={draft.llm.gitTools}
+                        onChange={(e) => patchSection('llm', { gitTools: e.target.checked })}
+                      />
+                      {t('settings.gitTools')}
+                    </label>
+                    <HelpTip label={t('settings.gitTools')}>{t('settings.gitToolsHint')}</HelpTip>
+                  </>
+                )}
                 <span className="spacer" />
                 {backend === 'claude-cli' && (
                   <button className="link" onClick={() => void window.api.llm.startClaudeLogin()}>

@@ -12,7 +12,8 @@ use crate::error::{AppError, AppResult, ErrorCode};
 use crate::logger;
 use crate::paths;
 use crate::services::connections::ConnectionManager;
-use crate::services::git::CommitSource;
+use crate::services::git::{CommitSource, WorkingChanges};
+use crate::services::jira::JiraActivity;
 use providers::{ClaudeCli, CopilotCli, LlmCompletion, LlmProvider, OpenAiApi};
 use regex::Regex;
 use serde_json::{json, Map, Value};
@@ -66,6 +67,8 @@ fn round2(value: f64) -> f64 {
 struct BuiltPrompt {
     prompt: String,
     candidates: Vec<JiraIssue>,
+    activity_count: usize,
+    git_repos: Vec<String>,
 }
 
 pub struct LlmService {
@@ -88,10 +91,11 @@ impl LlmService {
         for selection in valid_selections(request)? {
             let project = self.project(&selection.project_id)?;
             let commits = self.fetch_commits(request, selection, &project).await?;
+            let working = self.fetch_working_changes(request, selection, &project).await;
             for target in &project.targets {
                 let connection = self.connections.connection(&target.connection_id)?;
                 let label = pass_label(&project, target, &connection.name);
-                let built = self.build_target_prompt(request, selection, &project, target, &commits, &logged).await;
+                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &logged).await;
                 logger::info(
                     "llm",
                     &format!("generate for \"{label}\""),
@@ -100,10 +104,12 @@ impl LlmService {
                         "dates": request.dates.len(),
                         "commits": commits.len(),
                         "candidateIssues": built.candidates.len(),
+                        "jiraActivity": built.activity_count,
+                        "uncommittedRepos": working.len(),
                         "promptLength": built.prompt.len(),
                     })),
                 );
-                let LlmCompletion { text, mut model } = self.complete_for(&label, &built.prompt).await?;
+                let LlmCompletion { text, mut model } = self.complete_for(&label, &built.prompt, &built.git_repos).await?;
                 let mut suggestions = self.parse_suggestions(&text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
                 // The user picked this project for these dates, so an empty
                 // answer with hours still free is a miss, not a verdict: ask
@@ -111,7 +117,7 @@ impl LlmService {
                 if suggestions.is_empty() && has_remaining_budget(&request.dates, &logged, self.config.get().working_hours_per_day) {
                     logger::info("llm", &format!("\"{label}\": empty answer with budget left, retrying once"), None);
                     let retry = format!("{}\n\n{EMPTY_ANSWER_RETRY}", built.prompt);
-                    let again = self.complete_for(&label, &retry).await?;
+                    let again = self.complete_for(&label, &retry, &built.git_repos).await?;
                     suggestions = self.parse_suggestions(&again.text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
                     model = again.model.or(model);
                 }
@@ -138,9 +144,10 @@ impl LlmService {
         for selection in valid_selections(request)? {
             let project = self.project(&selection.project_id)?;
             let commits = self.fetch_commits(request, selection, &project).await?;
+            let working = self.fetch_working_changes(request, selection, &project).await;
             for target in &project.targets {
                 let connection = self.connections.connection(&target.connection_id)?;
-                let built = self.build_target_prompt(request, selection, &project, target, &commits, &logged).await;
+                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &logged).await;
                 previews.push(PromptPreview {
                     label: pass_label(&project, target, &connection.name),
                     // ~4 chars per token is a common rough heuristic.
@@ -161,7 +168,7 @@ impl LlmService {
             .replace("{{commits}}", &format_commits(&request.commits, &s.date))
             .replace("{{notes}}", if request.free_text.is_empty() { "(none)" } else { &request.free_text })
             .replace("{{hint}}", if request.hint.is_empty() { "Rewrite it to be clearer." } else { &request.hint });
-        let text = self.provider().complete(&prompt).await?.text.trim().to_string();
+        let text = self.provider(&[]).complete(&prompt).await?.text.trim().to_string();
         if text.is_empty() {
             return Err(AppError::new(ErrorCode::LlmBadResponse, "The model returned an empty description"));
         }
@@ -216,8 +223,8 @@ impl LlmService {
     }
 
     /// Adds the project name so the user knows which pass failed.
-    async fn complete_for(&self, label: &str, prompt: &str) -> AppResult<LlmCompletion> {
-        self.provider().complete(prompt).await.map_err(|e| AppError { message: format!("[{label}] {}", e.message), ..e })
+    async fn complete_for(&self, label: &str, prompt: &str, git_repos: &[String]) -> AppResult<LlmCompletion> {
+        self.provider(git_repos).complete(prompt).await.map_err(|e| AppError { message: format!("[{label}] {}", e.message), ..e })
     }
 
     /// Commits are shared by all targets of a project - fetched once per selection.
@@ -229,6 +236,34 @@ impl LlmService {
         self.git.get_commits(&paths, &request.dates).await
     }
 
+    /// Uncommitted work only matters when today is among the dates: it is
+    /// today's work that has no commit yet, never an older day's.
+    async fn fetch_working_changes(&self, request: &SuggestionRequest, selection: &ProjectSelection, project: &ProjectConfig) -> Vec<WorkingChanges> {
+        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+        if !selection.use_commits || project.git_folders.is_empty() || !request.dates.contains(&today) {
+            return Vec::new();
+        }
+        let paths: Vec<String> = project.git_folders.iter().map(|f| f.path.clone()).collect();
+        self.git.get_working_changes(&paths).await
+    }
+
+    /// The user's own Jira activity in the target project on the requested
+    /// dates; empty when Jira cannot answer (it is extra evidence, not required).
+    async fn fetch_jira_activity(&self, request: &SuggestionRequest, target: &ProjectTarget) -> Vec<JiraActivity> {
+        let sorted: BTreeSet<&String> = request.dates.iter().collect();
+        let (Some(from), Some(to)) = (sorted.first(), sorted.last()) else { return Vec::new() };
+        let Ok(account) = self.connections.account_id(&target.connection_id).await else { return Vec::new() };
+        let jira = self.connections.jira(&target.connection_id);
+        match jira.get_my_activity(&account, &target.jira_project_key, from, to).await {
+            Ok(activity) => activity.into_iter().filter(|a| sorted.contains(&a.date)).collect(),
+            Err(e) => {
+                logger::info("llm", &format!("Jira activity unavailable for {}: {}", target.jira_project_key, e.message), None);
+                Vec::new()
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
     async fn build_target_prompt(
         &self,
         request: &SuggestionRequest,
@@ -236,6 +271,7 @@ impl LlmService {
         project: &ProjectConfig,
         target: &ProjectTarget,
         commits: &[CommitInfo],
+        working: &[WorkingChanges],
         logged: &HashMap<String, f64>,
     ) -> BuiltPrompt {
         let config = self.config.get();
@@ -246,7 +282,8 @@ impl LlmService {
             .into_iter()
             .filter(|w| w.issue_key.starts_with(&prefix))
             .collect();
-        let candidates = self.collect_target_candidates(target, commits, &project_worklogs).await;
+        let activity = self.fetch_jira_activity(request, target).await;
+        let candidates = self.collect_target_candidates(target, commits, &project_worklogs, &activity).await;
         let auto_fill: Vec<CustomFieldConfig> = fields_for(&config, target).into_iter().filter(|f| f.auto_fill).collect();
 
         // Few-shot examples: the newest entries show the user's real logging style.
@@ -307,7 +344,28 @@ impl LlmService {
             json!(candidates.iter().map(|i| json!({ "key": i.key, "summary": clip(&i.summary, 120) })).collect::<Vec<_>>()),
         );
         input.insert("recentWorklogs".into(), json!(examples));
-        input.insert("commits".into(), json!(commits.iter().map(commit_for_prompt).collect::<Vec<_>>()));
+        let git_repos = self.git_tool_repos(selection, project);
+        input.insert(
+            "commits".into(),
+            json!(commits
+                .iter()
+                .map(|c| {
+                    let mut commit = commit_for_prompt(c);
+                    // Only worth the tokens when the model can `git show` it.
+                    if !git_repos.is_empty() {
+                        commit["hash"] = json!(c.hash.get(..10).unwrap_or(&c.hash));
+                        commit["repo"] = json!(c.repo_label);
+                    }
+                    commit
+                })
+                .collect::<Vec<_>>()),
+        );
+        if !working.is_empty() {
+            input.insert("uncommittedChanges".into(), json!(working.iter().map(working_for_prompt).collect::<Vec<_>>()));
+        }
+        if !activity.is_empty() {
+            input.insert("jiraActivity".into(), activity_for_prompt(&activity));
+        }
         input.insert("notes".into(), json!(selection.note));
         if selection.allow_new_issues {
             input.insert("allowNewIssues".into(), json!(true));
@@ -324,9 +382,9 @@ impl LlmService {
         let prompt = MAIN_PROMPT
             .replace("{{workingHoursPerDay}}", &js_number(config.working_hours_per_day).to_string())
             .replace("{{language}}", language_name(&config.language))
-            .replace("{{additionalInstructions}}", &additional)
+            .replace("{{additionalInstructions}}", &format!("{}{additional}", git_tools_section(&git_repos)))
             .replace("{{input}}", &Value::Object(input).to_string());
-        BuiltPrompt { prompt, candidates }
+        BuiltPrompt { prompt, candidates, activity_count: activity.len(), git_repos }
     }
 
     /// Hours already logged in Tempo on each requested date, summed across
@@ -377,7 +435,13 @@ impl LlmService {
     /// The pool of existing issues of THIS target the model may assign work
     /// to: the user's recent worklog targets, issues referenced in commit
     /// messages and recently updated issues.
-    async fn collect_target_candidates(&self, target: &ProjectTarget, commits: &[CommitInfo], project_worklogs: &[Worklog]) -> Vec<JiraIssue> {
+    async fn collect_target_candidates(
+        &self,
+        target: &ProjectTarget,
+        commits: &[CommitInfo],
+        project_worklogs: &[Worklog],
+        activity: &[JiraActivity],
+    ) -> Vec<JiraIssue> {
         let pool = self.config.get().issue_pool;
         let jira = self.connections.jira(&target.connection_id);
         let prefix = format!("{}-", target.jira_project_key);
@@ -394,6 +458,16 @@ impl LlmService {
                 &mut candidates,
             );
         }
+        // Issues the user touched in Jira on these days are as strong a hint
+        // as a commit reference, and they come with their summary already.
+        let before_activity = candidates.len();
+        for a in activity {
+            add(
+                JiraIssue { id: a.issue_id.clone(), key: a.issue_key.clone(), summary: a.summary.clone(), type_name: String::new(), is_subtask: false },
+                &mut candidates,
+            );
+        }
+        let active = candidates.len() - before_activity;
         // Issues referenced explicitly in commits (subject, body or branch
         // name like `feature/ABC-12-login`) are the strongest signal.
         let key_pattern = Regex::new(r"[A-Z][A-Z0-9]+-\d+").unwrap();
@@ -422,12 +496,22 @@ impl LlmService {
                 add(issue, &mut candidates);
             }
         }
-        let limit = (pool.max_issues.max(0.0) as usize).max(referenced.len());
+        let limit = (pool.max_issues.max(0.0) as usize).max(referenced.len() + active);
         candidates.truncate(limit);
         candidates
     }
 
-    fn provider(&self) -> Box<dyn LlmProvider> {
+    /// Repositories the model may read itself: only with the setting on, the
+    /// Claude CLI backend (the one that can run tools) and commits in use.
+    fn git_tool_repos(&self, selection: &ProjectSelection, project: &ProjectConfig) -> Vec<String> {
+        let llm = self.config.get().llm;
+        if !llm.git_tools || paths::is_mock_mode() || !matches!(llm.backend.as_str(), "claude-cli" | "") || !selection.use_commits {
+            return Vec::new();
+        }
+        project.git_folders.iter().map(|f| f.path.clone()).filter(|p| std::path::Path::new(p).is_dir()).collect()
+    }
+
+    fn provider(&self, git_repos: &[String]) -> Box<dyn LlmProvider> {
         if paths::is_mock_mode() {
             return Box::new(mock::MockLlm);
         }
@@ -437,7 +521,12 @@ impl LlmService {
             // The Copilot CLI does not expose a thinking switch.
             "copilot-cli" => Box::new(CopilotCli { cli_path: or(&llm.copilot_cli_path, "copilot"), model: llm.copilot_model }),
             "openai-api" => Box::new(OpenAiApi { config: llm.open_ai, enable_thinking: llm.enable_thinking, http: self.http.clone() }),
-            _ => Box::new(ClaudeCli { cli_path: or(&llm.claude_cli_path, "claude"), model: llm.claude_model, enable_thinking: llm.enable_thinking }),
+            _ => Box::new(ClaudeCli {
+                cli_path: or(&llm.claude_cli_path, "claude"),
+                model: llm.claude_model,
+                enable_thinking: llm.enable_thinking,
+                git_repos: git_repos.to_vec(),
+            }),
         }
     }
 
@@ -561,6 +650,13 @@ const COMMIT_FILE_LIMIT: usize = 12;
 fn commit_for_prompt(c: &CommitInfo) -> Value {
     // Date only - the time of day and zone offset carry no signal here.
     let mut commit = json!({ "date": c.date.get(..10).unwrap_or(&c.date), "message": clip(&c.message, 200) });
+    // Local time of day: gaps between a day's commits hint at how long each took.
+    if let Some(time) = c.date.get(11..16) {
+        commit["time"] = json!(time);
+    }
+    if c.additions + c.deletions > 0 {
+        commit["changes"] = json!(format!("+{}/-{}", c.additions, c.deletions));
+    }
     // Trailers (Co-Authored-By, Signed-off-by) are noise for a worklog.
     let body: Vec<&str> = c.body.lines().filter(|l| !is_trailer(l)).collect();
     let body = body.join("\n");
@@ -571,13 +667,57 @@ fn commit_for_prompt(c: &CommitInfo) -> Value {
         commit["branch"] = json!(clip(&c.branch, 80));
     }
     if !c.files.is_empty() {
-        let mut files: Vec<String> = c.files.iter().take(COMMIT_FILE_LIMIT).map(|f| clip(f, 120)).collect();
-        if c.files.len() > COMMIT_FILE_LIMIT {
-            files.push(format!("(+{} more)", c.files.len() - COMMIT_FILE_LIMIT));
-        }
-        commit["files"] = json!(files);
+        commit["files"] = json!(clipped_list(&c.files, COMMIT_FILE_LIMIT));
     }
     commit
+}
+
+/// Tells the model it may dig into the repositories itself, and how far.
+fn git_tools_section(repos: &[String]) -> String {
+    if repos.is_empty() {
+        return String::new();
+    }
+    let list = repos.iter().map(|r| format!("- {r}")).collect::<Vec<_>>().join("\n");
+    format!(
+        "\nGIT ACCESS: you can run read-only git commands (git log, git show, git diff, git branch, git status) with the Bash tool in these repositories:\n{list}\n\
+The working directory is the first one; for another use `cd <path> && git ...`. Use it only when the input is not enough to tell what a commit did or how big it was - e.g. `git show --stat <hash>`, or `git show <hash> -- <file>` for a closer look. A few commands at most, never anything that changes a repository. Your final message must still be ONLY the JSON array.\n"
+    )
+}
+
+fn clipped_list(items: &[String], limit: usize) -> Vec<String> {
+    let mut list: Vec<String> = items.iter().take(limit).map(|f| clip(f, 120)).collect();
+    if items.len() > limit {
+        list.push(format!("(+{} more)", items.len() - limit));
+    }
+    list
+}
+
+fn working_for_prompt(w: &WorkingChanges) -> Value {
+    let mut repo = json!({ "repo": w.repo_label, "branch": w.branch });
+    if !w.files.is_empty() {
+        repo["changes"] = json!(format!("+{}/-{}", w.additions, w.deletions));
+        repo["files"] = json!(clipped_list(&w.files, COMMIT_FILE_LIMIT));
+    }
+    if !w.untracked.is_empty() {
+        repo["newFiles"] = json!(clipped_list(&w.untracked, COMMIT_FILE_LIMIT));
+    }
+    repo
+}
+
+/// Activity grouped per issue and day, so one busy ticket is one row.
+fn activity_for_prompt(activity: &[JiraActivity]) -> Value {
+    let mut rows: Vec<(String, String, String, Vec<String>)> = Vec::new();
+    for a in activity {
+        match rows.iter_mut().find(|r| r.0 == a.date && r.1 == a.issue_key) {
+            Some(row) => row.3.push(a.action.clone()),
+            None => rows.push((a.date.clone(), a.issue_key.clone(), a.summary.clone(), vec![a.action.clone()])),
+        }
+    }
+    rows.sort_by(|a, b| a.0.cmp(&b.0));
+    json!(rows
+        .into_iter()
+        .map(|(date, key, summary, actions)| json!({ "date": date, "issueKey": key, "summary": clip(&summary, 120), "actions": actions.into_iter().take(8).collect::<Vec<_>>() }))
+        .collect::<Vec<_>>())
 }
 
 fn is_trailer(line: &str) -> bool {

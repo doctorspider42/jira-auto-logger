@@ -28,10 +28,21 @@ struct CliResult {
     exit_code: i32,
 }
 
+/// How a CLI run is set up beyond its arguments.
+#[derive(Default)]
+struct CliOptions<'a> {
+    env: &'a [(&'a str, &'a str)],
+    /// Working directory; the app's own when unset.
+    cwd: Option<&'a str>,
+    /// Longer for agentic runs that call tools before answering.
+    timeout: Option<Duration>,
+}
+
 /// Runs a CLI tool feeding the prompt through stdin (avoids argv length
 /// limits and quoting issues with large prompts).
-async fn run_cli(command: &str, args: &[String], stdin: &str, env: &[(&str, &str)]) -> AppResult<CliResult> {
-    const TIMEOUT: Duration = Duration::from_secs(180);
+async fn run_cli(command: &str, args: &[String], stdin: &str, options: CliOptions<'_>) -> AppResult<CliResult> {
+    let timeout = options.timeout.unwrap_or(Duration::from_secs(180));
+    let env = options.env;
     let started = Instant::now();
     logger::info(
         "cli",
@@ -42,6 +53,9 @@ async fn run_cli(command: &str, args: &[String], stdin: &str, env: &[(&str, &str
     // lets the standard library run them through cmd with safe quoting.
     let program = which::which(command).map_err(|_| AppError::new(ErrorCode::LlmCliNotFound, format!("CLI not found: {command}")))?;
     let mut cmd = tokio::process::Command::new(program);
+    if let Some(cwd) = options.cwd {
+        cmd.current_dir(cwd);
+    }
     cmd.args(args)
         .envs(env.iter().copied())
         .stdin(Stdio::piped())
@@ -57,9 +71,9 @@ async fn run_cli(command: &str, args: &[String], stdin: &str, env: &[(&str, &str
         let _ = input.write_all(stdin.as_bytes()).await;
         drop(input);
     }
-    let output = tokio::time::timeout(TIMEOUT, child.wait_with_output())
+    let output = tokio::time::timeout(timeout, child.wait_with_output())
         .await
-        .map_err(|_| AppError::new(ErrorCode::LlmFailed, format!("{command} timed out after {}s", TIMEOUT.as_secs())))?
+        .map_err(|_| AppError::new(ErrorCode::LlmFailed, format!("{command} timed out after {}s", timeout.as_secs())))?
         .map_err(|e| AppError::with_details(ErrorCode::LlmFailed, format!("Failed to run {command}"), e.to_string()))?;
     let result = CliResult {
         stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
@@ -91,7 +105,16 @@ pub struct ClaudeCli {
     pub cli_path: String,
     pub model: String,
     pub enable_thinking: bool,
+    /// Repositories the model may read with git; empty = no tools at all.
+    pub git_repos: Vec<String>,
 }
+
+/// Read-only git subcommands the model may run. Anything else - and every
+/// file-writing or network tool - stays denied in non-interactive mode.
+const GIT_READ_TOOLS: [&str; 5] = ["Bash(git log:*)", "Bash(git show:*)", "Bash(git diff:*)", "Bash(git branch:*)", "Bash(git status:*)"];
+const DENIED_TOOLS: [&str; 5] = ["Edit", "Write", "NotebookEdit", "WebFetch", "WebSearch"];
+/// Caps an agentic run: a handful of git calls, then the answer.
+const GIT_TOOLS_MAX_TURNS: &str = "15";
 
 /// The model that wrote the answer. The CLI can bill a small helper model in
 /// the same run, so the one that produced the most output is the answering one.
@@ -110,9 +133,25 @@ impl LlmProvider for ClaudeCli {
         if !self.model.is_empty() {
             args.extend(["--model".into(), self.model.clone()]);
         }
+        if !self.git_repos.is_empty() {
+            args.push("--allowedTools".into());
+            args.extend(GIT_READ_TOOLS.iter().map(|t| t.to_string()));
+            args.push("--disallowedTools".into());
+            args.extend(DENIED_TOOLS.iter().map(|t| t.to_string()));
+            args.extend(["--max-turns".into(), GIT_TOOLS_MAX_TURNS.into()]);
+            for repo in self.git_repos.iter().skip(1) {
+                args.extend(["--add-dir".into(), repo.clone()]);
+            }
+        }
         // A zero thinking budget turns extended thinking off entirely.
         let env: &[(&str, &str)] = if self.enable_thinking { &[] } else { &[("MAX_THINKING_TOKENS", "0")] };
-        let result = run_cli(&self.cli_path, &args, prompt, env).await?;
+        let options = CliOptions {
+            env,
+            // The first repo is the working directory, so `git log` there needs no `cd`.
+            cwd: self.git_repos.first().map(String::as_str),
+            timeout: (!self.git_repos.is_empty()).then(|| Duration::from_secs(420)),
+        };
+        let result = run_cli(&self.cli_path, &args, prompt, options).await?;
         let combined = format!("{}\n{}", result.stdout, result.stderr);
         const AUTH: [&str; 6] = [
             r"(?i)invalid.{0,20}(api key|token)",
@@ -157,7 +196,7 @@ impl LlmProvider for CopilotCli {
         if !self.model.is_empty() {
             args.extend(["--model".into(), self.model.clone()]);
         }
-        let result = run_cli(&self.cli_path, &args, prompt, &[]).await?;
+        let result = run_cli(&self.cli_path, &args, prompt, CliOptions::default()).await?;
         let combined = format!("{}\n{}", result.stdout, result.stderr);
         const AUTH: [&str; 4] = [
             r"(?i)not (logged in|authenticated)",

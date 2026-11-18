@@ -28,7 +28,8 @@ pub fn default_config_value() -> Value {
             "copilotCliPath": "copilot",
             "copilotModel": "",
             "additionalInstructions": "",
-            "enableThinking": true
+            "enableThinking": true,
+            "gitTools": false
         },
         "language": "pl",
         "themeId": "dark",

@@ -10,6 +10,21 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.7 — 2026-11-18
+
+- **Hours follow the effort, not the commit count.** Suggestions now weigh
+  how big each commit was and when it was made during the day, so a large
+  migration gets more time than a one-line fix.
+- **Today's uncommitted work counts.** When you log today, changes you have
+  not committed yet are taken into account too.
+- **Your Jira activity is a hint.** Status changes, comments and edits you
+  made in Jira on those days point the model at the right issues - even on
+  days without commits.
+- **The model can look into git itself** (Settings → AI assistant, Claude CLI only,
+  off by default). When the commits sent along are not enough, it may run
+  read-only git commands in the project's repositories. Better results on
+  terse commit messages, at the cost of slower generation.
+
 ## 1.0.6 — 2026-11-18
 
 - **Commits are found even without a configured git email.** In a repo

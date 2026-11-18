@@ -225,6 +225,8 @@
     "openAiBaseUrl": "Endpoint",
     "enableThinking": "Think longer",
     "enableThinkingHint": "Better matches to issues on messy notes, at the cost of a slower answer.",
+    "gitTools": "Let the model look into git",
+    "gitToolsHint": "When the commits sent along are not enough, the model may run read-only git commands (log, show, diff) in the project's repositories. Better descriptions and hours on thin commit messages, but each project takes noticeably longer.",
     "issueLookbackDays": "Issue pool: days back",
     "issueMaxCount": "Issue pool: max count",
     "issuePoolHint": "Recently updated issues of each project are sent with your notes. More issues means better matches but a longer prompt.",

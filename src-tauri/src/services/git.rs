@@ -18,6 +18,35 @@ const RECORD_SEPARATOR: char = '\x1e';
 #[async_trait]
 pub trait CommitSource: Send + Sync {
     async fn get_commits(&self, folder_paths: &[String], dates: &[String]) -> AppResult<Vec<CommitInfo>>;
+    /// Uncommitted work sitting in each repository right now.
+    async fn get_working_changes(&self, _folder_paths: &[String]) -> Vec<WorkingChanges> {
+        Vec::new()
+    }
+}
+
+/// Work in a repository's working tree that no commit shows yet.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct WorkingChanges {
+    pub repo_label: String,
+    pub branch: String,
+    pub files: Vec<String>,
+    pub additions: u32,
+    pub deletions: u32,
+    pub untracked: Vec<String>,
+}
+
+/// `--numstat` lines (`added<TAB>removed<TAB>path`, `-` for binary files)
+/// -> paths and line totals.
+fn parse_numstat(text: &str) -> (Vec<String>, u32, u32) {
+    let (mut files, mut additions, mut deletions) = (Vec::new(), 0, 0);
+    for line in text.lines() {
+        let mut parts = line.splitn(3, '\t');
+        let (Some(added), Some(removed), Some(path)) = (parts.next(), parts.next(), parts.next()) else { continue };
+        additions += added.trim().parse::<u32>().unwrap_or(0);
+        deletions += removed.trim().parse::<u32>().unwrap_or(0);
+        files.push(path.trim().to_string());
+    }
+    (files, additions, deletions)
 }
 
 pub fn folder_label(path: &str) -> String {
@@ -38,13 +67,13 @@ impl GitService {
 
     async fn repo_commits(&self, folder: GitFolder, since: &str, until: &str) -> AppResult<Vec<CommitInfo>> {
         let authors = if folder.include_all_authors { Vec::new() } else { author_patterns(&folder).await };
-        // The record separator leads each record because `--name-only` prints
+        // The record separator leads each record because `--numstat` prints
         // the file list after the formatted header.
         let format = format!("--pretty=format:{RECORD_SEPARATOR}%H{FIELD_SEPARATOR}%aI{FIELD_SEPARATOR}%s{FIELD_SEPARATOR}%b{FIELD_SEPARATOR}%S{FIELD_SEPARATOR}");
         let since = format!("--since={since}");
         let until = format!("--until={until}");
         let author_args: Vec<String> = authors.iter().map(|a| format!("--author={a}")).collect();
-        let mut args = vec!["log", "--all", "--source", "--name-only", since.as_str(), until.as_str(), format.as_str()];
+        let mut args = vec!["log", "--all", "--source", "--numstat", since.as_str(), until.as_str(), format.as_str()];
         // Several --author flags match a commit by ANY of them.
         args.extend(author_args.iter().map(String::as_str));
         let stdout = git(&folder.path, &args).await?;
@@ -95,7 +124,7 @@ fn escape_basic_regex(value: &str) -> String {
     })
 }
 
-/// One `git log` record: header fields, then the touched paths one per line.
+/// One `git log` record: header fields, then one numstat line per touched path.
 /// Malformed records are skipped so one odd line cannot break the rest.
 fn parse_record(record: &str, label: &str) -> Option<CommitInfo> {
     let mut parts = record.split(FIELD_SEPARATOR);
@@ -103,9 +132,19 @@ fn parse_record(record: &str, label: &str) -> Option<CommitInfo> {
     if hash.is_empty() || date.is_empty() {
         return None;
     }
-    let files = parts.next().unwrap_or("").lines().map(str::trim).filter(|l| !l.is_empty()).map(String::from).collect();
+    let (files, additions, deletions) = parse_numstat(parts.next().unwrap_or(""));
     let branch = source.trim().trim_start_matches("refs/heads/").trim_start_matches("refs/remotes/").to_string();
-    Some(CommitInfo { hash: hash.into(), date: date.into(), message: message.into(), repo_label: label.into(), body: body.trim().into(), branch, files })
+    Some(CommitInfo {
+        hash: hash.into(),
+        date: date.into(),
+        message: message.into(),
+        repo_label: label.into(),
+        body: body.trim().into(),
+        branch,
+        files,
+        additions,
+        deletions,
+    })
 }
 
 #[async_trait]
@@ -137,6 +176,32 @@ impl CommitSource for GitService {
         all.retain(|c| wanted.contains(c.date.get(..10).unwrap_or("")));
         all.sort_by(|a, b| a.date.cmp(&b.date));
         Ok(all)
+    }
+
+    /// Best effort per repo: a folder git cannot read simply contributes nothing.
+    async fn get_working_changes(&self, folder_paths: &[String]) -> Vec<WorkingChanges> {
+        let configured: HashMap<String, GitFolder> = (self.folders)().into_iter().map(|f| (f.path.clone(), f)).collect();
+        let mut out = Vec::new();
+        for path in folder_paths {
+            // Staged and unstaged together; fails on a repo without commits.
+            let Ok(diff) = git(path, &["diff", "HEAD", "--numstat"]).await else { continue };
+            let (files, additions, deletions) = parse_numstat(&diff);
+            let untracked: Vec<String> = git(path, &["ls-files", "--others", "--exclude-standard"])
+                .await
+                .unwrap_or_default()
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .map(String::from)
+                .collect();
+            if files.is_empty() && untracked.is_empty() {
+                continue;
+            }
+            let branch = git(path, &["rev-parse", "--abbrev-ref", "HEAD"]).await.map(|b| b.trim().to_string()).unwrap_or_default();
+            let label = configured.get(path).map(|f| f.label.clone()).filter(|l| !l.is_empty()).unwrap_or_else(|| folder_label(path));
+            out.push(WorkingChanges { repo_label: label, branch, files, additions, deletions, untracked });
+        }
+        out
     }
 }
 
@@ -180,12 +245,13 @@ mod tests {
 
     #[test]
     fn parses_record_with_body_branch_and_files() {
-        let record = format!("abc{FIELD_SEPARATOR}2026-11-18T17:09:08+01:00{FIELD_SEPARATOR}Subject{FIELD_SEPARATOR}Line one\nLine two\n{FIELD_SEPARATOR}refs/heads/feature/FOP-1{FIELD_SEPARATOR}\nsrc/a.rs\nsrc/b.rs\n\n");
+        let record = format!("abc{FIELD_SEPARATOR}2026-11-18T17:09:08+01:00{FIELD_SEPARATOR}Subject{FIELD_SEPARATOR}Line one\nLine two\n{FIELD_SEPARATOR}refs/heads/feature/FOP-1{FIELD_SEPARATOR}\n10\t2\tsrc/a.rs\n-\t-\tlogo.png\n\n");
         let commit = parse_record(&record, "repo").unwrap();
         assert_eq!(commit.message, "Subject");
         assert_eq!(commit.body, "Line one\nLine two");
         assert_eq!(commit.branch, "feature/FOP-1");
-        assert_eq!(commit.files, vec!["src/a.rs", "src/b.rs"]);
+        assert_eq!(commit.files, vec!["src/a.rs", "logo.png"]);
+        assert_eq!((commit.additions, commit.deletions), (10, 2));
         assert!(parse_record("\n", "repo").is_none());
     }
 }

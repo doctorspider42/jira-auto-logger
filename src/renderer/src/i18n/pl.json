@@ -229,6 +229,8 @@
     "openAiBaseUrl": "Adres serwera",
     "enableThinking": "Myśl dłużej",
     "enableThinkingHint": "Trafniejsze dopasowanie zadań przy chaotycznych notatkach, kosztem wolniejszej odpowiedzi.",
+    "gitTools": "Pozwól modelowi zaglądać do gita",
+    "gitToolsHint": "Gdy przesłane commity nie wystarczą, model może sam uruchamiać komendy gita tylko do odczytu (log, show, diff) w repozytoriach projektu. Lepsze opisy i godziny przy skąpych commitach, ale każdy projekt liczy się wyraźnie dłużej.",
     "issueLookbackDays": "Pula zadań: dni wstecz",
     "issueMaxCount": "Pula zadań: maks. liczba",
     "issuePoolHint": "Z notatkami wysyłane są ostatnio zmieniane zadania każdego projektu. Więcej zadań to trafniejsze dopasowanie, ale dłuższy prompt.",

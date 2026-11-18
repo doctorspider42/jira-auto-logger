@@ -60,6 +60,11 @@ export interface LlmConfig {
    * Claude CLI and OpenAI reasoning models; the Copilot CLI ignores it.
    */
   enableThinking: boolean
+  /**
+   * Claude CLI only: the model may run read-only git commands (log, show,
+   * diff) in the project's repositories when the given commits are not enough.
+   */
+  gitTools: boolean
 }
 
 export interface GitFolder {
@@ -453,6 +458,9 @@ export interface CommitInfo {
   branch?: string
   /** Paths the commit touched. */
   files?: string[]
+  /** Lines added and removed across all files. */
+  additions?: number
+  deletions?: number
 }
 
 // ---------- LLM suggestions ----------
