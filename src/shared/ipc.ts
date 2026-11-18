@@ -1,4 +1,6 @@
 import type {
+  ActivityScanRequest,
+  ActivityScanResult,
   AppConfig,
   AutoLoggerPrompt,
   AutoLoggerRunResult,
@@ -68,6 +70,14 @@ export interface IpcApi {
   git: {
     getCommits(folderPaths: string[], dates: string[]): Promise<Result<CommitInfo[]>>
   }
+  activity: {
+    /**
+     * Auto mode: which projects the user worked on per date (evidence /
+     * likely / none) with a soft hours split. Never fails on a source -
+     * missing git, Jira or Tempo only removes that evidence.
+     */
+    scan(request: ActivityScanRequest): Promise<Result<ActivityScanResult>>
+  }
   llm: {
     /** One isolated LLM pass per selected project. */
     generateSuggestions(request: SuggestionRequest): Promise<Result<ProjectSuggestions[]>>
@@ -130,6 +140,7 @@ export const IPC_CHANNELS = {
   tempoDeleteWorklog: 'tempo:deleteWorklog',
   tempoGetWorkAttributes: 'tempo:getWorkAttributes',
   gitGetCommits: 'git:getCommits',
+  activityScan: 'activity:scan',
   llmGenerateSuggestions: 'llm:generateSuggestions',
   llmPreviewPrompt: 'llm:previewPrompt',
   llmRegenerateDescription: 'llm:regenerateDescription',

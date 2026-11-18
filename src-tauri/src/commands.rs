@@ -20,6 +20,7 @@ pub struct AppState {
     pub connections: Arc<ConnectionManager>,
     pub git: Arc<dyn CommitSource>,
     pub llm: Arc<crate::llm::LlmService>,
+    pub activity: Arc<crate::activity::ActivityService>,
     pub reports: Arc<crate::reports::ReportService>,
 }
 
@@ -219,6 +220,14 @@ pub async fn git_get_commits(folder_paths: Vec<String>, dates: Vec<String>, stat
 pub async fn llm_generate_suggestions(request: SuggestionRequest, state: State<'_, AppState>) -> Result<Envelope<Vec<ProjectSuggestions>>, ()> {
     let llm = state.llm.clone();
     Ok(to_result("llm:generateSuggestions", async move { llm.generate_suggestions(&request).await }).await)
+}
+
+/// Auto mode: which projects the user worked on, per date, with the evidence
+/// and a soft hours split. Never fails on a source - missing evidence is empty.
+#[tauri::command]
+pub async fn activity_scan(request: ActivityScanRequest, state: State<'_, AppState>) -> Result<Envelope<ActivityScanResult>, ()> {
+    let activity = state.activity.clone();
+    Ok(to_result("activity:scan", async move { Ok(activity.scan(&request).await) }).await)
 }
 
 #[tauri::command]

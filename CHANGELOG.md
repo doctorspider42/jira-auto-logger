@@ -10,6 +10,30 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.8 — 2026-11-18
+
+- **Auto mode when adding entries.** The first step of "New entries" now
+  starts in Auto: it ticks the projects you worked on that day (from your
+  commits, uncommitted changes, Jira activity and what you usually log),
+  shows each one's day on a small timeline and suggests how the hours split
+  between them. Adjust the hours with − / +, untick what's wrong, or switch
+  to Manual to pick projects the old way. Projects you only usually log to
+  are marked as likely.
+- **Rebased commits count once.** After a rebase or amend the old copies
+  of commits (a backup branch, the remote's version) no longer double a
+  day's work.
+- **The scheduled auto logger finds your projects by itself.** Instead of
+  repeating your last manual selection, it looks at that day's commits,
+  uncommitted changes and Jira activity, plus what you usually log, and
+  picks the projects you actually worked on - with a rough split of the
+  day's hours between them. When it finds nothing, it falls back to your
+  last selection as before.
+- **Better suggestions on quiet days.** The assistant now sees what you
+  logged and committed on the few working days before, and how long the
+  current branch has been going. A day with a single small commit is most
+  likely spent on the same ticket (debugging, review, testing), and it is
+  logged that way - honestly, without made-up details.
+
 ## 1.0.7 — 2026-11-18
 
 - **Hours follow the effort, not the commit count.** Suggestions now weigh
