@@ -5,7 +5,7 @@ use super::data::{generate_worklogs, mock_issues, mulberry32, projects_by_connec
 use crate::domain::{CommitInfo, CreateIssueRequest, JiraIssue, JiraIssueType, JiraProject, JiraUser, NewWorklog, TempoWorkAttribute, Worklog};
 use crate::error::{AppError, AppResult};
 use crate::services::git::{folder_label, CommitSource};
-use crate::services::jira::{default_issue_type, JiraApi};
+use crate::services::jira::{default_issue_type, JiraActivity, JiraApi};
 use crate::services::tempo::TempoApi;
 use async_trait::async_trait;
 use std::collections::{HashMap, HashSet};
@@ -126,6 +126,31 @@ impl JiraApi for MockJira {
     async fn get_issues_by_ids(&self, ids: &[String]) -> AppResult<Vec<JiraIssue>> {
         let wanted: HashSet<&String> = ids.iter().collect();
         Ok(connection_issues(&self.connection_id).into_iter().filter(|i| wanted.contains(&i.id)).collect())
+    }
+
+    /// Internal Tools has no repository, so its work shows only in Jira: a
+    /// comment or status move on even days of the month - something for the
+    /// activity scan to find without commits.
+    async fn get_my_activity(&self, _account_id: &str, project_key: &str, from: &str, to: &str) -> AppResult<Vec<JiraActivity>> {
+        let issues = project_issues(&self.connection_id, project_key);
+        let (Some(issue), "INT") = (issues.first(), project_key) else { return Ok(Vec::new()) };
+        let (Ok(mut day), Ok(last)) = (chrono::NaiveDate::parse_from_str(from, "%Y-%m-%d"), chrono::NaiveDate::parse_from_str(to, "%Y-%m-%d")) else {
+            return Ok(Vec::new());
+        };
+        let mut out = Vec::new();
+        while day <= last {
+            if chrono::Datelike::day(&day) % 2 == 0 {
+                out.push(JiraActivity {
+                    date: day.format("%Y-%m-%d").to_string(),
+                    issue_id: issue.id.clone(),
+                    issue_key: issue.key.clone(),
+                    summary: issue.summary.clone(),
+                    action: "comment: Reviewed the access report with the security team".into(),
+                });
+            }
+            day += chrono::Duration::days(1);
+        }
+        Ok(out)
     }
 }
 
@@ -281,6 +306,9 @@ impl CommitSource for MockGit {
                         date: format!("{date}T{:02}:15:00+01:00", 9 + i * 2),
                         message: message.to_string(),
                         repo_label: label.clone(),
+                        branch: message.split([' ', ':']).next().filter(|k| k.contains('-')).map(|k| format!("feature/{k}")).unwrap_or_else(|| "main".into()),
+                        additions: 10 + (random() * 200.0) as u32,
+                        deletions: (random() * 60.0) as u32,
                         ..Default::default()
                     });
                 }

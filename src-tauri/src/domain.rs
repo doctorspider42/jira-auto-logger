@@ -181,6 +181,10 @@ pub struct ProjectSelection {
     pub use_commits: bool,
     /// The model may propose a new issue when no existing one fits.
     pub allow_new_issues: bool,
+    /// Soft per-date hours suggestion (date -> hours) from the activity scan.
+    /// The model treats it as a starting point, not a quota.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub hours_hint: BTreeMap<String, f64>,
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -299,7 +303,7 @@ pub struct Attribute {
     pub value: AttrValue,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Worklog {
     pub tempo_worklog_id: i64,
@@ -453,4 +457,73 @@ pub struct RegenerateDescriptionRequest {
     pub hint: String,
     pub free_text: String,
     pub commits: Vec<CommitInfo>,
+}
+
+// ---------- Activity scan (auto mode) ----------
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ActivityScanRequest {
+    pub dates: Vec<String>,
+}
+
+/// What the scan found: the hours budget per date and the evidence per project.
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ActivityScanResult {
+    pub days: Vec<DayBudget>,
+    pub projects: Vec<ProjectActivity>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DayBudget {
+    pub date: String,
+    pub working_hours: f64,
+    /// Already in Tempo across all active connections.
+    pub logged_hours: f64,
+    /// working - logged, never below 0; what the hours hints split.
+    pub remaining_hours: f64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ProjectActivity {
+    pub project_id: String,
+    pub project_name: String,
+    /// Strongest status over all dates: "evidence" | "likely" | "none".
+    pub status: String,
+    /// Recent days (with any worklog) the user logged to this project, out of `recentDayCount`.
+    pub recent_logged_days: u32,
+    pub recent_day_count: u32,
+    pub days: Vec<ProjectDayActivity>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct ProjectDayActivity {
+    pub date: String,
+    /// "evidence" | "likely" | "none".
+    pub status: String,
+    pub commit_count: u32,
+    pub additions: u32,
+    pub deletions: u32,
+    /// Local "HH:MM" of the day's first and last commit; empty without commits.
+    pub first_commit_at: String,
+    pub last_commit_at: String,
+    /// Uncommitted work right now; only for today.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub uncommitted: Option<UncommittedSummary>,
+    pub jira_activity_count: u32,
+    pub jira_issue_keys: Vec<String>,
+    /// Soft hint: this project's share of the day's remaining hours.
+    pub hours_hint: f64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct UncommittedSummary {
+    pub files: u32,
+    pub additions: u32,
+    pub deletions: u32,
 }

@@ -1,6 +1,7 @@
 // Release builds run without a console window on Windows.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod activity;
 mod auto_logger;
 mod commands;
 mod config;
@@ -59,7 +60,8 @@ fn main() {
     };
     let llm = Arc::new(llm::LlmService::new(config.clone(), git.clone(), connections.clone(), http.clone()));
     let reports = Arc::new(reports::ReportService::new(config.clone(), connections.clone()));
-    let auto_logger = Arc::new(AutoLogger::new(config.clone(), llm.clone(), connections.clone()));
+    let activity = Arc::new(activity::ActivityService::new(config.clone(), git.clone(), connections.clone()));
+    let auto_logger = Arc::new(AutoLogger::new(config.clone(), llm.clone(), activity.clone(), connections.clone()));
 
     let app = tauri::Builder::default()
         // Keep the background services and tray icon owned by one process:
@@ -72,7 +74,7 @@ fn main() {
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, Some(vec!["--hidden"])))
         .manage(desktop::Desktop::default())
         .manage(auto_logger.clone())
-        .manage(AppState { config: config.clone(), connections, git, llm, reports })
+        .manage(AppState { config: config.clone(), connections, git, llm, activity, reports })
         .setup(move |app| {
             let handle = app.handle().clone();
             let version = app.package_info().version.to_string();
@@ -119,6 +121,7 @@ fn main() {
             commands::tempo_get_work_attributes,
             commands::git_get_commits,
             commands::llm_generate_suggestions,
+            commands::activity_scan,
             commands::llm_preview_prompt,
             commands::llm_regenerate_description,
             commands::llm_start_claude_login,

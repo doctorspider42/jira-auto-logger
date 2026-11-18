@@ -6,13 +6,14 @@
 pub mod mock;
 pub mod providers;
 
+use crate::activity;
 use crate::config::ConfigService;
 use crate::domain::*;
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::logger;
 use crate::paths;
 use crate::services::connections::ConnectionManager;
-use crate::services::git::{CommitSource, WorkingChanges};
+use crate::services::git::{folder_label, is_mainline, CommitSource, WorkingChanges};
 use crate::services::jira::JiraActivity;
 use providers::{ClaudeCli, CopilotCli, LlmCompletion, LlmProvider, OpenAiApi};
 use regex::Regex;
@@ -64,6 +65,29 @@ fn round2(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
 }
 
+/// Tempo around the requested dates, fetched once per generation.
+struct WorklogContext {
+    /// Hours already logged per requested date, across every connection in play.
+    logged: HashMap<String, f64>,
+    /// The working days before the first requested date (oldest first).
+    previous_days: Vec<String>,
+    /// Worklogs from the previous days through the last requested date.
+    by_connection: HashMap<String, Vec<Worklog>>,
+}
+
+/// A project's git history the requested days build on; shared by its targets.
+#[derive(Default)]
+struct ProjectHistory {
+    previous_commits: Vec<CommitInfo>,
+    /// Branch -> date its first own commit was made.
+    branch_started: BTreeMap<String, String>,
+}
+
+/// Branches whose age is looked up per project; each costs a few git calls.
+const BRANCH_AGE_LIMIT: usize = 6;
+/// Per previous day: entries and commits shown; older context is a hint, not a log.
+const PREVIOUS_DAY_ROWS: usize = 6;
+
 struct BuiltPrompt {
     prompt: String,
     candidates: Vec<JiraIssue>,
@@ -85,17 +109,19 @@ impl LlmService {
 
     pub async fn generate_suggestions(&self, request: &SuggestionRequest) -> AppResult<Vec<ProjectSuggestions>> {
         let mut results = Vec::new();
-        let logged = self.fetch_logged_hours_by_date(request).await;
+        let context = self.fetch_worklog_context(request).await;
+        let logged = &context.logged;
         // Sequential on purpose: CLI backends dislike concurrent invocations.
         // Hours are NOT split between targets - each Jira gets full entries.
         for selection in valid_selections(request)? {
             let project = self.project(&selection.project_id)?;
             let commits = self.fetch_commits(request, selection, &project).await?;
             let working = self.fetch_working_changes(request, selection, &project).await;
+            let history = self.fetch_project_history(selection, &project, &commits, &context.previous_days).await;
             for target in &project.targets {
                 let connection = self.connections.connection(&target.connection_id)?;
                 let label = pass_label(&project, target, &connection.name);
-                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &logged).await;
+                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &context, &history).await;
                 logger::info(
                     "llm",
                     &format!("generate for \"{label}\""),
@@ -114,7 +140,7 @@ impl LlmService {
                 // The user picked this project for these dates, so an empty
                 // answer with hours still free is a miss, not a verdict: ask
                 // once more, pointing at the rule it skipped.
-                if suggestions.is_empty() && has_remaining_budget(&request.dates, &logged, self.config.get().working_hours_per_day) {
+                if suggestions.is_empty() && has_remaining_budget(&request.dates, logged, self.config.get().working_hours_per_day) {
                     logger::info("llm", &format!("\"{label}\": empty answer with budget left, retrying once"), None);
                     let retry = format!("{}\n\n{EMPTY_ANSWER_RETRY}", built.prompt);
                     let again = self.complete_for(&label, &retry, &built.git_repos).await?;
@@ -140,14 +166,15 @@ impl LlmService {
     /// Debug: the exact prompts `generate_suggestions` would send, per target.
     pub async fn preview_prompt(&self, request: &SuggestionRequest) -> AppResult<Vec<PromptPreview>> {
         let mut previews = Vec::new();
-        let logged = self.fetch_logged_hours_by_date(request).await;
+        let context = self.fetch_worklog_context(request).await;
         for selection in valid_selections(request)? {
             let project = self.project(&selection.project_id)?;
             let commits = self.fetch_commits(request, selection, &project).await?;
             let working = self.fetch_working_changes(request, selection, &project).await;
+            let history = self.fetch_project_history(selection, &project, &commits, &context.previous_days).await;
             for target in &project.targets {
                 let connection = self.connections.connection(&target.connection_id)?;
-                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &logged).await;
+                let built = self.build_target_prompt(request, selection, &project, target, &commits, &working, &context, &history).await;
                 previews.push(PromptPreview {
                     label: pass_label(&project, target, &connection.name),
                     // ~4 chars per token is a common rough heuristic.
@@ -272,9 +299,11 @@ impl LlmService {
         target: &ProjectTarget,
         commits: &[CommitInfo],
         working: &[WorkingChanges],
-        logged: &HashMap<String, f64>,
+        context: &WorklogContext,
+        history: &ProjectHistory,
     ) -> BuiltPrompt {
         let config = self.config.get();
+        let logged = &context.logged;
         let prefix = format!("{}-", target.jira_project_key);
         let project_worklogs: Vec<Worklog> = self
             .fetch_recent_worklogs(&target.connection_id)
@@ -318,6 +347,16 @@ impl LlmService {
         if !already.is_empty() {
             input.insert("hoursAlreadyLogged".into(), Value::Object(already));
         }
+        // The activity scan's soft split - a starting point, see the prompt.
+        let mut hint = Map::new();
+        for date in &request.dates {
+            if let Some(hours) = selection.hours_hint.get(date).filter(|h| **h > 0.0) {
+                hint.insert(date.clone(), js_number(round2(*hours)));
+            }
+        }
+        if !hint.is_empty() {
+            input.insert("hoursHint".into(), Value::Object(hint));
+        }
         let mut project_info = Map::new();
         project_info.insert("key".into(), json!(target.jira_project_key));
         project_info.insert("name".into(), json!(project.name));
@@ -360,8 +399,21 @@ impl LlmService {
                 })
                 .collect::<Vec<_>>()),
         );
+        if !history.branch_started.is_empty() {
+            input.insert("branchStarted".into(), json!(history.branch_started));
+        }
         if !working.is_empty() {
             input.insert("uncommittedChanges".into(), json!(working.iter().map(working_for_prompt).collect::<Vec<_>>()));
+        }
+        // Only this target's worklogs - per-project isolation holds here too.
+        let target_logs: Vec<&Worklog> = context
+            .by_connection
+            .get(&target.connection_id)
+            .map(|list| list.iter().filter(|w| w.issue_key.starts_with(&prefix)).collect())
+            .unwrap_or_default();
+        let previous = previous_days_for_prompt(&context.previous_days, &target_logs, &history.previous_commits);
+        if !previous.is_empty() {
+            input.insert("previousDays".into(), json!(previous));
         }
         if !activity.is_empty() {
             input.insert("jiraActivity".into(), activity_for_prompt(&activity));
@@ -387,36 +439,65 @@ impl LlmService {
         BuiltPrompt { prompt, candidates, activity_count: activity.len(), git_repos }
     }
 
-    /// Hours already logged in Tempo on each requested date, summed across
-    /// every connection in play, so suggestions top a day up instead of
-    /// adding a full day on top of what is already there.
-    async fn fetch_logged_hours_by_date(&self, request: &SuggestionRequest) -> HashMap<String, f64> {
+    /// Hours already logged on the requested dates (so suggestions top a day
+    /// up instead of adding a full day on top of what is there) and the
+    /// working days before them - one Tempo fetch per connection for both.
+    async fn fetch_worklog_context(&self, request: &SuggestionRequest) -> WorklogContext {
         let config = self.config.get();
         let requested: HashSet<&String> = request.dates.iter().collect();
         let sorted: BTreeSet<&String> = request.dates.iter().collect();
-        let (Some(from), Some(to)) = (sorted.first(), sorted.last()) else { return HashMap::new() };
-        let mut ids: Vec<String> = config.active_connection_ids.clone();
-        for selection in &request.selections {
-            if let Some(project) = config.projects.iter().find(|p| p.id == selection.project_id) {
-                for target in &project.targets {
-                    if !ids.contains(&target.connection_id) {
-                        ids.push(target.connection_id.clone());
-                    }
-                }
+        let (Some(first), Some(last)) = (sorted.first(), sorted.last()) else {
+            return WorklogContext { logged: HashMap::new(), previous_days: Vec::new(), by_connection: HashMap::new() };
+        };
+        let selected = config.projects.iter().filter(|p| request.selections.iter().any(|s| s.project_id == p.id));
+        let ids = activity::connection_ids(&config, selected);
+        let from = activity::shift_date(first, -activity::RECENT_LOOKBACK_DAYS);
+        let by_connection = activity::fetch_worklogs(&self.connections, &ids, &from, last).await;
+        let mut logged = HashMap::new();
+        for w in by_connection.values().flatten() {
+            if requested.contains(&w.start_date) {
+                *logged.entry(w.start_date.clone()).or_insert(0.0) += w.time_spent_seconds as f64 / 3600.0;
             }
         }
-        let mut totals = HashMap::new();
-        for id in ids {
-            // Tempo unavailable or not configured for this connection - skip it.
-            let Ok(account) = self.connections.account_id(&id).await else { continue };
-            let Ok(worklogs) = self.connections.tempo(&id).get_worklogs(&account, from, to).await else { continue };
-            for w in worklogs {
-                if requested.contains(&w.start_date) {
-                    *totals.entry(w.start_date).or_insert(0.0) += w.time_spent_seconds as f64 / 3600.0;
+        // Days the user actually logged skip days off; without any, plain weekdays.
+        let mut previous_days = activity::previous_logged_days(by_connection.values().flatten().map(|w| &w.start_date), first, activity::RECENT_DAY_COUNT);
+        if previous_days.is_empty() {
+            previous_days = activity::previous_weekdays(first, activity::RECENT_DAY_COUNT);
+        }
+        WorklogContext { logged, previous_days, by_connection }
+    }
+
+    /// Commits of the previous working days and how old the branches of the
+    /// requested days' commits are. Best effort - git failing leaves it out.
+    async fn fetch_project_history(&self, selection: &ProjectSelection, project: &ProjectConfig, commits: &[CommitInfo], previous_days: &[String]) -> ProjectHistory {
+        if !selection.use_commits || project.git_folders.is_empty() {
+            return ProjectHistory::default();
+        }
+        let mut history = ProjectHistory::default();
+        if !previous_days.is_empty() {
+            for folder in &project.git_folders {
+                if let Ok(found) = self.git.get_commits(std::slice::from_ref(&folder.path), previous_days).await {
+                    history.previous_commits.extend(found);
                 }
             }
+            history.previous_commits.sort_by(|a, b| a.date.cmp(&b.date));
         }
-        totals
+        let mut seen: Vec<(String, String)> = Vec::new();
+        for c in commits.iter().filter(|c| !is_mainline(&c.branch)) {
+            if seen.len() >= BRANCH_AGE_LIMIT {
+                break;
+            }
+            let Some(folder) = project.git_folders.iter().find(|f| repo_label(f) == c.repo_label) else { continue };
+            let key = (folder.path.clone(), c.branch.clone());
+            if seen.contains(&key) {
+                continue;
+            }
+            seen.push(key);
+            if let Some(started) = self.git.branch_started(&folder.path, &c.branch).await {
+                history.branch_started.insert(clip(&c.branch, 80), started);
+            }
+        }
+        history
     }
 
     /// Tempo worklogs from the lookback window; empty when Tempo is unavailable.
@@ -672,6 +753,65 @@ fn commit_for_prompt(c: &CommitInfo) -> Value {
     commit
 }
 
+fn repo_label(folder: &GitFolder) -> String {
+    if folder.label.is_empty() {
+        folder_label(&folder.path)
+    } else {
+        folder.label.clone()
+    }
+}
+
+/// What the developer did on the working days before the requested ones:
+/// this target's worklogs and the project's commits, compact and clipped -
+/// enough to see which ticket and branch a thin day most likely continues.
+fn previous_days_for_prompt(days: &[String], worklogs: &[&Worklog], commits: &[CommitInfo]) -> Vec<Value> {
+    days.iter()
+        .filter_map(|date| {
+            let logged: Vec<Value> = worklogs
+                .iter()
+                .filter(|w| &w.start_date == date)
+                .take(PREVIOUS_DAY_ROWS)
+                .map(|w| {
+                    let mut row = json!({ "issueKey": w.issue_key, "hours": js_number(round2(w.time_spent_seconds as f64 / 3600.0)) });
+                    if !w.description.trim().is_empty() {
+                        row["description"] = json!(clip(w.description.trim(), 120));
+                    }
+                    row
+                })
+                .collect();
+            let day_commits: Vec<&CommitInfo> = commits.iter().filter(|c| c.date.get(..10) == Some(date.as_str())).collect();
+            let shown: Vec<Value> = day_commits
+                .iter()
+                .take(PREVIOUS_DAY_ROWS)
+                .map(|c| {
+                    let mut row = json!({ "message": clip(&c.message, 120) });
+                    if !is_mainline(&c.branch) {
+                        row["branch"] = json!(clip(&c.branch, 80));
+                    }
+                    if c.additions + c.deletions > 0 {
+                        row["changes"] = json!(format!("+{}/-{}", c.additions, c.deletions));
+                    }
+                    row
+                })
+                .collect();
+            if logged.is_empty() && shown.is_empty() {
+                return None;
+            }
+            let mut day = json!({ "date": date });
+            if !logged.is_empty() {
+                day["logged"] = json!(logged);
+            }
+            if !shown.is_empty() {
+                day["commits"] = json!(shown);
+                if day_commits.len() > PREVIOUS_DAY_ROWS {
+                    day["moreCommits"] = json!(day_commits.len() - PREVIOUS_DAY_ROWS);
+                }
+            }
+            Some(day)
+        })
+        .collect()
+}
+
 /// Tells the model it may dig into the repositories itself, and how far.
 fn git_tools_section(repos: &[String]) -> String {
     if repos.is_empty() {
@@ -832,6 +972,20 @@ mod tests {
         assert_eq!(normalize_hours(&json!("3.4")), 3.5);
         assert_eq!(normalize_hours(&json!(-1)), 1.0);
         assert_eq!(normalize_hours(&json!(30)), 24.0);
+    }
+
+    #[test]
+    fn previous_days_are_compact_and_skip_empty_days() {
+        let log = Worklog { issue_key: "A-1".into(), start_date: "2026-11-16".into(), time_spent_seconds: 21600, description: "x".repeat(300), ..Default::default() };
+        let commit = CommitInfo { date: "2026-11-17T10:00:00+01:00".into(), message: "A-1 fix".into(), branch: "feature/A-1".into(), additions: 3, ..Default::default() };
+        let main = CommitInfo { date: "2026-11-17T12:00:00+01:00".into(), message: "merge".into(), branch: "main".into(), ..Default::default() };
+        let days: Vec<String> = ["2026-11-13", "2026-11-16", "2026-11-17"].iter().map(|d| d.to_string()).collect();
+        let out = previous_days_for_prompt(&days, &[&log], &[commit, main]);
+        assert_eq!(out.len(), 2);
+        assert_eq!(out[0]["logged"][0]["hours"], json!(6));
+        assert_eq!(out[0]["logged"][0]["description"].as_str().unwrap().chars().count(), 120);
+        assert_eq!(out[1]["commits"][0], json!({ "message": "A-1 fix", "branch": "feature/A-1", "changes": "+3/-0" }));
+        assert!(out[1]["commits"][1].get("branch").is_none());
     }
 
     #[test]

@@ -22,6 +22,18 @@ pub trait CommitSource: Send + Sync {
     async fn get_working_changes(&self, _folder_paths: &[String]) -> Vec<WorkingChanges> {
         Vec::new()
     }
+    /// Date (yyyy-MM-dd) of the first commit on `branch` that the mainline
+    /// does not have - how long the work on that branch has been going on.
+    /// None when it cannot be told cheaply.
+    async fn branch_started(&self, _folder_path: &str, _branch: &str) -> Option<String> {
+        None
+    }
+}
+
+/// Branches that are a mainline, not a topic - their age says nothing.
+pub fn is_mainline(branch: &str) -> bool {
+    let name = branch.trim_start_matches("origin/");
+    branch.is_empty() || matches!(name, "HEAD" | "main" | "master" | "develop" | "development" | "dev" | "trunk")
 }
 
 /// Work in a repository's working tree that no commit shows yet.
@@ -203,8 +215,22 @@ impl CommitSource for GitService {
         }
         out
     }
+    async fn branch_started(&self, folder_path: &str, branch: &str) -> Option<String> {
+        if is_mainline(branch) || branch.starts_with('-') || branch.starts_with("refs/tags/") {
+            return None;
+        }
+        let mut base = None;
+        for candidate in ["origin/HEAD", "origin/main", "origin/master", "origin/develop", "main", "master", "develop"] {
+            if candidate != branch && git(folder_path, &["rev-parse", "--verify", "--quiet", candidate]).await.is_ok() {
+                base = Some(candidate);
+                break;
+            }
+        }
+        let range = format!("{}..{branch}", base?);
+        let out = git(folder_path, &["log", "--reverse", "--format=%aI", &range]).await.ok()?;
+        out.lines().next().and_then(|l| l.get(..10)).map(String::from)
+    }
 }
-
 
 async fn git(folder: &str, args: &[&str]) -> AppResult<String> {
     let mut command = tokio::process::Command::new("git");

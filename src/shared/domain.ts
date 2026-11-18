@@ -474,6 +474,11 @@ export interface ProjectSelection {
   useCommits: boolean
   /** The model may propose a new issue when no existing one fits. */
   allowNewIssues?: boolean
+  /**
+   * Soft per-date hours suggestion (yyyy-MM-dd -> hours), usually from
+   * `activity.scan`. The model treats it as a starting point, not a quota.
+   */
+  hoursHint?: Record<string, number>
 }
 
 export interface SuggestionRequest {
@@ -565,3 +570,70 @@ export interface AppError {
 }
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: AppError }
+
+// ---------- Activity scan (auto mode) ----------
+
+export interface ActivityScanRequest {
+  /** ISO dates (yyyy-MM-dd) to scan. */
+  dates: string[]
+}
+
+/**
+ * - `evidence`: commits, uncommitted changes or the user's own Jira activity that day
+ * - `likely`: no evidence, but the user logged to it on most recent working days
+ *   (or, on a weekday nobody has evidence for, it is the most-logged recent project)
+ * - `none`: neither
+ */
+export type ActivityStatus = 'evidence' | 'likely' | 'none'
+
+export interface ActivityScanResult {
+  /** One per requested date, ascending. */
+  days: DayBudget[]
+  /** Every non-archived project, in config order. */
+  projects: ProjectActivity[]
+}
+
+export interface DayBudget {
+  date: string
+  workingHours: number
+  /** Already in Tempo across all active connections. */
+  loggedHours: number
+  /** workingHours - loggedHours, never below 0; what the hours hints split. */
+  remainingHours: number
+}
+
+export interface ProjectActivity {
+  projectId: string
+  projectName: string
+  /** Strongest status over all dates. */
+  status: ActivityStatus
+  /** Recent days (with any worklog) the user logged to this project... */
+  recentLoggedDays: number
+  /** ...out of this many (up to 5). */
+  recentDayCount: number
+  /** One per requested date, same order as `ActivityScanResult.days`. */
+  days: ProjectDayActivity[]
+}
+
+export interface ProjectDayActivity {
+  date: string
+  status: ActivityStatus
+  commitCount: number
+  additions: number
+  deletions: number
+  /** Local "HH:MM" of the first/last commit; empty without commits. */
+  firstCommitAt: string
+  lastCommitAt: string
+  /** Uncommitted work right now; only present for today. */
+  uncommitted?: UncommittedSummary
+  jiraActivityCount: number
+  jiraIssueKeys: string[]
+  /** Soft hint: this project's share of the day's remaining hours (quarter hours). */
+  hoursHint: number
+}
+
+export interface UncommittedSummary {
+  files: number
+  additions: number
+  deletions: number
+}
