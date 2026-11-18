@@ -281,6 +281,7 @@ impl CommitSource for MockGit {
                         date: format!("{date}T{:02}:15:00+01:00", 9 + i * 2),
                         message: message.to_string(),
                         repo_label: label.clone(),
+                        ..Default::default()
                     });
                 }
             }

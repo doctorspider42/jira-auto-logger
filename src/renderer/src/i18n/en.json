@@ -91,6 +91,7 @@
     "editContext": "Edit context",
     "yourNotes": "Your notes",
     "dayShort": "{{hours}} h short of the workday",
+    "dayLogged": "incl. {{hours}} h already logged",
     "days": "Days",
     "includeCommits": "Include commits",
     "multiTargetTag": "Logs to {{count}} Jiras",

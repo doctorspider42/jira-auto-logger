@@ -10,6 +10,23 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.6 — 2026-11-18
+
+- **Commits are found even without a configured git email.** In a repo
+  where git signs commits as `name <you@computer.local>`, the author filter
+  missed all of them and suggestions came back empty. Your commits are now
+  matched by the configured author or by the name and email git actually
+  uses in that repo.
+- **Better suggestions from your commits.** The model now also reads the
+  full commit message, the branch name and the files touched - and ticket
+  keys in a branch name or commit body count as issue hints.
+- **A selected project always gets suggestions.** If a day still has hours
+  to fill, the model no longer answers with nothing; with no commits or
+  notes it falls back to the issue you logged to most recently.
+- **Topping up a day no longer looks short.** In the review step, hours you
+  had already logged that day count toward the day's total (shown as
+  "incl. X h already logged"), so 2 h logged + 6 h suggested reads 8 / 8.
+
 ## 1.0.5 — 2026-11-18
 
 - **Projects from logged time.** Projects → "Import from logged time" looks

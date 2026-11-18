@@ -17,6 +17,7 @@ import { FunnyLoader } from '@/components/common/FunnyLoader'
 import { Icon } from '@/components/common/Icon'
 import { Modal, useDialogEscape } from '@/components/common/Modal'
 import { findDraft, useAppStore, type WizardDraft } from '@/store/appStore'
+import type { CalendarEntry } from '@/components/calendar/useCalendar'
 import { useThemeText } from '@/theme/useThemeCopy'
 import { dateLocale, formatHours } from '@/utils/format'
 import { SuggestionRow } from './SuggestionRow'
@@ -27,6 +28,11 @@ interface SuggestionWizardProps {
   dates: string[]
   /** Generate immediately from the last-used projects after a scheduler notification click. */
   autoStart?: boolean
+  /**
+   * Entries already in Tempo, by date. They count toward a day's total so
+   * topping up a half-logged day does not read as hours missing.
+   */
+  loggedByDate?: Map<string, CalendarEntry[]>
   onClose(): void
   onDone(): void
 }
@@ -50,6 +56,7 @@ const nextId = (): string => `local-${++clientId}`
 export function SuggestionWizard({
   dates,
   autoStart = false,
+  loggedByDate,
   onClose,
   onDone
 }: SuggestionWizardProps): JSX.Element {
@@ -248,12 +255,33 @@ export function SuggestionWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [dates, groups]
   )
+  /**
+   * Hours already in Tempo on a date, counted in the Jiras the day's entries
+   * go to (each has its own full day); with no entries yet, in all of them.
+   */
+  const loggedHours = useMemo(() => {
+    const jiras = new Map<string, Set<string>>()
+    for (const group of groups) {
+      for (const s of group.suggestions) {
+        jiras.set(s.date, (jiras.get(s.date) ?? new Set()).add(group.connectionId))
+      }
+    }
+    return (date: string): number => {
+      const inPlay = jiras.get(date)
+      return (loggedByDate?.get(date) ?? [])
+        .filter((w) => !inPlay || inPlay.has(w.connectionId))
+        .reduce((sum, w) => sum + w.timeSpentSeconds / 3600, 0)
+    }
+  }, [groups, loggedByDate])
+
+  /** New entries plus what is already logged, per date. */
   const totalsByDate = useMemo(() => {
     const map = new Map<string, number>()
+    for (const date of tabDates) map.set(date, loggedHours(date))
     for (const s of allSuggestions) map.set(s.date, (map.get(s.date) ?? 0) + s.hours)
     return map
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groups])
+  }, [groups, tabDates, loggedHours])
 
   /**
    * A day's target: the working day once per Jira it is logged to, since a
@@ -270,14 +298,17 @@ export function SuggestionWizard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups, targetHours])
 
+  // Logged time arrives in seconds, so sums can be a hair off a round hour.
   const hoursStatus = (hours: number, target: number): string =>
-    hours === target ? 'ok' : hours < target ? 'under' : 'over'
+    Math.abs(hours - target) < 0.01 ? 'ok' : hours < target ? 'under' : 'over'
 
   /** Sum over every project of whatever the day filter currently shows. */
   const visibleSuggestions = dateFilter
     ? allSuggestions.filter((s) => s.date === dateFilter)
     : allSuggestions
-  const visibleTotal = visibleSuggestions.reduce((sum, s) => sum + s.hours, 0)
+  const visibleTotal = dateFilter
+    ? (totalsByDate.get(dateFilter) ?? 0)
+    : tabDates.reduce((sum, date) => sum + (totalsByDate.get(date) ?? 0), 0)
   const visibleTarget = dateFilter
     ? targetByDate(dateFilter)
     : tabDates.reduce((sum, date) => sum + targetByDate(date), 0)
@@ -531,9 +562,18 @@ export function SuggestionWizard({
 
   /** Left column of the review step: a filter per day with its hours. */
   const renderDays = (): JSX.Element => {
-    const totalAll = allSuggestions.reduce((sum, s) => sum + s.hours, 0)
+    const loggedAll = tabDates.reduce((sum, date) => sum + loggedHours(date), 0)
+    const totalAll = tabDates.reduce((sum, date) => sum + (totalsByDate.get(date) ?? 0), 0)
     const visibleTargetAll = tabDates.reduce((sum, date) => sum + targetByDate(date), 0)
-    const dayButton = (key: string, label: string, hours: number, target: number, selected: boolean, onClick: () => void): JSX.Element => {
+    const dayButton = (
+      key: string,
+      label: string,
+      hours: number,
+      target: number,
+      logged: number,
+      selected: boolean,
+      onClick: () => void
+    ): JSX.Element => {
       const status = hoursStatus(hours, target)
       return (
         <button key={key} className={`wizard-day ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={onClick}>
@@ -553,6 +593,11 @@ export function SuggestionWizard({
               {t('wizard.dayShort', { hours: formatHours((target - hours) * 3600) })}
             </span>
           )}
+          {logged > 0 && (
+            <span className="wizard-day-logged">
+              {t('wizard.dayLogged', { hours: formatHours(logged * 3600) })}
+            </span>
+          )}
         </button>
       )
     }
@@ -560,7 +605,7 @@ export function SuggestionWizard({
       <div className="wizard-side-block">
         <span className="eyebrow">{t('wizard.days')}</span>
         {tabDates.length > 1 &&
-          dayButton('all', t('wizard.allDays'), totalAll, visibleTargetAll, dateFilter === null, () =>
+          dayButton('all', t('wizard.allDays'), totalAll, visibleTargetAll, loggedAll, dateFilter === null, () =>
             setDateFilter(null)
           )}
         {tabDates.map((date) =>
@@ -569,6 +614,7 @@ export function SuggestionWizard({
             format(new Date(date), 'EEE d MMM', { locale }),
             totalsByDate.get(date) ?? 0,
             targetByDate(date),
+            loggedHours(date),
             dateFilter === date || tabDates.length === 1,
             () => setDateFilter(date)
           )

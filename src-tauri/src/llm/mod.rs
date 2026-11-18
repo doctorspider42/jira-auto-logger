@@ -22,6 +22,10 @@ use std::sync::Arc;
 const MAIN_PROMPT: &str = include_str!("main_prompt.txt");
 const REGENERATE_PROMPT: &str = include_str!("regenerate_prompt.txt");
 
+/// Appended to the prompt when the first answer was empty although the day
+/// still had hours to fill.
+const EMPTY_ANSWER_RETRY: &str = "Your previous answer was an empty array, but at least one date still has remaining budget and the developer confirmed they worked on this project. That is not allowed. Answer again following rule 2: return at least one entry for every date with remaining budget that has commits or notes - or, when no date has any, for every date with remaining budget.";
+
 /// How many recent worklogs are sent to the LLM as style examples.
 const EXAMPLE_WORKLOG_COUNT: usize = 10;
 
@@ -99,8 +103,18 @@ impl LlmService {
                         "promptLength": built.prompt.len(),
                     })),
                 );
-                let LlmCompletion { text, model } = self.complete_for(&label, &built.prompt).await?;
-                let suggestions = self.parse_suggestions(&text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
+                let LlmCompletion { text, mut model } = self.complete_for(&label, &built.prompt).await?;
+                let mut suggestions = self.parse_suggestions(&text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
+                // The user picked this project for these dates, so an empty
+                // answer with hours still free is a miss, not a verdict: ask
+                // once more, pointing at the rule it skipped.
+                if suggestions.is_empty() && has_remaining_budget(&request.dates, &logged, self.config.get().working_hours_per_day) {
+                    logger::info("llm", &format!("\"{label}\": empty answer with budget left, retrying once"), None);
+                    let retry = format!("{}\n\n{EMPTY_ANSWER_RETRY}", built.prompt);
+                    let again = self.complete_for(&label, &retry).await?;
+                    suggestions = self.parse_suggestions(&again.text, &request.dates, &built.candidates, target, selection.allow_new_issues)?;
+                    model = again.model.or(model);
+                }
                 logger::info("llm", &format!("\"{label}\": {} suggestions parsed", suggestions.len()), Some(json!({ "model": model })));
                 results.push(ProjectSuggestions {
                     project_id: project.id.clone(),
@@ -293,14 +307,7 @@ impl LlmService {
             json!(candidates.iter().map(|i| json!({ "key": i.key, "summary": clip(&i.summary, 120) })).collect::<Vec<_>>()),
         );
         input.insert("recentWorklogs".into(), json!(examples));
-        input.insert(
-            "commits".into(),
-            json!(commits
-                .iter()
-                // Date only - the time of day and zone offset carry no signal here.
-                .map(|c| json!({ "date": c.date.get(..10).unwrap_or(&c.date), "message": clip(&c.message, 200) }))
-                .collect::<Vec<_>>()),
-        );
+        input.insert("commits".into(), json!(commits.iter().map(commit_for_prompt).collect::<Vec<_>>()));
         input.insert("notes".into(), json!(selection.note));
         if selection.allow_new_issues {
             input.insert("allowNewIssues".into(), json!(true));
@@ -387,11 +394,13 @@ impl LlmService {
                 &mut candidates,
             );
         }
-        // Issues referenced explicitly in commit messages are the strongest signal.
+        // Issues referenced explicitly in commits (subject, body or branch
+        // name like `feature/ABC-12-login`) are the strongest signal.
         let key_pattern = Regex::new(r"[A-Z][A-Z0-9]+-\d+").unwrap();
         let mut referenced: Vec<String> = Vec::new();
         for c in commits {
-            for m in key_pattern.find_iter(&c.message.to_uppercase()) {
+            let text = format!("{}\n{}\n{}", c.message, c.body, c.branch).to_uppercase();
+            for m in key_pattern.find_iter(&text) {
                 let key = m.as_str().to_string();
                 if key.starts_with(&prefix) && !referenced.contains(&key) {
                     referenced.push(key);
@@ -487,6 +496,11 @@ impl LlmService {
     }
 }
 
+/// Whether any requested date still has hours left to log.
+fn has_remaining_budget(dates: &[String], logged: &HashMap<String, f64>, hours_per_day: f64) -> bool {
+    dates.iter().any(|d| hours_per_day - logged.get(d).copied().unwrap_or(0.0) > 0.01)
+}
+
 fn valid_selections(request: &SuggestionRequest) -> AppResult<&[ProjectSelection]> {
     if request.selections.is_empty() {
         return Err(AppError::new(ErrorCode::ConfigInvalid, "No project selected"));
@@ -536,6 +550,39 @@ fn normalize_hours(hours: &Value) -> f64 {
     }
     // Quarter-hour precision, capped at a sane day length.
     ((value * 4.0).round() / 4.0).min(24.0)
+}
+
+/// Paths listed per commit; the rest is summarised as a count.
+const COMMIT_FILE_LIMIT: usize = 12;
+
+/// A commit as the model sees it. The subject alone is often too terse to
+/// describe a day, so the body, the branch (often named after the ticket) and
+/// the touched paths go along - each clipped, empty ones left out.
+fn commit_for_prompt(c: &CommitInfo) -> Value {
+    // Date only - the time of day and zone offset carry no signal here.
+    let mut commit = json!({ "date": c.date.get(..10).unwrap_or(&c.date), "message": clip(&c.message, 200) });
+    // Trailers (Co-Authored-By, Signed-off-by) are noise for a worklog.
+    let body: Vec<&str> = c.body.lines().filter(|l| !is_trailer(l)).collect();
+    let body = body.join("\n");
+    if !body.trim().is_empty() {
+        commit["body"] = json!(clip(body.trim(), 600));
+    }
+    if !c.branch.is_empty() && !matches!(c.branch.as_str(), "HEAD" | "main" | "master" | "develop" | "origin/main" | "origin/master" | "origin/develop") {
+        commit["branch"] = json!(clip(&c.branch, 80));
+    }
+    if !c.files.is_empty() {
+        let mut files: Vec<String> = c.files.iter().take(COMMIT_FILE_LIMIT).map(|f| clip(f, 120)).collect();
+        if c.files.len() > COMMIT_FILE_LIMIT {
+            files.push(format!("(+{} more)", c.files.len() - COMMIT_FILE_LIMIT));
+        }
+        commit["files"] = json!(files);
+    }
+    commit
+}
+
+fn is_trailer(line: &str) -> bool {
+    let lower = line.trim().to_lowercase();
+    ["co-authored-by:", "signed-off-by:", "reviewed-by:", "change-id:"].iter().any(|t| lower.starts_with(t))
 }
 
 fn format_commits(commits: &[CommitInfo], date: &str) -> String {

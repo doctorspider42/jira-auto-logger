@@ -447,6 +447,12 @@ export interface CommitInfo {
   date: string
   message: string
   repoLabel: string
+  /** Commit body under the subject line; empty for one-liners. */
+  body?: string
+  /** Ref the commit was reached from (branch names often carry the ticket key). */
+  branch?: string
+  /** Paths the commit touched. */
+  files?: string[]
 }
 
 // ---------- LLM suggestions ----------

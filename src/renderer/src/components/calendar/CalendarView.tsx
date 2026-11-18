@@ -648,6 +648,7 @@ export function CalendarView(): JSX.Element {
           key={`${wizardDates.join(',')}:${wizardAutoStart ? 'auto' : 'manual'}`}
           dates={wizardDates}
           autoStart={wizardAutoStart}
+          loggedByDate={calendar.worklogsByDate}
           onClose={() => {
             setWizardDates(null)
             setWizardAutoStart(false)

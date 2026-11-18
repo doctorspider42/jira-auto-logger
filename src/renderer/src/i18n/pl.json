@@ -95,6 +95,7 @@
     "editContext": "Edytuj kontekst",
     "yourNotes": "Twoje notatki",
     "dayShort": "Brakuje {{hours}} h do dnia pracy",
+    "dayLogged": "w tym {{hours}} h już zalogowane",
     "days": "Dni",
     "includeCommits": "Uwzględnij commity",
     "multiTargetTag": "Loguje do {{count}} Jir",

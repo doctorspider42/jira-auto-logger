@@ -360,13 +360,23 @@ pub struct ReportReminder {
 
 // ---------- Git ----------
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CommitInfo {
     pub hash: String,
     pub date: String,
     pub message: String,
     pub repo_label: String,
+    /// Commit body under the subject line, trimmed; empty for one-liners.
+    #[serde(default)]
+    pub body: String,
+    /// The ref `git log --all --source` reached the commit from - branch
+    /// names often carry the ticket key the subject leaves out.
+    #[serde(default)]
+    pub branch: String,
+    /// Paths the commit touched.
+    #[serde(default)]
+    pub files: Vec<String>,
 }
 
 // ---------- LLM suggestions ----------

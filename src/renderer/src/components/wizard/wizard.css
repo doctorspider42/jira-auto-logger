@@ -184,6 +184,11 @@
   color: var(--warning);
 }
 
+.wizard-day-logged {
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .wizard-day .meter > .under {
   background: var(--warning);
 }
