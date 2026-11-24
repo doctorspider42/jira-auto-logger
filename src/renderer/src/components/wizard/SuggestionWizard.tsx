@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import type {
+  ProjectActivity,
   AppError,
   CommitInfo,
   JiraIssue,
@@ -20,6 +21,7 @@ import { findDraft, useAppStore, type WizardDraft } from '@/store/appStore'
 import type { CalendarEntry } from '@/components/calendar/useCalendar'
 import { useThemeText } from '@/theme/useThemeCopy'
 import { dateLocale, formatHours } from '@/utils/format'
+import { ActivityTrail, AutoBudget, AutoPickList, hintTotal, hintsOf, selectionsFromScan, useActivityScan } from './AutoMode'
 import { SuggestionRow } from './SuggestionRow'
 import { SuggestionTable } from './SuggestionTable'
 import './wizard.css'
@@ -38,6 +40,24 @@ interface SuggestionWizardProps {
 }
 
 type Step = 'input' | 'suggestions'
+type Mode = 'auto' | 'manual'
+
+/** The last mode picked is a per-machine convenience; storage may be unavailable. */
+const MODE_KEY = 'jal.wizardMode'
+function readMode(): Mode {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'manual' ? 'manual' : 'auto'
+  } catch {
+    return 'auto'
+  }
+}
+function writeMode(mode: Mode): void {
+  try {
+    localStorage.setItem(MODE_KEY, mode)
+  } catch {
+    // Not remembered - the wizard still works.
+  }
+}
 
 let clientId = 0
 const nextId = (): string => `local-${++clientId}`
@@ -85,6 +105,12 @@ export function SuggestionWizard({
       : [])
   )
 
+  // The scheduler's auto-start keeps its own last-used selection.
+  const [mode, setModeState] = useState<Mode>(() => (autoStart ? 'manual' : readMode()))
+  const { scan, loading: scanning, error: scanError, rescan } = useActivityScan(dates, mode === 'auto' && step === 'input')
+  /** A parked draft keeps its own selection; the first scan only fills an empty one. */
+  const keepRestored = useRef(Boolean(restored?.selections.length))
+
   const [groups, setGroups] = useState<ProjectSuggestions[]>(restored?.groups ?? [])
   /** When set, step 2 shows only the entries of this date. */
   const [dateFilter, setDateFilter] = useState<string | null>(restored?.dateFilter ?? null)
@@ -108,6 +134,45 @@ export function SuggestionWizard({
   )
 
   const request = { dates, selections }
+
+  useEffect(() => {
+    if (mode !== 'auto' || !scan) return
+    if (keepRestored.current) {
+      keepRestored.current = false
+      return
+    }
+    setSelections((current) => selectionsFromScan(scan, projectById, current))
+    // Re-applied for every new scan and on switching back to auto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scan, mode])
+
+  const setMode = (next: Mode): void => {
+    setModeState(next)
+    writeMode(next)
+    // Manual mode shows no hours, so it must not send hidden ones either.
+    if (next === 'manual') setSelections((current) => current.map((s) => ({ ...s, hoursHint: undefined })))
+  }
+
+  const activityOf = (projectId: string): ProjectActivity | undefined =>
+    scan?.projects.find((p) => p.projectId === projectId)
+
+  const toggleAutoProject = (project: ProjectConfig, activity: ProjectActivity): void =>
+    setSelections((current) =>
+      current.some((s) => s.projectId === project.id)
+        ? current.filter((s) => s.projectId !== project.id)
+        : [...current, { projectId: project.id, note: '', useCommits: project.gitFolders.length > 0, hoursHint: hintsOf(activity) }]
+    )
+
+  /** The stepper nudges the single requested day's hint by half an hour. */
+  const nudgeHint = (projectId: string, delta: number): void =>
+    setSelections((current) =>
+      current.map((s) => {
+        if (s.projectId !== projectId) return s
+        const date = dates[0]
+        const next = Math.max(0, (s.hoursHint?.[date] ?? 0) + delta)
+        return { ...s, hoursHint: { ...s.hoursHint, [date]: next } }
+      })
+    )
 
   const toggleProject = (project: ProjectConfig): void =>
     setSelections((current) =>
@@ -439,6 +504,60 @@ export function SuggestionWizard({
         ? `${target.jiraProjectKey} · ${connection.name || connection.jira.baseUrl}`
         : target.jiraProjectKey
     })
+    if (mode === 'auto') {
+      const activity = activityOf(project.id)
+      const likely = activity?.status === 'likely'
+      const color = project.color || 'var(--muted)'
+      const hint = hintTotal(selection)
+      return (
+        <section key={project.id} className={`wizard-card auto-card ${likely ? 'likely' : ''}`}>
+          <header className="wizard-card-head">
+            <span className="chip-dot" style={{ background: color }} />
+            <h2>{project.name}</h2>
+            <span className="mono muted">{targetLabels.join(' + ')}</span>
+            {likely && <span className="auto-likely-tag">{t('wizard.likely')}</span>}
+            <span className="spacer" />
+            {dates.length === 1 ? (
+              <div className="auto-stepper">
+                <button onClick={() => nudgeHint(project.id, -0.5)} aria-label={t('wizard.hoursLess')} disabled={hint <= 0}>
+                  −
+                </button>
+                <span className="mono" style={{ color: likely ? 'var(--warning)' : color }}>
+                  {formatHours(hint * 3600)} h
+                </span>
+                <button onClick={() => nudgeHint(project.id, 0.5)} aria-label={t('wizard.hoursMore')}>
+                  +
+                </button>
+              </div>
+            ) : (
+              hint > 0 && (
+                <span className="mono" style={{ color: likely ? 'var(--warning)' : color }}>
+                  {formatHours(hint * 3600)} h
+                </span>
+              )
+            )}
+            {likely && (
+              <button className="btn btn-icon btn-sm" onClick={() => toggleProject(project)} aria-label={t('wizard.removeProject')}>
+                <Icon name="close" size={12} />
+              </button>
+            )}
+          </header>
+          {activity && !likely && (
+            <ActivityTrail activity={activity} color={color} workingHours={config.workingHoursPerDay} locale={locale} />
+          )}
+          {!likely && (
+            <label className="field wizard-note">
+              <span className="muted">{t('wizard.note')}</span>
+              <textarea
+                value={selection.note}
+                placeholder={t('wizard.notePlaceholderAuto')}
+                onChange={(e) => patchSelection(project.id, { note: e.target.value })}
+              />
+            </label>
+          )}
+        </section>
+      )
+    }
     return (
       <section key={project.id} className="wizard-card">
         <header className="wizard-card-head">
@@ -652,7 +771,30 @@ export function SuggestionWizard({
 
       <div className="wizard-body">
         <aside className="wizard-side">
-          {step === 'input' ? (
+          {step === 'input' && (
+            <div className="segmented auto-mode-switch" role="group" aria-label={t('wizard.modeLabel')}>
+              <button className={mode === 'auto' ? 'active accent' : ''} aria-pressed={mode === 'auto'} onClick={() => setMode('auto')}>
+                <Icon name="sparkle" size={14} />
+                {t('wizard.modeAuto')}
+              </button>
+              <button className={mode === 'manual' ? 'active' : ''} aria-pressed={mode === 'manual'} onClick={() => setMode('manual')}>
+                {t('wizard.modeManual')}
+              </button>
+            </div>
+          )}
+          {step === 'input' && mode === 'auto' ? (
+            scan ? (
+              <>
+                <AutoBudget scan={scan} selections={selections} projects={projectById} loading={scanning} onRescan={rescan} />
+                <AutoPickList scan={scan} selections={selections} projects={projectById} onToggle={toggleAutoProject} />
+              </>
+            ) : (
+              <p className="hint auto-scanning">
+                {scanning && <span className="spinner" />}
+                {scanning ? t('wizard.scanning') : t('wizard.autoNothingFound')}
+              </p>
+            )
+          ) : step === 'input' ? (
             <div className="wizard-side-block">
               <div className="wizard-side-title">
                 <span className="eyebrow">
@@ -703,6 +845,7 @@ export function SuggestionWizard({
 
         <main className="wizard-main">
           {error && <ErrorBanner error={error} />}
+          {step === 'input' && mode === 'auto' && scanError && <ErrorBanner error={scanError} />}
           {busy && step === 'input' && <FunnyLoader />}
           {step === 'input' ? (
             selections.length === 0 ? (
@@ -748,7 +891,13 @@ export function SuggestionWizard({
               {previewLoading ? <span className="spinner" /> : <Icon name="code" size={15} />}
               {t('wizard.previewContext')}
             </button>
-            <span className="muted">{t('wizard.passCount', { count: selections.length })}</span>
+            <span className="muted auto-footer-info">
+              {mode === 'auto' && <Icon name="sparkle" size={14} />}
+              {t('wizard.passCount', { count: selections.length })}
+              {mode === 'auto' &&
+                selections.some((s) => hintTotal(s) > 0) &&
+                ` · ${formatHours(selections.reduce((sum, s) => sum + hintTotal(s), 0) * 3600)} h`}
+            </span>
             <span className="spacer" />
             <button className="btn btn-lg" onClick={discard}>
               {t('app.cancel')}

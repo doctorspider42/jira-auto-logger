@@ -73,6 +73,9 @@ export function createTauriApi(): IpcApi {
     git: {
       getCommits: (folderPaths, dates) => invoke('git_get_commits', { folderPaths, dates })
     },
+    activity: {
+      scan: (request) => invoke('activity_scan', { request })
+    },
     llm: {
       generateSuggestions: (request) => invoke('llm_generate_suggestions', { request }),
       previewPrompt: (request) => invoke('llm_preview_prompt', { request }),

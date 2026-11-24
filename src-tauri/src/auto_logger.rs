@@ -1,6 +1,7 @@
 //! Runs the configured weekday worklog automation while the app is alive.
 //! Port of `AutoLoggerService.ts`.
 
+use crate::activity::{self, ActivityService};
 use crate::config::ConfigService;
 use crate::desktop;
 use crate::domain::*;
@@ -19,6 +20,7 @@ use tauri_plugin_notification::NotificationExt;
 pub struct AutoLogger {
     config: Arc<ConfigService>,
     llm: Arc<LlmService>,
+    activity: Arc<ActivityService>,
     connections: Arc<ConnectionManager>,
     running: AtomicBool,
     /// Date + configured time + mode of the last scheduled (never manual) attempt.
@@ -50,7 +52,7 @@ impl Drop for RunGuard<'_> {
 }
 
 impl AutoLogger {
-    pub fn new(config: Arc<ConfigService>, llm: Arc<LlmService>, connections: Arc<ConnectionManager>) -> Self {
+    pub fn new(config: Arc<ConfigService>, llm: Arc<LlmService>, activity: Arc<ActivityService>, connections: Arc<ConnectionManager>) -> Self {
         let last = std::fs::read_to_string(state_path())
             .ok()
             .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
@@ -59,6 +61,7 @@ impl AutoLogger {
         Self {
             config,
             llm,
+            activity,
             connections,
             running: AtomicBool::new(false),
             last_attempt_key: Mutex::new(last),
@@ -221,13 +224,7 @@ impl AutoLogger {
     }
 
     async fn run_full_auto(&self, app: &AppHandle, date: &str, config: &AppConfig) -> AppResult<(usize, i64)> {
-        let selections: Vec<ProjectSelection> = config
-            .last_used
-            .selections
-            .iter()
-            .filter(|s| config.projects.iter().any(|p| p.id == s.project_id && !p.archived))
-            .cloned()
-            .collect();
+        let selections = self.pick_selections(date, config).await;
         if selections.is_empty() {
             return Err(AppError::unknown("No recent project selection is available for the scheduled run"));
         }
@@ -250,6 +247,27 @@ impl AutoLogger {
         self.notify(app, if polish { "Autologger zakończony" } else { "Auto logger finished" }, &body);
         logger::info("auto-logger", "full-auto run completed", Some(json!({ "date": date, "count": count, "seconds": seconds })));
         Ok((count, seconds))
+    }
+
+    /// Projects for the day: what the activity scan found (evidence or
+    /// likely), with its hours hint; the last manual selection when the scan
+    /// finds nothing. Settings of a project the user picked before (note,
+    /// commits, new issues) carry over.
+    async fn pick_selections(&self, date: &str, config: &AppConfig) -> Vec<ProjectSelection> {
+        let scan = self.activity.scan(&ActivityScanRequest { dates: vec![date.to_string()] }).await;
+        let scanned = selections_from_scan(&scan, config);
+        logger::info("auto-logger", "projects picked", Some(json!({ "fromScan": scanned.len() })));
+        if !scanned.is_empty() {
+            return scanned;
+        }
+        config
+            .last_used
+            .selections
+            .iter()
+            .filter(|s| config.projects.iter().any(|p| p.id == s.project_id && !p.archived))
+            .cloned()
+            .map(|s| ProjectSelection { hours_hint: Default::default(), ..s })
+            .collect()
     }
 
     async fn submit(&self, groups: &[ProjectSuggestions], config: &AppConfig) -> AppResult<(usize, i64)> {
@@ -299,5 +317,61 @@ impl AutoLogger {
         if let Err(e) = std::fs::write(state_path(), json!({ "lastScheduledAttemptKey": key }).to_string()) {
             logger::info("auto-logger", "could not persist scheduler state", Some(json!(e.to_string())));
         }
+    }
+}
+
+/// Selections for every project the scan marked as worked on (evidence or
+/// likely) on any date, carrying the per-date hours hint.
+fn selections_from_scan(scan: &ActivityScanResult, config: &AppConfig) -> Vec<ProjectSelection> {
+    scan.projects
+        .iter()
+        .filter(|p| p.status == activity::EVIDENCE || p.status == activity::LIKELY)
+        .filter_map(|p| {
+            let project = config.projects.iter().find(|c| c.id == p.project_id && !c.archived)?;
+            let previous = config.last_used.selections.iter().find(|s| s.project_id == p.project_id);
+            let hours_hint = p.days.iter().filter(|d| d.status != activity::NONE && d.hours_hint > 0.0).map(|d| (d.date.clone(), d.hours_hint)).collect();
+            Some(ProjectSelection {
+                project_id: p.project_id.clone(),
+                note: previous.map(|s| s.note.clone()).unwrap_or_default(),
+                use_commits: previous.map_or(!project.git_folders.is_empty(), |s| s.use_commits),
+                allow_new_issues: previous.is_some_and(|s| s.allow_new_issues),
+                hours_hint,
+            })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn project(id: &str, folders: usize) -> ProjectConfig {
+        ProjectConfig {
+            id: id.into(),
+            git_folders: (0..folders).map(|i| GitFolder { path: format!("/r{i}"), ..Default::default() }).collect(),
+            ..Default::default()
+        }
+    }
+
+    fn row(id: &str, status: &str, hint: f64) -> ProjectActivity {
+        ProjectActivity {
+            project_id: id.into(),
+            status: status.into(),
+            days: vec![ProjectDayActivity { date: "2026-11-18".into(), status: status.into(), hours_hint: hint, ..Default::default() }],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn scheduler_takes_evidence_and_likely_with_hints() {
+        let mut config = AppConfig { projects: vec![project("a", 1), project("b", 0), project("c", 1)], ..Default::default() };
+        config.last_used.selections.push(ProjectSelection { project_id: "a".into(), note: "keep".into(), use_commits: false, ..Default::default() });
+        let scan = ActivityScanResult { days: vec![], projects: vec![row("a", "evidence", 5.0), row("b", "likely", 3.0), row("c", "none", 0.0)] };
+        let picked = selections_from_scan(&scan, &config);
+        assert_eq!(picked.iter().map(|s| s.project_id.as_str()).collect::<Vec<_>>(), vec!["a", "b"]);
+        assert_eq!(picked[0].note, "keep");
+        assert!(!picked[0].use_commits);
+        assert_eq!(picked[0].hours_hint.get("2026-11-18"), Some(&5.0));
+        assert!(!picked[1].use_commits);
     }
 }

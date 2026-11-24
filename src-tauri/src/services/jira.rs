@@ -28,6 +28,27 @@ pub trait JiraApi: Send + Sync {
     async fn get_my_activity(&self, _account_id: &str, _project_key: &str, _from: &str, _to: &str) -> AppResult<Vec<JiraActivity>> {
         Ok(Vec::new())
     }
+    /// The same across several projects at once - one query per Jira instead
+    /// of one per project. Callers group the result by key prefix. The
+    /// default asks project by project, so simple implementations only need
+    /// `get_my_activity`; it fails only when every project failed.
+    async fn get_my_activity_in(&self, account_id: &str, project_keys: &[String], from: &str, to: &str) -> AppResult<Vec<JiraActivity>> {
+        let mut all = Vec::new();
+        let (mut failed, mut last_error) = (0, None);
+        for key in project_keys {
+            match self.get_my_activity(account_id, key, from, to).await {
+                Ok(found) => all.extend(found),
+                Err(e) => {
+                    failed += 1;
+                    last_error = Some(e);
+                }
+            }
+        }
+        match last_error {
+            Some(e) if failed == project_keys.len() => Err(e),
+            _ => Ok(all),
+        }
+    }
 }
 
 /// The type a new issue gets when none was picked: Task, else the first type
@@ -103,9 +124,11 @@ fn quote(value: &str) -> String {
 }
 
 /// One thing the user did on an issue on a given day.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct JiraActivity {
     pub date: String,
+    /// Local "HH:MM" of the change, as Jira reports it; empty when unknown.
+    pub time: String,
     pub issue_id: String,
     pub issue_key: String,
     pub summary: String,
@@ -140,14 +163,15 @@ fn parse_activity(issue: &Value, account_id: &str, from: &str, to: &str) -> Vec<
     let key = issue["key"].as_str().unwrap_or_default();
     let id = issue["id"].as_str().unwrap_or_default();
     let summary = issue["fields"]["summary"].as_str().unwrap_or_default();
-    let in_range = |created: &str| -> Option<String> {
+    let in_range = |created: &str| -> Option<(String, String)> {
         let date = created.get(..10)?;
-        (date >= from && date <= to).then(|| date.to_string())
+        let time = created.get(11..16).unwrap_or_default().to_string();
+        (date >= from && date <= to).then(|| (date.to_string(), time))
     };
     let mine = |author: &Value| author["accountId"].as_str() == Some(account_id);
     let mut out = Vec::new();
-    let mut push = |date: String, action: String| {
-        let entry = JiraActivity { date, issue_id: id.into(), issue_key: key.into(), summary: summary.into(), action };
+    let mut push = |(date, time): (String, String), action: String| {
+        let entry = JiraActivity { date, time, issue_id: id.into(), issue_key: key.into(), summary: summary.into(), action };
         if !out.contains(&entry) {
             out.push(entry);
         }
@@ -226,6 +250,34 @@ impl JiraClient {
             .json()
             .await
             .map_err(|e| AppError::with_details(ErrorCode::JiraUnreachable, "Jira sent an unreadable response", e.to_string()))
+    }
+
+    /// The user's activity in the given projects within [from, to].
+    async fn activity_query(&self, account_id: &str, project_keys: &[String], from: &str, to: &str, limit: usize) -> AppResult<Vec<JiraActivity>> {
+        // JQL date ranges end at midnight, so the last day needs the next one as the bound.
+        let until = chrono::NaiveDate::parse_from_str(to, "%Y-%m-%d")
+            .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
+            .unwrap_or_else(|_| to.to_string());
+        let scope = format!("project in ({})", project_keys.iter().map(|k| quote(k)).collect::<Vec<_>>().join(","));
+        let account = quote(account_id);
+        // updatedBy() catches comments and edits too; status CHANGED BY is the
+        // narrower fallback for instances that reject it.
+        let queries = [
+            format!("{scope} AND issue in updatedBy({account}, \"{from}\", \"{until}\") ORDER BY updated DESC"),
+            format!("{scope} AND status CHANGED BY {account} DURING (\"{from}\", \"{until}\") ORDER BY updated DESC"),
+        ];
+        let mut last_error = None;
+        for jql in queries {
+            let body = json!({ "jql": jql, "maxResults": limit, "fields": ["summary", "comment"], "expand": "changelog" });
+            match self.request("/rest/api/3/search/jql", Some(body)).await {
+                Ok(page) => {
+                    let issues = page["issues"].as_array().cloned().unwrap_or_default();
+                    return Ok(issues.iter().flat_map(|i| parse_activity(i, account_id, from, to)).collect());
+                }
+                Err(e) => last_error = Some(e),
+            }
+        }
+        Err(last_error.unwrap())
     }
 
     async fn search(&self, jql: String, max_results: usize) -> AppResult<Vec<JiraIssue>> {
@@ -383,30 +435,16 @@ impl JiraApi for JiraClient {
     }
 
     async fn get_my_activity(&self, account_id: &str, project_key: &str, from: &str, to: &str) -> AppResult<Vec<JiraActivity>> {
-        // JQL date ranges end at midnight, so the last day needs the next one as the bound.
-        let until = chrono::NaiveDate::parse_from_str(to, "%Y-%m-%d")
-            .map(|d| (d + chrono::Duration::days(1)).format("%Y-%m-%d").to_string())
-            .unwrap_or_else(|_| to.to_string());
-        let scope = format!("project = {}", quote(project_key));
-        let account = quote(account_id);
-        // updatedBy() catches comments and edits too; status CHANGED BY is the
-        // narrower fallback for instances that reject it.
-        let queries = [
-            format!("{scope} AND issue in updatedBy({account}, \"{from}\", \"{until}\") ORDER BY updated DESC"),
-            format!("{scope} AND status CHANGED BY {account} DURING (\"{from}\", \"{until}\") ORDER BY updated DESC"),
-        ];
-        let mut last_error = None;
-        for jql in queries {
-            let body = json!({ "jql": jql, "maxResults": ACTIVITY_ISSUE_LIMIT, "fields": ["summary", "comment"], "expand": "changelog" });
-            match self.request("/rest/api/3/search/jql", Some(body)).await {
-                Ok(page) => {
-                    let issues = page["issues"].as_array().cloned().unwrap_or_default();
-                    return Ok(issues.iter().flat_map(|i| parse_activity(i, account_id, from, to)).collect());
-                }
-                Err(e) => last_error = Some(e),
-            }
+        self.activity_query(account_id, &[project_key.to_string()], from, to, ACTIVITY_ISSUE_LIMIT).await
+    }
+
+    async fn get_my_activity_in(&self, account_id: &str, project_keys: &[String], from: &str, to: &str) -> AppResult<Vec<JiraActivity>> {
+        if project_keys.is_empty() {
+            return Ok(Vec::new());
         }
-        Err(last_error.unwrap())
+        // One query spans several projects, so it gets a proportionally larger page.
+        let limit = (ACTIVITY_ISSUE_LIMIT * project_keys.len()).min(100);
+        self.activity_query(account_id, project_keys, from, to, limit).await
     }
 
     async fn get_issues_by_ids(&self, ids: &[String]) -> AppResult<Vec<JiraIssue>> {

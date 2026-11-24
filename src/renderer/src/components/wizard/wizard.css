@@ -773,3 +773,381 @@
     max-width: none;
   }
 }
+
+/* ---------- Auto mode (step 1) ---------- */
+
+.auto-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 14px;
+}
+
+.auto-mode-switch button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.auto-mode-switch button.active.accent {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.auto-scanning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.auto-budget-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.auto-budget-head .btn {
+  align-self: center;
+}
+
+.auto-budget-left {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.auto-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.auto-bar > span {
+  flex-shrink: 0;
+}
+
+.auto-budget-logged {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.auto-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.auto-picks {
+  gap: 6px;
+}
+
+.auto-pick {
+  border: 1px solid transparent;
+}
+
+.auto-pick.likely {
+  border: 1px dashed color-mix(in srgb, var(--warning) 45%, transparent);
+  background: color-mix(in srgb, var(--warning) 6%, transparent);
+}
+
+.auto-pick .wizard-pick-text {
+  flex: 1;
+  gap: 3px;
+}
+
+.auto-pick-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-pick-sub {
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.auto-pick-sub.likely {
+  color: var(--warning);
+}
+
+.auto-pick-hours {
+  font-size: 13px;
+}
+
+.auto-picks-rest {
+  margin-top: 8px;
+}
+
+.auto-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.auto-card.likely {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+
+.auto-card .wizard-card-head .spacer {
+  flex: 1;
+}
+
+.auto-likely-tag {
+  padding: 2px 8px;
+  border: 1px dashed color-mix(in srgb, var(--warning) 60%, transparent);
+  border-radius: calc(var(--radius-control) - 2px);
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.auto-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.auto-stepper button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.auto-stepper button:hover:not(:disabled) {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.auto-stepper .mono {
+  padding: 0 6px;
+  font-size: 14px;
+}
+
+.auto-trail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auto-trail-day {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.auto-trail-date {
+  padding-top: 10px;
+  font-size: 11px;
+}
+
+.auto-timeline {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auto-track {
+  position: relative;
+  height: 32px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+}
+
+.auto-span {
+  position: absolute;
+  top: 15px;
+  height: 2px;
+  opacity: 0.3;
+}
+
+.auto-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.auto-mark.commit {
+  border: 2px solid var(--ground);
+  border-radius: 50%;
+}
+
+.auto-mark.jira {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.auto-mark.uncommitted {
+  width: 14px;
+  height: 14px;
+  border: 2px dashed;
+  border-radius: 50%;
+}
+
+.auto-ticks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.auto-events {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.auto-events li {
+  display: grid;
+  grid-template-columns: 52px 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.auto-events li:last-child {
+  border-bottom: 0;
+}
+
+.auto-events .mono {
+  font-size: 12px;
+}
+
+.auto-glyph {
+  justify-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.auto-glyph.jira {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.auto-glyph.uncommitted {
+  border: 2px dashed;
+  background: transparent;
+}
+
+.auto-event-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.auto-key {
+  margin-right: 6px;
+  color: var(--accent);
+}
+
+.auto-continue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-control);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.auto-continue-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.auto-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: calc(var(--radius-control) - 3px);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.auto-chip.accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.auto-continue-day {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.auto-continue-day .mono {
+  text-align: right;
+}
+
+.auto-continue-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.auto-continue-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.auto-footer-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

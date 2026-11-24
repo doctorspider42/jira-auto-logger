@@ -22,6 +22,18 @@ pub trait CommitSource: Send + Sync {
     async fn get_working_changes(&self, _folder_paths: &[String]) -> Vec<WorkingChanges> {
         Vec::new()
     }
+    /// Date (yyyy-MM-dd) of the first commit on `branch` that the mainline
+    /// does not have - how long the work on that branch has been going on.
+    /// None when it cannot be told cheaply.
+    async fn branch_started(&self, _folder_path: &str, _branch: &str) -> Option<String> {
+        None
+    }
+}
+
+/// Branches that are a mainline, not a topic - their age says nothing.
+pub fn is_mainline(branch: &str) -> bool {
+    let name = branch.trim_start_matches("origin/");
+    branch.is_empty() || matches!(name, "HEAD" | "main" | "master" | "develop" | "development" | "dev" | "trunk")
 }
 
 /// Work in a repository's working tree that no commit shows yet.
@@ -78,7 +90,9 @@ impl GitService {
         args.extend(author_args.iter().map(String::as_str));
         let stdout = git(&folder.path, &args).await?;
         let label = if folder.label.is_empty() { folder_label(&folder.path) } else { folder.label.clone() };
-        let commits: Vec<CommitInfo> = stdout.split(RECORD_SEPARATOR).filter_map(|record| parse_record(record, &label)).collect();
+        let parsed: Vec<CommitInfo> = stdout.split(RECORD_SEPARATOR).filter_map(|record| parse_record(record, &label)).collect();
+        let current = git(&folder.path, &["rev-parse", "--abbrev-ref", "HEAD"]).await.map(|b| b.trim().to_string()).unwrap_or_default();
+        let commits = drop_rewritten_copies(parsed, &current);
         logger::debug("git", &format!("{label}: {} commits", commits.len()), Some(json!({ "authors": if authors.is_empty() { vec!["(all)".to_string()] } else { authors } })));
         Ok(commits)
     }
@@ -97,13 +111,38 @@ async fn author_patterns(folder: &GitFolder) -> Vec<String> {
         if let Some((name, email)) = parse_ident(&ident) {
             for value in [email, name] {
                 let pattern = escape_basic_regex(&value);
-                if !value.is_empty() && !patterns.contains(&pattern) {
+                if !value.is_empty() && !patterns.contains(&pattern) && !patterns.contains(&value) {
                     patterns.push(pattern);
                 }
             }
         }
     }
     patterns
+}
+
+/// A rebase, amend or cherry-pick leaves the old commit reachable (a backup
+/// branch, the remote's copy, a stash) next to the new one, and `--all` sees
+/// both: same subject, same author time, different hash. Keep one per work
+/// item, preferring the copy on the checked-out branch, then a remote one.
+fn drop_rewritten_copies(commits: Vec<CommitInfo>, current_branch: &str) -> Vec<CommitInfo> {
+    let rank = |c: &CommitInfo| {
+        if c.branch == current_branch {
+            0
+        } else if c.branch.starts_with("origin/") {
+            1
+        } else {
+            2
+        }
+    };
+    let mut kept: Vec<CommitInfo> = Vec::new();
+    for commit in commits {
+        match kept.iter_mut().find(|k| k.date == commit.date && k.message == commit.message) {
+            Some(existing) if rank(&commit) < rank(existing) => *existing = commit,
+            Some(_) => {}
+            None => kept.push(commit),
+        }
+    }
+    kept
 }
 
 /// `Name <email> 1700000000 +0100` -> (name, email).
@@ -203,8 +242,22 @@ impl CommitSource for GitService {
         }
         out
     }
+    async fn branch_started(&self, folder_path: &str, branch: &str) -> Option<String> {
+        if is_mainline(branch) || branch.starts_with('-') || branch.starts_with("refs/tags/") {
+            return None;
+        }
+        let mut base = None;
+        for candidate in ["origin/HEAD", "origin/main", "origin/master", "origin/develop", "main", "master", "develop"] {
+            if candidate != branch && git(folder_path, &["rev-parse", "--verify", "--quiet", candidate]).await.is_ok() {
+                base = Some(candidate);
+                break;
+            }
+        }
+        let range = format!("{}..{branch}", base?);
+        let out = git(folder_path, &["log", "--reverse", "--format=%aI", &range]).await.ok()?;
+        out.lines().next().and_then(|l| l.get(..10)).map(String::from)
+    }
 }
-
 
 async fn git(folder: &str, args: &[&str]) -> AppResult<String> {
     let mut command = tokio::process::Command::new("git");
@@ -231,6 +284,20 @@ async fn git(folder: &str, args: &[&str]) -> AppResult<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rewritten_copies_collapse_onto_the_current_branch() {
+        let commit = |hash: &str, branch: &str| CommitInfo {
+            hash: hash.into(),
+            date: "2026-11-18T17:09:08+01:00".into(),
+            message: "Limit AI".into(),
+            branch: branch.into(),
+            ..Default::default()
+        };
+        let kept = drop_rewritten_copies(vec![commit("old", "backup/before"), commit("new", "feature"), commit("other", "origin/feature")], "feature");
+        assert_eq!(kept.len(), 1);
+        assert_eq!(kept[0].hash, "new");
+    }
 
     #[test]
     fn parses_identity() {
