@@ -10,6 +10,14 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.9 — 2026-11-27
+
+- **Changing the issue of a logged entry now really moves it.** Picking a
+  different issue for an entry in the calendar used to save without error
+  while Tempo quietly kept the time on the old issue. The entry now moves to
+  the new issue, at the same time of day, with the same hours and
+  description.
+
 ## 1.0.8 — 2026-11-18
 
 - **Auto mode when adding entries.** The first step of "New entries" now

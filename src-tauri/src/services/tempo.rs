@@ -1,7 +1,7 @@
 //! Client for the Tempo Timesheets REST API v4. Tempo identifies issues by
 //! numeric Jira id, so the Jira client translates ids <-> keys.
 
-use crate::domain::{AttrValue, Attribute, NewWorklog, TempoConfig, TempoWorkAttribute, Worklog};
+use crate::domain::{AttrValue, Attribute, JiraIssue, NewWorklog, TempoConfig, TempoWorkAttribute, Worklog};
 use crate::error::{AppError, AppResult, ErrorCode};
 use crate::services::jira::{url_encode, JiraApi};
 use async_trait::async_trait;
@@ -144,6 +144,50 @@ impl TempoClient {
         }
         offsets
     }
+
+    /// Moves a worklog to another issue: Tempo can't re-parent one in place,
+    /// so a copy is created on the new issue first and the old one deleted
+    /// after - a failure in between leaves a duplicate, never a lost entry.
+    async fn move_worklog(
+        &self,
+        account_id: &str,
+        tempo_worklog_id: i64,
+        worklog: &NewWorklog,
+        issue: JiraIssue,
+        start_time: &str,
+    ) -> AppResult<Worklog> {
+        let mut body = json!({
+            "issueId": issue.id.parse::<i64>().unwrap_or_default(),
+            "timeSpentSeconds": worklog.time_spent_seconds,
+            "startDate": worklog.start_date,
+            "startTime": start_time,
+            "description": worklog.description,
+            "authorAccountId": account_id,
+        });
+        if !worklog.attributes.is_empty() {
+            body["attributes"] = json!(worklog.attributes);
+        }
+        let dto = self.request(&format!("{TEMPO_BASE_URL}/worklogs"), Method::POST, Some(body)).await?;
+        let new_id = dto["tempoWorklogId"].as_i64().unwrap_or_default();
+        self.delete_worklog(account_id, tempo_worklog_id).await.map_err(|e| {
+            AppError::with_details(
+                e.code,
+                format!("Logged on {} but the old worklog {tempo_worklog_id} could not be removed", issue.key),
+                e.details.unwrap_or(e.message),
+            )
+        })?;
+        Ok(Worklog {
+            tempo_worklog_id: new_id,
+            issue_id: issue.id,
+            issue_key: issue.key,
+            issue_summary: issue.summary,
+            description: dto["description"].as_str().map(String::from).unwrap_or_else(|| worklog.description.clone()),
+            time_spent_seconds: dto["timeSpentSeconds"].as_i64().unwrap_or(worklog.time_spent_seconds),
+            start_date: dto["startDate"].as_str().map(String::from).unwrap_or_else(|| worklog.start_date.clone()),
+            start_time: None,
+            attributes: to_attributes(&dto),
+        })
+    }
 }
 
 #[async_trait]
@@ -230,10 +274,18 @@ impl TempoApi for TempoClient {
         // the existing start time is preserved instead of moving the entry.
         let url = format!("{TEMPO_BASE_URL}/worklogs/{tempo_worklog_id}");
         let mut start_time = to_start_time((self.workday_start)());
+        let mut current_issue_id = None;
         if let Ok(existing) = self.request(&url, Method::GET, None).await {
             if let Some(time) = existing["startTime"].as_str() {
                 start_time = time.to_string();
             }
+            current_issue_id = Some(issue_id_of(&existing)).filter(|id| !id.is_empty());
+        }
+        // Tempo accepts a PUT with a different issueId but silently keeps the
+        // worklog on its old issue, so changing the issue is a move: create
+        // the entry on the new issue (same slot in the day), then drop the old.
+        if current_issue_id.as_deref().is_some_and(|id| id != issue.id) {
+            return self.move_worklog(account_id, tempo_worklog_id, worklog, issue, &start_time).await;
         }
         let body = json!({
             "issueId": issue.id.parse::<i64>().unwrap_or_default(),
@@ -246,6 +298,11 @@ impl TempoApi for TempoClient {
             "attributes": worklog.attributes,
         });
         let dto = self.request(&url, Method::PUT, Some(body)).await?;
+        // Couldn't read the old issue up front: catch an ignored issue change here.
+        let saved_issue_id = issue_id_of(&dto);
+        if !saved_issue_id.is_empty() && saved_issue_id != issue.id {
+            return self.move_worklog(account_id, tempo_worklog_id, worklog, issue, &start_time).await;
+        }
         Ok(Worklog {
             tempo_worklog_id: dto["tempoWorklogId"].as_i64().unwrap_or(tempo_worklog_id),
             issue_id: issue.id,
