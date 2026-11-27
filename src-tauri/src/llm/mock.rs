@@ -20,6 +20,9 @@ impl LlmProvider for MockLlm {
 }
 
 fn respond(prompt: &str) -> String {
+    if prompt.contains("ONLY a JSON object") {
+        return regenerate(prompt);
+    }
     if !prompt.contains("JSON array") {
         return "Adjusted the implementation according to review feedback and extended the tests.".into();
     }
@@ -94,4 +97,22 @@ fn respond(prompt: &str) -> String {
         }
     }
     Value::Array(entries).to_string()
+}
+
+/// Regenerate answer: moves the entry to an issue key named in the change
+/// request (so the issue switch can be tried in mock mode), else keeps it.
+fn regenerate(prompt: &str) -> String {
+    let line_after = |label: &str| prompt.split(label).nth(1).and_then(|rest| rest.lines().map(str::trim).find(|l| !l.is_empty())).unwrap_or("");
+    let current = serde_json::from_str::<Value>(line_after("Current entry:")).ok();
+    let current_key = current.as_ref().and_then(|v| v["issueKey"].as_str()).unwrap_or("").to_string();
+    let hint = line_after("Change request from the developer:").to_uppercase();
+    let named = hint
+        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
+        .find(|w| w.contains('-') && prompt.contains(&format!("- {w}:")))
+        .map(str::to_string);
+    json!({
+        "issueKey": named.unwrap_or(current_key),
+        "description": "Adjusted the implementation according to review feedback and extended the tests.",
+    })
+    .to_string()
 }

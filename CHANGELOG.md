@@ -10,6 +10,14 @@ workflow picks the section whose version matches the one being published; a
 push with no matching section falls back to GitHub's auto-generated notes.
 Write for users, not for the commit log — see the `release` skill.
 
+## 1.0.10 — 2026-11-27
+
+- **Regenerating an entry can fix its issue too.** When the comment you give
+  (or the entry itself) says the time belongs to another task - "wrong issue,
+  it was ABC-12" - the regenerated entry moves to that issue of the same Jira
+  project, and a note shows where it moved from so you can check it before
+  saving. Works in the new-entries wizard and when editing a logged entry.
+
 ## 1.0.9 — 2026-11-27
 
 - **Changing the issue of a logged entry now really moves it.** Picking a

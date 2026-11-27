@@ -186,25 +186,78 @@ impl LlmService {
         Ok(previews)
     }
 
-    pub async fn regenerate_description(&self, request: &RegenerateDescriptionRequest) -> AppResult<String> {
+    pub async fn regenerate_description(&self, request: &RegenerateDescriptionRequest) -> AppResult<RegenerateDescriptionResult> {
         let s = &request.suggestion;
-        let entry = json!({ "issueKey": s.issue_key, "date": s.date, "description": s.description, "hours": js_number(s.hours) });
+        let candidates = self.regenerate_candidates(request).await;
+        let entry = json!({ "issueKey": s.issue_key, "issueSummary": clip(&s.issue_summary, 120), "date": s.date, "description": s.description, "hours": js_number(s.hours) });
+        let issues = if candidates.is_empty() {
+            "(only the current one - keep it)".to_string()
+        } else {
+            candidates.iter().map(|i| format!("- {}: {}", i.key, clip(&i.summary, 120))).collect::<Vec<_>>().join("\n")
+        };
         let prompt = REGENERATE_PROMPT
             .replace("{{language}}", language_name(&self.config.get().language))
             .replace("{{entry}}", &entry.to_string())
+            .replace("{{issues}}", &issues)
             .replace("{{commits}}", &format_commits(&request.commits, &s.date))
             .replace("{{notes}}", if request.free_text.is_empty() { "(none)" } else { &request.free_text })
             .replace("{{hint}}", if request.hint.is_empty() { "Rewrite it to be clearer." } else { &request.hint });
-        let text = self.provider(&[]).complete(&prompt).await?.text.trim().to_string();
-        if text.is_empty() {
+        let text = self.provider(&[]).complete(&prompt).await?.text;
+        let (description, issue_key) = parse_regenerated(&text);
+        if description.is_empty() {
             return Err(AppError::new(ErrorCode::LlmBadResponse, "The model returned an empty description"));
         }
-        // Strip accidental wrapping quotes/fences.
-        let fences = Regex::new(r"^```[a-z]*\n?|```$").unwrap();
-        let unfenced = fences.replace_all(&text, "").to_string();
-        let unquoted = unfenced.strip_prefix('"').unwrap_or(&unfenced);
-        let unquoted = unquoted.strip_suffix('"').unwrap_or(unquoted);
-        Ok(unquoted.trim().to_string())
+        // Only a key from the pool counts; anything else keeps the current issue.
+        let issue = issue_key
+            .filter(|key| !key.eq_ignore_ascii_case(&s.issue_key))
+            .and_then(|key| candidates.into_iter().find(|i| i.key.eq_ignore_ascii_case(&key)));
+        if let Some(issue) = &issue {
+            logger::info("llm", &format!("regenerate moved the entry {} -> {}", s.issue_key, issue.key), None);
+        }
+        Ok(RegenerateDescriptionResult { description, issue })
+    }
+
+    /// Issues a regenerated entry may move to: the current one, any key the
+    /// developer typed in the hint or notes, then the project's recent pool.
+    /// Jira failures only shrink the list - the description still regenerates.
+    async fn regenerate_candidates(&self, request: &RegenerateDescriptionRequest) -> Vec<JiraIssue> {
+        if request.connection_id.is_empty() || request.project_key.is_empty() {
+            return Vec::new();
+        }
+        let s = &request.suggestion;
+        let jira = self.connections.jira(&request.connection_id);
+        let mut candidates: Vec<JiraIssue> = Vec::new();
+        if !s.issue_key.is_empty() {
+            candidates.push(JiraIssue {
+                id: String::new(),
+                key: s.issue_key.clone(),
+                summary: s.issue_summary.clone(),
+                type_name: s.issue_type_name.clone(),
+                is_subtask: s.issue_is_subtask,
+            });
+        }
+        let key_pattern = Regex::new(r"[A-Z][A-Z0-9]+-\d+").unwrap();
+        let typed = format!("{}\n{}", request.hint, request.free_text).to_uppercase();
+        let prefix = format!("{}-", request.project_key.to_uppercase());
+        for m in key_pattern.find_iter(&typed) {
+            let key = m.as_str();
+            // Another project's key would log the time into the wrong Jira target.
+            if !key.starts_with(&prefix) || candidates.iter().any(|c| c.key == key) {
+                continue;
+            }
+            if let Ok(issue) = jira.get_issue(key).await {
+                candidates.push(issue);
+            }
+        }
+        let pool = self.config.get().issue_pool;
+        if let Ok(recent) = jira.get_recent_issues(&[request.project_key.clone()], pool.lookback_days, pool.max_issues).await {
+            for issue in recent {
+                if !candidates.iter().any(|c| c.key == issue.key) {
+                    candidates.push(issue);
+                }
+            }
+        }
+        candidates
     }
 
     /// Opens a system terminal running the Claude CLI login flow.
@@ -877,14 +930,39 @@ fn format_commits(commits: &[CommitInfo], date: &str) -> String {
         .join("\n")
 }
 
-/// Every top-level `[...]` substring with balanced brackets, string literals
-/// respected so a `]` inside a description doesn't end the scan early.
+/// The regenerate answer: `{"issueKey", "description"}`, or - from a model
+/// that ignored the format - the bare description text.
+fn parse_regenerated(text: &str) -> (String, Option<String>) {
+    let object = balanced_arrays_or_objects(text, b'{')
+        .into_iter()
+        .filter_map(|c| serde_json::from_str::<Value>(c).ok())
+        .find(|v| v.get("description").is_some_and(Value::is_string));
+    if let Some(v) = object {
+        let description = v["description"].as_str().unwrap_or_default().trim().to_string();
+        let key = v["issueKey"].as_str().map(|k| k.trim().to_uppercase()).filter(|k| !k.is_empty());
+        return (description, key);
+    }
+    // Strip accidental wrapping quotes/fences.
+    let fences = Regex::new(r"^```[a-z]*\n?|```$").unwrap();
+    let trimmed = text.trim();
+    let unfenced = fences.replace_all(trimmed, "").to_string();
+    let unquoted = unfenced.strip_prefix('"').unwrap_or(&unfenced);
+    let unquoted = unquoted.strip_suffix('"').unwrap_or(unquoted);
+    (unquoted.trim().to_string(), None)
+}
+
 fn balanced_arrays(text: &str) -> Vec<&str> {
+    balanced_arrays_or_objects(text, b'[')
+}
+
+/// Every top-level `[...]` (or `{...}`) substring with balanced brackets, string literals
+/// respected so a `]` inside a description doesn't end the scan early.
+fn balanced_arrays_or_objects(text: &str, open: u8) -> Vec<&str> {
     let bytes = text.as_bytes();
     let mut found = Vec::new();
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] != b'[' {
+        if bytes[i] != open {
             i += 1;
             continue;
         }
@@ -958,6 +1036,16 @@ mod tests {
         let text = "Here you go:\n```json\n[{\"date\":\"2026-01-02\",\"issueKey\":\"A-1\",\"description\":\"x]\",\"hours\":4}]\n```\n[{\"date\":\"2026-01-03\",\"issueKey\":\"A-2\",\"description\":\"y\",\"hours\":4}]\nSee [A-12].";
         let rows = extract_json_array(text).unwrap();
         assert_eq!(rows.len(), 2);
+    }
+
+    #[test]
+    fn regenerate_answer_reads_json_or_plain_text() {
+        let (d, k) = parse_regenerated("Sure:\n```json\n{\"issueKey\": \"abc-7\", \"description\": \"Poprawiono {walidację}.\"}\n```");
+        assert_eq!(d, "Poprawiono {walidację}.");
+        assert_eq!(k.as_deref(), Some("ABC-7"));
+        let (d, k) = parse_regenerated("\"Poprawiono testy.\"");
+        assert_eq!(d, "Poprawiono testy.");
+        assert!(k.is_none());
     }
 
     #[test]

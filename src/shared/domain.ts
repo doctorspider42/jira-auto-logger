@@ -544,6 +544,16 @@ export interface RegenerateDescriptionRequest {
   hint: string
   freeText: string
   commits: CommitInfo[]
+  /** Connection and Jira project of the entry; with both set the model may
+   *  move the entry to another issue of that project. */
+  connectionId?: string
+  projectKey?: string
+}
+
+export interface RegenerateDescriptionResult {
+  description: string
+  /** Set only when the model moved the entry to a different issue. */
+  issue?: JiraIssue
 }
 
 // ---------- Errors ----------

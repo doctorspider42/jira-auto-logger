@@ -15,6 +15,7 @@ import type {
   TempoWorkAttribute,
   PromptPreview,
   RegenerateDescriptionRequest,
+  RegenerateDescriptionResult,
   ReportReminder,
   ReportRequest,
   ReportResult,
@@ -83,7 +84,7 @@ export interface IpcApi {
     generateSuggestions(request: SuggestionRequest): Promise<Result<ProjectSuggestions[]>>
     /** Debug: the exact prompts that would be sent, with input-token estimates. */
     previewPrompt(request: SuggestionRequest): Promise<Result<PromptPreview[]>>
-    regenerateDescription(request: RegenerateDescriptionRequest): Promise<Result<string>>
+    regenerateDescription(request: RegenerateDescriptionRequest): Promise<Result<RegenerateDescriptionResult>>
     /** Attempts to start the Claude CLI login flow in a system terminal. */
     startClaudeLogin(): Promise<Result<void>>
   }

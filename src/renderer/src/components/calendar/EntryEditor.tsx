@@ -66,6 +66,8 @@ export function EntryEditor({
   const [regenerateOpen, setRegenerateOpen] = useState(false)
   const [hint, setHint] = useState('')
   const [regenerating, setRegenerating] = useState(false)
+  // Issue the last regeneration moved the entry away from.
+  const [movedFrom, setMovedFrom] = useState<string | null>(null)
 
   const patch = (changes: Partial<Draft>): void => setDraft((d) => ({ ...d, ...changes }))
 
@@ -89,11 +91,25 @@ export function EntryEditor({
       },
       hint,
       freeText: instruction,
-      commits: []
+      commits: [],
+      connectionId: entry.connectionId,
+      projectKey: projectKeyOf(draft.issueKey)
     })
     setRegenerating(false)
     if (result.ok) {
-      patch({ description: result.value })
+      const issue = result.value.issue
+      patch(
+        issue
+          ? {
+              description: result.value.description,
+              issueKey: issue.key,
+              issueSummary: issue.summary,
+              issueTypeName: issue.typeName,
+              issueIsSubtask: issue.isSubtask
+            }
+          : { description: result.value.description }
+      )
+      setMovedFrom(issue ? draft.issueKey : null)
       setRegenerateOpen(false)
       setHint('')
     } else {
@@ -219,6 +235,12 @@ export function EntryEditor({
         <label>{t('wizard.description')}</label>
         <textarea value={draft.description} onChange={(e) => patch({ description: e.target.value })} />
       </div>
+
+      {movedFrom && (
+        <div className="regenerate-moved">
+          {t('wizard.regenerateMoved', { from: movedFrom, to: draft.issueKey })}
+        </div>
+      )}
 
       {regenerateOpen ? (
         <div className="regenerate-box">

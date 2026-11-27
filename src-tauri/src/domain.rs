@@ -457,6 +457,21 @@ pub struct RegenerateDescriptionRequest {
     pub hint: String,
     pub free_text: String,
     pub commits: Vec<CommitInfo>,
+    /// Connection and Jira project the entry belongs to; with both set the
+    /// model may move the entry to another issue of that project.
+    #[serde(default)]
+    pub connection_id: String,
+    #[serde(default)]
+    pub project_key: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegenerateDescriptionResult {
+    pub description: String,
+    /// Set only when the model moved the entry to a different issue.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issue: Option<JiraIssue>,
 }
 
 // ---------- Activity scan (auto mode) ----------

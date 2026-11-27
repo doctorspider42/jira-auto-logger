@@ -1151,3 +1151,13 @@
   align-items: center;
   gap: 6px;
 }
+
+/* Note after a regeneration moved the entry to another issue. */
+.regenerate-moved {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--warning);
+}

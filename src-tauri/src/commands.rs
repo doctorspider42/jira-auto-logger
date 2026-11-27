@@ -237,7 +237,7 @@ pub async fn llm_preview_prompt(request: SuggestionRequest, state: State<'_, App
 }
 
 #[tauri::command]
-pub async fn llm_regenerate_description(request: RegenerateDescriptionRequest, state: State<'_, AppState>) -> Result<Envelope<String>, ()> {
+pub async fn llm_regenerate_description(request: RegenerateDescriptionRequest, state: State<'_, AppState>) -> Result<Envelope<RegenerateDescriptionResult>, ()> {
     let llm = state.llm.clone();
     Ok(to_result("llm:regenerateDescription", async move { llm.regenerate_description(&request).await }).await)
 }

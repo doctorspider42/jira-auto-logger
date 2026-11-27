@@ -49,6 +49,8 @@ export function SuggestionRow({
   const [hint, setHint] = useState("");
   const [regenerating, setRegenerating] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
+  // Issue the last regeneration moved the row away from, shown until dismissed.
+  const [movedFrom, setMovedFrom] = useState<string | null>(null);
   // Open new-issue form; holds the summary it starts from.
   const [issueForm, setIssueForm] = useState<Partial<NewIssueDraft> | null>(
     null,
@@ -73,10 +75,30 @@ export function SuggestionRow({
       hint,
       freeText,
       commits,
+      connectionId,
+      projectKey,
     });
     setRegenerating(false);
     if (result.ok) {
-      onChange({ ...suggestion, description: result.value });
+      const issue = result.value.issue;
+      onChange(
+        issue
+          ? {
+              ...suggestion,
+              description: result.value.description,
+              issueKey: issue.key,
+              issueSummary: issue.summary,
+              issueTypeName: issue.typeName,
+              issueIsSubtask: issue.isSubtask,
+              newIssue: undefined,
+            }
+          : { ...suggestion, description: result.value.description },
+      );
+      setMovedFrom(
+        issue
+          ? suggestion.issueKey || newIssue?.summary || t("wizard.noIssue")
+          : null,
+      );
       setRegenerateOpen(false);
       setHint("");
     } else {
@@ -263,6 +285,18 @@ export function SuggestionRow({
       </div>
 
       {error && <ErrorBanner error={error} onRetry={regenerate} />}
+
+      {movedFrom && (
+        <div className="regenerate-moved">
+          {t("wizard.regenerateMoved", {
+            from: movedFrom,
+            to: suggestion.issueKey,
+          })}
+          <button className="link" onClick={() => setMovedFrom(null)}>
+            {t("app.close")}
+          </button>
+        </div>
+      )}
 
       {issueForm && (
         <NewIssuePanel
